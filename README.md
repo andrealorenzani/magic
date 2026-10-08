@@ -17,7 +17,7 @@ php tests/run.php                   # tests (astronomy, time zones, input valida
 
 ## Deploy on DreamHost
 
-1. Domains → Manage Websites → set the site's **web directory to `<project>/public`** (PHP ≥ 8.1).
+1. Domains → Manage Websites → set the site's **web directory to `<project>/public`** (PHP ≥ 8.1, preferred). Alternatively keep the project root as web directory: the root `.htaccess` serves `public/` and blocks `src/`, `docs/`, etc.
 2. Upload the whole project (SFTP/git) so `src/`, `templates/`, `cache/` sit beside `public/`.
 3. `chmod 775 cache` so geocoding results can be cached.
 

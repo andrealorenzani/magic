@@ -5,6 +5,7 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 ## Repository map
 
 ```
+/.htaccess                   Only used when the web dir is the project root: 301 /public/… → /…, rewrites all else into public/
 public/                      ← web root (DreamHost "web directory")
   index.php                  Main page controller: read $_GET → Request::parse → Chart::compute → templates/home.php
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder

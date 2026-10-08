@@ -63,6 +63,7 @@ Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet.
 - Outbound requests go only to the fixed Open-Meteo host; the query is URL-encoded.
 - Only the **city text** is sent to a third party. Birth data is processed per request and **not stored** (no DB, no logs of inputs by the app). Note that the shareable GET URL contains the birth data, so web-server access logs may record it — mention in any privacy policy.
 - `src/`, `templates/`, `cache/`, `tests/`, `docs/` live **outside** the web root (`public/` is the document root); `cache/` also has a deny `.htaccess`.
+- If the web directory is the project root instead, the root `.htaccess` 301-redirects `/public/...` to `/...` and rewrites everything else into `public/`, so `src/`, `templates/`, `cache/`, `docs/`, `tests/` and `README.md` return 404 (this relies on Apache `mod_rewrite`; prefer `public/` as web root).
 - `public/.htaccess` sets a strict CSP (no inline scripts/styles — keep it that way).
 
 ## 6. Agentic development workflow
@@ -98,7 +99,7 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 
 ## 9. Deployment (DreamHost)
 
-1. Create a domain/subdomain with PHP ≥ 8.1 and set its **web directory to `<project>/public`** (Panel → Domains → Manage Websites → Edit).
+1. Create a domain/subdomain with PHP ≥ 8.1 and set its **web directory to `<project>/public`** (Panel → Domains → Manage Websites → Edit). *Alternative:* leave the web directory at the project root; the root `.htaccess` then serves `public/` as the site (verified live on magic.supermaestro.org).
 2. Upload the whole project (SFTP/rsync/git) so `src/`, `templates/`, `cache/` sit next to `public/`.
 3. Ensure `cache/` is writable by the PHP user (`chmod 775 cache`).
 4. Visit the site; no configuration needed. (When MySQL is introduced: create the DB in the panel and put credentials in an untracked `config.php`.)
