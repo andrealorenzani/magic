@@ -1,0 +1,13 @@
+---
+description: Run the Arcana agentic workflow to design, build, review and document a feature
+argument-hint: <feature idea>
+---
+Implement this feature for Arcana: $ARGUMENTS
+
+Run this pipeline using the project subagents, passing outputs between steps. Do not skip steps.
+
+1. **architect** — read `docs/` and write an ADR in `docs/decisions/`. Show me a short summary; if the design breaks an existing decision in `docs/architecture.md`, STOP and ask me.
+2. **implementer** — implement the ADR with tests; `php tests/run.php` must pass.
+3. **reviewer** — review the result against the ADR. If verdict is CHANGES REQUESTED, send BLOCKING findings back to **implementer**, then re-review (max 3 rounds).
+4. **documenter** — update `docs/architecture.md`, `docs/code.md`, `docs/roadmap.md`, `README.md`.
+5. Finish with a summary: what changed, test status, docs updated, follow-ups.
