@@ -9,55 +9,180 @@ use Arcana\Time\Zone;
 /** Validates the query string of the main page and turns it into chart inputs. */
 final class Request
 {
+    public const MODES = ['self', 'love'];
+
+    /**
+     * Which mode the query asks for: 'self' | 'love' | null (chooser). A missing mode with
+     * date/city present is Self, so old shared links keep working; an unknown mode is null.
+     * @param array<string,mixed> $q
+     */
+    public static function mode(array $q): ?string
+    {
+        if (isset($q['mode'])) {
+            $m = $q['mode'];
+            return is_string($m) && in_array($m, self::MODES, true) ? $m : null;
+        }
+        return (isset($q['date']) || isset($q['city'])) ? 'self' : null;
+    }
+
+    /**
+     * Reference "today" (Y-m-d): a valid `on=` override (1900-2100), else the real date.
+     * @param array<string,mixed> $q
+     */
+    public static function parseToday(array $q, string $realToday): string
+    {
+        $on = $q['on'] ?? null;
+        if (is_string($on) && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $on, $m)
+            && checkdate((int) $m[2], (int) $m[3], (int) $m[1]) && (int) $m[1] >= 1900 && (int) $m[1] <= 2100) {
+            return $on;
+        }
+        return $realToday;
+    }
+
     /**
      * @param array<string,mixed> $q usually $_GET
      * @return array{input: ?array, errors: list<string>, notes: list<string>}
      */
     public static function parse(array $q, Geocoder $geocoder): array
     {
-        $errors = [];
-        $notes = [];
-        $date = (string) ($q['date'] ?? '');
-        $time = (string) ($q['time'] ?? '');
-        $city = trim((string) ($q['city'] ?? ''));
-
-        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $d) || !checkdate((int) $d[2], (int) $d[3], (int) $d[1]) || (int) $d[1] < 1000 || (int) $d[1] > 2100) {
-            $errors[] = 'Please enter a valid birth date.';
+        $r = self::parsePerson($q, '', $geocoder, true, '');
+        $p = $r['person'];
+        if ($p === null) {
+            return ['input' => null, 'errors' => $r['errors'], 'notes' => $r['notes']];
         }
-        if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $time, $t)) {
-            $errors[] = 'Please enter the birth time as hh:mm.';
-        }
-        if ($city === '') {
-            $errors[] = 'Please enter your birth city.';
-        }
-        if ($errors) {
-            return ['input' => null, 'errors' => $errors, 'notes' => $notes];
-        }
-
-        $lat = filter_var($q['lat'] ?? null, FILTER_VALIDATE_FLOAT);
-        $lon = filter_var($q['lon'] ?? null, FILTER_VALIDATE_FLOAT);
-        $tz = (string) ($q['tz'] ?? '');
-        $hasPlace = $lat !== false && $lon !== false && abs($lat) <= 90 && abs($lon) <= 180 && Zone::isValid($tz);
-
-        if (!$hasPlace) {
-            // No JavaScript (or tampered fields): resolve the city text on the server.
-            $found = $geocoder->search($city)[0] ?? null;
-            if ($found === null) {
-                return ['input' => null, 'errors' => ["We couldn't find a city called “{$city}”. Try another spelling."], 'notes' => $notes];
-            }
-            [$lat, $lon, $tz] = [$found['lat'], $found['lon'], $found['timeZone']];
-            $city = Geocoder::label($found);
-            $notes[] = "Using {$city}.";
-        }
-
         return [
             'input' => [
-                'year' => (int) $d[1], 'month' => (int) $d[2], 'day' => (int) $d[3],
-                'hour' => (int) $t[1], 'minute' => (int) $t[2],
-                'lat' => (float) $lat, 'lon' => (float) $lon, 'tz' => $tz, 'city' => $city,
+                'year' => $p['date']['year'], 'month' => $p['date']['month'], 'day' => $p['date']['day'],
+                'hour' => $p['time']['hour'], 'minute' => $p['time']['minute'],
+                'lat' => $p['place']['lat'], 'lon' => $p['place']['lon'], 'tz' => $p['place']['tz'], 'city' => $p['place']['city'],
             ],
             'errors' => [],
-            'notes' => $notes,
+            'notes' => $r['notes'],
         ];
+    }
+
+    /**
+     * Love mode: persons `a_` (you) and `b_` (loved one).
+     * @param array<string,mixed> $q
+     * @return array{a: ?array, b: ?array, errors: list<string>, notes: list<string>}
+     */
+    public static function parseLove(array $q, Geocoder $geocoder): array
+    {
+        $errors = [];
+        $notes = [];
+        $out = ['a' => null, 'b' => null];
+        foreach (['a' => ['a_', true, 'You: '], 'b' => ['b_', false, 'Loved person: ']] as $k => [$p, $required, $who]) {
+            $nameErr = null;
+            $name = self::parseName($q[$p . 'name'] ?? '', $nameErr);
+            if ($nameErr !== null) {
+                $errors[] = $who . $nameErr;
+            }
+            $r = self::parsePerson($q, $p, $geocoder, $required, $who);
+            array_push($errors, ...$r['errors']);
+            array_push($notes, ...$r['notes']);
+            if ($nameErr === null && !$r['errors'] && $r['person'] !== null) {
+                $out[$k] = ['name' => $name] + $r['person'];
+            }
+        }
+        if ($errors) {
+            $out = ['a' => null, 'b' => null];
+        }
+        return $out + ['errors' => $errors, 'notes' => $notes];
+    }
+
+    /** @param mixed $raw @param-out ?string $error */
+    private static function parseName(mixed $raw, ?string &$error): string
+    {
+        $error = null;
+        $name = trim(is_string($raw) ? $raw : '');
+        $len = preg_match_all('/./u', $name);
+        if ($len === false || preg_match('/\p{Cc}/u', $name) === 1) {
+            $error = 'Please enter a valid name.';
+        } elseif ($len < 1) {
+            $error = 'Please enter a name.';
+        } elseif ($len > 40) {
+            $error = 'The name can have at most 40 characters.';
+        } elseif (preg_match('/\p{L}/u', $name) !== 1) {
+            $error = 'The name must contain at least one letter.';
+        }
+        return $name;
+    }
+
+    /**
+     * One person's birth data. Required: date, time and city all needed (strict).
+     * Optional: each part validated when present; a time is used only with date and place,
+     * a place only with date and time (otherwise ignored with a note).
+     * @param array<string,mixed> $q
+     * @return array{person: ?array, errors: list<string>, notes: list<string>}
+     */
+    public static function parsePerson(array $q, string $p, Geocoder $geocoder, bool $required, string $who): array
+    {
+        $errors = [];
+        $notes = [];
+        $str = static fn (string $k): string => is_string($q[$k] ?? null) ? $q[$k] : '';
+        $date = trim($str($p . 'date'));
+        $time = trim($str($p . 'time'));
+        $city = trim($str($p . 'city'));
+        if ($required) {
+            // Same strict behaviour and messages as before (no trimming of date/time).
+            $date = $str($p . 'date');
+            $time = $str($p . 'time');
+        }
+
+        $d = $t = null;
+        if ($required || $date !== '') {
+            if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m) || !checkdate((int) $m[2], (int) $m[3], (int) $m[1]) || (int) $m[1] < 1000 || (int) $m[1] > 2100) {
+                $errors[] = $who . 'Please enter a valid birth date.';
+            } else {
+                $d = ['year' => (int) $m[1], 'month' => (int) $m[2], 'day' => (int) $m[3]];
+            }
+        }
+        $timeOk = false;
+        if ($required || $time !== '') {
+            if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $time, $m)) {
+                $errors[] = $who . 'Please enter the birth time as hh:mm.';
+            } else {
+                $t = ['hour' => (int) $m[1], 'minute' => (int) $m[2]];
+                $timeOk = true;
+            }
+        }
+        if ($required && $city === '') {
+            $errors[] = $who . 'Please enter your birth city.';
+        }
+        if ($errors) {
+            return ['person' => null, 'errors' => $errors, 'notes' => $notes];
+        }
+
+        if (!$required) {
+            if ($t !== null && ($d === null || $city === '')) {
+                $notes[] = $who . 'Birth time ignored: it needs a date and a place.';
+                $t = null;
+            }
+            if ($city !== '' && ($d === null || !$timeOk)) {
+                $notes[] = $who . 'Birth place ignored: it needs a date and a time.';
+                $city = '';
+            }
+        }
+
+        $place = null;
+        if ($city !== '' && $d !== null && $t !== null) {
+            $lat = filter_var(is_scalar($q[$p . 'lat'] ?? null) ? $q[$p . 'lat'] : null, FILTER_VALIDATE_FLOAT);
+            $lon = filter_var(is_scalar($q[$p . 'lon'] ?? null) ? $q[$p . 'lon'] : null, FILTER_VALIDATE_FLOAT);
+            $tz = $str($p . 'tz');
+            $hasPlace = $lat !== false && $lon !== false && abs($lat) <= 90 && abs($lon) <= 180 && Zone::isValid($tz);
+            if (!$hasPlace) {
+                // No JavaScript (or tampered fields): resolve the city text on the server.
+                $found = $geocoder->search($city)[0] ?? null;
+                if ($found === null) {
+                    return ['person' => null, 'errors' => [$who . "We couldn't find a city called “{$city}”. Try another spelling."], 'notes' => $notes];
+                }
+                [$lat, $lon, $tz] = [$found['lat'], $found['lon'], $found['timeZone']];
+                $city = Geocoder::label($found);
+                $notes[] = $who . "Using {$city}.";
+            }
+            $place = ['lat' => (float) $lat, 'lon' => (float) $lon, 'tz' => $tz, 'city' => $city];
+        }
+
+        return ['person' => ['date' => $d, 'time' => $t, 'place' => $place], 'errors' => [], 'notes' => $notes];
     }
 }

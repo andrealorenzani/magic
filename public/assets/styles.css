@@ -38,20 +38,21 @@ input {
 }
 input:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .city { position: relative; }
-#city-list {
+[data-role="list"] {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 5; margin: 4px 0 0; padding: 4px;
   list-style: none; background: #0f0d2c; border: 1px solid var(--line); border-radius: 10px;
   max-height: 260px; overflow: auto;
 }
-#city-list li { padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--ink); }
-#city-list li:hover { background: var(--line); }
+[data-role="list"] li { padding: 10px 12px; border-radius: 8px; cursor: pointer; color: var(--ink); }
+[data-role="list"] li:hover { background: var(--line); }
 button {
   font: inherit; font-weight: 600; padding: 14px; border: 0; border-radius: 10px; cursor: pointer;
   color: #1a1330; background: linear-gradient(135deg, var(--gold), #e89bd2);
 }
 button:hover { filter: brightness(1.08); }
-#status { margin: 0; min-height: 1.4em; color: var(--muted); font-size: .85rem; }
+.status { margin: 0; min-height: 1.4em; color: var(--muted); font-size: .85rem; }
 .results { display: grid; gap: 16px; margin-top: 32px; }
+.trio { display: grid; gap: 16px; }
 .card {
   --accent: var(--gold); text-align: center; padding: 24px 20px; background: var(--panel);
   border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 16px;
@@ -66,5 +67,96 @@ button:hover { filter: brightness(1.08); }
 .card__text { margin: 0; }
 .note { color: var(--muted); font-size: .8rem; text-align: center; margin: 0; }
 footer { position: relative; text-align: center; color: var(--muted); font-size: .8rem; padding: 24px 16px 40px; }
-@media (min-width: 640px) { .results { grid-template-columns: repeat(3, 1fr); } .note { grid-column: 1 / -1; } }
 .note--error { color: #ff9b9b; grid-column: 1 / -1; }
+
+/* Modes, forms, results (ADR 0002) */
+main { max-width: 860px; }
+.icon { width: 1.25em; height: 1.25em; vertical-align: -0.2em; }
+.chooser { display: grid; gap: 16px; margin: 0 0 24px; }
+.chooser__card {
+  display: grid; gap: 6px; padding: 20px; text-decoration: none; color: var(--ink); min-height: 88px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+}
+.chooser__card:hover, .chooser__card.is-active { border-color: var(--gold); }
+.chooser__card strong { font-size: 1.25rem; font-weight: 400; color: var(--gold); }
+.chooser__card span { color: var(--muted); font-size: .9rem; }
+.chooser__icon { font-size: 1.6rem; color: var(--gold) !important; }
+.chooser__card:focus-visible, summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.people { display: grid; gap: 16px; }
+.person { display: grid; gap: 16px; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.person legend { padding: 0 8px; color: var(--gold); }
+.hint { margin: 0; color: var(--muted); font-size: .85rem; }
+.toolbar { display: flex; justify-content: flex-end; grid-column: 1 / -1; }
+.print-btn { display: inline-flex; gap: 8px; align-items: center; padding: 10px 16px; }
+.print-btn[hidden] { display: none; }
+.block { display: grid; gap: 12px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; }
+.block h2 { margin: 0; font-weight: 400; font-size: 1.4rem; color: var(--gold); }
+.block h3 { margin: .4em 0 0; font-weight: 400; font-size: 1.05rem; }
+.block p { margin: 0; }
+.block .note { text-align: left; }
+.planets { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.planet { --accent: var(--gold); padding: 14px; border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 12px; break-inside: avoid; }
+.planet h3 { margin: 0; font-size: 1rem; }
+.planet__glyph { float: right; font-size: 1.8rem; color: var(--accent); line-height: 1; }
+.planet__sign { color: var(--accent); font-size: 1.15rem !important; }
+.planet__pos, .planet__text { color: var(--muted); font-size: .85rem; }
+.card--fire { --accent: var(--fire); } .card--earth { --accent: var(--earth); }
+.card--air { --accent: var(--air); }   .card--water { --accent: var(--water); }
+.badge { display: inline-block; padding: 0 6px; border: 1px solid var(--gold); border-radius: 6px; font-size: .75rem; color: var(--gold); text-decoration: none; }
+.reasons { margin: .8em 0 0; padding-left: 1.1em; text-align: left; font-size: .85rem; color: var(--muted); }
+.affinity .card__pos meter { width: 100%; display: block; }
+meter { height: 14px; width: min(100%, 320px); vertical-align: middle; }
+.bio-row { padding-top: 8px; border-top: 1px solid var(--line); }
+.bio-chart { width: 100%; height: 140px; background: #0f0d2c; border: 1px solid var(--line); border-radius: 10px; }
+.bio-chart polyline { stroke-width: 2; vector-effect: non-scaling-stroke; }
+.bio-axis { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+polyline.bio--physical { stroke: #ff7a59; }
+polyline.bio--emotional { stroke: #7cc4ff; }
+polyline.bio--intellectual { stroke: #7fc08a; }
+polyline.bio--second { stroke-dasharray: 6 4; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; list-style: none; margin: 0; padding: 0; font-size: .85rem; color: var(--muted); }
+.swatch { display: inline-block; width: 18px; height: 4px; margin-right: 6px; vertical-align: middle; }
+.swatch.bio--second { background: none !important; border-top: 4px dashed #7cc4ff; height: 0; }
+.swatch.bio--physical { background: #ff7a59; } .swatch.bio--emotional { background: #7cc4ff; } .swatch.bio--intellectual { background: #7fc08a; }
+.heart-card { text-align: center; justify-items: center; }
+.heart__percent { font-size: 3.4rem; color: #e89bd2; line-height: 1.1; }
+details { text-align: left; color: var(--muted); }
+summary { cursor: pointer; }
+.tarot { display: grid; gap: 16px; }
+.tarot__card { text-align: center; padding: 16px; border: 1px solid var(--line); border-radius: 12px; break-inside: avoid; }
+.tarot__face { display: grid; place-items: center; height: 170px; margin: 8px auto; width: 120px; border: 2px solid var(--gold); border-radius: 10px; background: #0f0d2c; }
+.tarot__art { display: grid; gap: 6px; text-align: center; color: var(--gold); }
+.tarot__art--reversed { transform: rotate(180deg); }
+.tarot__num { font-size: 2.4rem; line-height: 1; }
+.tarot__name { font-size: .8rem; letter-spacing: .1em; text-transform: uppercase; padding: 0 6px; }
+.print-only { display: none; }
+@media (min-width: 640px) {
+  .chooser, .people { grid-template-columns: 1fr 1fr; }
+  .trio, .tarot { grid-template-columns: repeat(3, 1fr); }
+  .note { grid-column: 1 / -1; }
+}
+@media print {
+  :root { color-scheme: light; }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .stars, form, .chooser, .no-print, button, footer, .hero, audio { display: none !important; }
+  .print-only { display: block; }
+  main { max-width: none; padding: 0; }
+  .results { margin-top: 0; }
+  .card, .block, .planet, .tarot__card, .person, .bio-row { background: #fff; color: #000; border: 1px solid #000; break-inside: avoid; box-shadow: none; }
+  .block h2, .card__symbol, .card__pos, .planet__glyph, .planet__sign, .heart__percent, .tarot__art, .chooser__card strong { color: #000; }
+  .card__role, .card__tag, .note, .reasons, .planet__pos, .planet__text, .legend, details { color: #222; }
+  .trio, .tarot { grid-template-columns: repeat(3, 1fr); }
+  .bio-chart { background: #fff; border-color: #000; }
+  .bio-axis { stroke: #888; }
+  polyline.bio--physical, polyline.bio--emotional, polyline.bio--intellectual { stroke: #000; }
+  polyline.bio--emotional { stroke-dasharray: 2 3; }
+  polyline.bio--second { stroke-dasharray: 6 4; }
+  polyline.bio--emotional.bio--second { stroke-dasharray: 6 4; stroke-width: 3; }
+  .swatch { -webkit-print-color-adjust: exact; print-color-adjust: exact; height: 0; background: none !important; border-top: 4px solid #000; }
+  .swatch.bio--emotional { border-top-style: dotted; }
+  .swatch.bio--intellectual { border-top-style: dashed; border-top-width: 4px; }
+  .swatch.bio--second { border-top-style: dashed; }
+  polyline.bio--intellectual { stroke-dasharray: 8 3; }
+  .tarot__face { border-color: #000; background: #fff; }
+  details > * { display: block; }
+}

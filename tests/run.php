@@ -124,5 +124,10 @@ check('request: rejects tampered time zone (falls back to geocoding path)', func
     }
 });
 
+// ADR 0002 test cases (use check/same/near/utc defined above).
+foreach (['planets', 'bio', 'love', 'tarot', 'request', 'layering'] as $case) {
+    require __DIR__ . "/cases/$case.php";
+}
+
 echo "\n$count tests, $failures failed\n";
 exit($failures === 0 ? 0 : 1);
