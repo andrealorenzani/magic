@@ -1,4 +1,4 @@
-# Used when the web directory is the project root (e.g. magic.supermaestro.org/):
+# Used when the web directory is the project root: serve public/ as the site root.
 # serve public/ as the site root. Nothing outside public/ (src, templates, cache, docs, tests…) is reachable.
 Options -Indexes
 RewriteEngine On

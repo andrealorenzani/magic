@@ -18,11 +18,11 @@ Long-term ambition: the most-used page for magic lovers, so adding features (pla
 
 | # | Decision | Why | Trade-off |
 |---|---|---|---|
-| D1 | **PHP 8.1+, server-rendered, deployable on DreamHost shared hosting** (Apache + PHP, FTP/SFTP/git deploy). No Composer, no build step, no framework | Hard requirement (hosting). Nothing to install on the server | We write a tiny autoloader/router ourselves |
+| D1 | **PHP 8.1+, server-rendered, deployable on Apache shared hosting** (Apache + PHP, FTP/SFTP/git deploy). No Composer, no build step, no framework | Hard requirement (hosting). Nothing to install on the server | We write a tiny autoloader/router ourselves |
 | D2 | **Database: MySQL only, and only when a feature needs persistence. v0.2 uses none** | Nothing in the big-three flow needs storing; fewer moving parts, no personal data at rest | Features like accounts/saved charts/share-by-id need an ADR + schema (see §7) |
 | D3 | **Astronomy implemented in-house in PHP** (`Arcana\Astro\*`, Meeus low-precision series) | No dependency (no Swiss Ephemeris binary on shared hosting), testable. Sun/Moon ≈ 0.01° | Moon sign wrong only within ~0.01° of a sign boundary |
 | D4 | **Tropical zodiac** | The Western standard users expect | Sidereal could be added later |
-| D5 | **Geocoding via Open-Meteo** (lat, lon, IANA time zone), called **server-side**, results cached on disk in `cache/`, bundled fallback list if the API is down | One call yields all place data; server-side call keeps visitors' queries out of third-party JS and allows caching | Needs outbound HTTP (`curl` or `allow_url_fopen`, both normally on at DreamHost) |
+| D5 | **Geocoding via Open-Meteo** (lat, lon, IANA time zone), called **server-side**, results cached on disk in `cache/`, bundled fallback list if the API is down | One call yields all place data; server-side call keeps visitors' queries out of third-party JS and allows caching | Needs outbound HTTP (`curl` or `allow_url_fopen`, both normally on at shared hosts) |
 | D6 | **Time zones via PHP's `DateTimeZone`** | Correct historical DST/offsets from the tz database, no library | Very old dates use LMT as in the tz database |
 | D7 | **Pure core, thin web layer** | `Arcana\Astro`, `Chart`, `Time` have no I/O and are unit-tested from the CLI | — |
 | D8 | **Progressive enhancement**: the page works without JavaScript (server resolves the city text); JS only adds city autocomplete | Robust, SEO-friendly, shareable GET URLs | — |
@@ -79,6 +79,8 @@ Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet.
  reviewer ──► layering, accuracy, security, a11y ──► findings (loop to implementer if blocking)
     ▼
  documenter ──► updates architecture.md, code.md, roadmap.md, README.md
+    ▼
+ commit ──► deployer ──► scripts/deploy.sh (tests, then SFTP upload of changed files)
 ```
 
 Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP).
@@ -90,16 +92,25 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 | A body (Mercury…Pluto) | new `src/Astro/<Body>.php`, call it in `Chart::compute`, add role copy in `Content\Signs::ROLES`, add card in `templates/home.php` |
 | Houses | new `src/Astro/Houses.php` reusing `Angles`/`Ascendant::gmst` |
 | Copy / languages | `src/Content/` only |
-| Persistence (saved/shared charts, accounts, caching city lookups in SQL) | **MySQL** via PDO: add `src/Db.php` (config from an untracked `config.php`, DreamHost MySQL host/user/password), SQL in `migrations/NNN_*.sql`, an ADR superseding D2. Never store birth data without an explicit privacy decision |
+| Persistence (saved/shared charts, accounts, caching city lookups in SQL) | **MySQL** via PDO: add `src/Db.php` (config from an untracked `config.php`, MySQL host/user/password from the hosting panel), SQL in `migrations/NNN_*.sql`, an ADR superseding D2. Never store birth data without an explicit privacy decision |
 | New page/route | new file in `public/` (plain PHP entry scripts, no router yet) + template in `templates/` |
 
 ## 8. Testing
 
 `php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure). Astronomy is checked against published values (Meeus examples, equinox, a known natal chart); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input. The web layer is verified with `php -S localhost:8081 -t public` and curl/browser.
 
-## 9. Deployment (DreamHost)
+## 9. Deployment (Apache shared hosting)
 
-1. Create a domain/subdomain with PHP ≥ 8.1 and set its **web directory to `<project>/public`** (Panel → Domains → Manage Websites → Edit). *Alternative:* leave the web directory at the project root; the root `.htaccess` then serves `public/` as the site (verified live on magic.supermaestro.org).
+1. Create a domain/subdomain with PHP ≥ 8.1 and set its **web directory to `<project>/public`** (Panel → Domains → Manage Websites → Edit). *Alternative:* leave the web directory at the project root; the root `.htaccess` then serves `public/` as the site (verified live).
 2. Upload the whole project (SFTP/rsync/git) so `src/`, `templates/`, `cache/` sit next to `public/`.
 3. Ensure `cache/` is writable by the PHP user (`chmod 775 cache`).
 4. Visit the site; no configuration needed. (When MySQL is introduced: create the DB in the panel and put credentials in an untracked `config.php`.)
+
+### Automated deploy
+
+`scripts/deploy.sh [--all] [--dry-run]` wraps the `sftp-upload` skill (`~/.claude/skills/sftp-upload`). Target settings come from the gitignored `.deploy.local` (template: `.deploy.local.example`); credentials live outside the repo in `~/.password`. Behaviour:
+
+- Refuses to run with uncommitted tracked changes and runs `php tests/run.php` first; failing tests abort the deploy.
+- Uploads only committed files changed since the last deployed commit (recorded in the gitignored `.deploy-state`); `--all` uploads every tracked file.
+- Cannot delete remote files: removed files are listed as warnings and must be deleted manually.
+- Run by the `deployer` agent as the last step of `/new-feature`. Host, domain and provider names never appear in the repo.

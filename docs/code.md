@@ -6,7 +6,7 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 
 ```
 /.htaccess                   Only used when the web dir is the project root: 301 /public/… → /…, rewrites all else into public/
-public/                      ← web root (DreamHost "web directory")
+public/                      ← web root (the server's "web directory")
   index.php                  Main page controller: read $_GET → Request::parse → Chart::compute → templates/home.php
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
   assets/styles.css          All styling (dark/starry theme, element colours)
@@ -29,8 +29,11 @@ src/
 templates/home.php           The HTML page (form + result cards); escapes via e()
 cache/                       Geocoding cache (writable, denied from web; not in web root)
 tests/run.php                Dependency-free test runner
+scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill
+.deploy.local.example        Template for the gitignored .deploy.local (host, remote dir); credentials in ~/.password
+.deploy-state                (gitignored) last deployed commit SHA
 docs/                        architecture.md, code.md, roadmap.md, decisions/ (ADRs)
-.claude/agents/              architect, implementer, reviewer, documenter
+.claude/agents/              architect, implementer, reviewer, documenter, deployer
 .claude/commands/            new-feature.md (workflow entry point)
 CLAUDE.md                    Rules for AI agents
 ```

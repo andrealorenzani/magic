@@ -1,3 +1,5 @@
 cache/*.json
 config.php
 .DS_Store
+.deploy.local
+.deploy-state

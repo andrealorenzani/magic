@@ -10,3 +10,5 @@ You implement features for Arcana.
 3. Write tests first or alongside in `tests/run.php`; astronomical outputs need a published reference value.
 4. Run `php tests/run.php` and fix until green. Smoke-test web changes with `php -S localhost:8081 -t public` and curl.
 5. Do NOT edit `docs/` or `README.md` (the documenter owns them). Reply with: files changed, public API changes, test results, anything that deviates from the ADR.
+
+Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".

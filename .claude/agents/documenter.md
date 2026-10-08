@@ -12,3 +12,5 @@ Process after a change:
 4. Verify every path mentioned in docs exists (`ls`) and every command mentioned in docs actually works.
 5. Keep the tone concise; never document what is not implemented except under "Ideas" in the roadmap.
 Reply with the list of docs you touched and one line per change.
+
+Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".

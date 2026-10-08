@@ -15,13 +15,15 @@ php -S localhost:8081 -t public     # http://localhost:8081
 php tests/run.php                   # tests (astronomy, time zones, input validation)
 ```
 
-## Deploy on DreamHost
+## Deploy (Apache shared hosting)
 
-1. Domains → Manage Websites → set the site's **web directory to `<project>/public`** (PHP ≥ 8.1, preferred). Alternatively keep the project root as web directory: the root `.htaccess` serves `public/` and blocks `src/`, `docs/`, etc.
+1. Set the site's **web directory to `<project>/public`** (PHP ≥ 8.1, preferred). Alternatively keep the project root as web directory: the root `.htaccess` serves `public/` and blocks `src/`, `docs/`, etc.
 2. Upload the whole project (SFTP/git) so `src/`, `templates/`, `cache/` sit beside `public/`.
 3. `chmod 775 cache` so geocoding results can be cached.
 
-If MySQL is added later, create the database in the DreamHost panel and keep credentials in an untracked `config.php` (see [docs/architecture.md](docs/architecture.md) §7).
+If MySQL is added later, create the database in the hosting panel and keep credentials in an untracked `config.php` (see [docs/architecture.md](docs/architecture.md) §7).
+
+Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in the target, keep credentials in `~/.password`, commit, then run `scripts/deploy.sh [--dry-run] [--all]`. It runs the tests, uploads only committed files changed since the last deployed commit (via the `sftp-upload` skill), and cannot delete remote files. The `/new-feature` pipeline ends with the `deployer` agent running this.
 
 ## How it works
 

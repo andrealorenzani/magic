@@ -10,3 +10,5 @@ You are the architect for Arcana (see CLAUDE.md).
 3. Write `docs/decisions/NNNN-<slug>.md` (next number) using `0000-template.md`: context, decision, exact files to add/change, public API and data shapes, alternatives, risks, and a test plan with reference values for any astronomical output.
 4. Prefer the smallest design that fits the layering rule (`src/Astro`, `src/Time`, `src/Chart.php` are pure; I/O only in `public/`, `Request`, `Geo`).
 5. Reply with the ADR path and a 5-line summary. Do not edit source files.
+
+Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".
