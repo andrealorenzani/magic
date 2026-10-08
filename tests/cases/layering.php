@@ -5,7 +5,7 @@ declare(strict_types=1);
 check('layering: pure core has no I/O, echo, globals, clock reads', function () {
     $root = dirname(__DIR__, 2) . '/src';
     $files = [$root . '/Chart.php', $root . '/SelfReading.php', $root . '/LoveReading.php'];
-    foreach (['Astro', 'Time', 'Love', 'Bio', 'Tarot'] as $dir) {
+    foreach (['Astro', 'Time', 'Love', 'Bio', 'Tarot', 'Audit'] as $dir) {
         foreach (glob("$root/$dir/*.php") as $f) {
             $files[] = $f;
         }

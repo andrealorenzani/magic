@@ -3,3 +3,5 @@ config.php
 .DS_Store
 .deploy.local
 .deploy-state
+.deploy-config-hash
+.config.*

@@ -10,3 +10,6 @@ RewriteRule ^public(/.*)?$ $1 [R=301,L]
 # everything else is served from public/
 RewriteCond %{REQUEST_URI} !^/public/
 RewriteRule ^(.*)$ public/$1 [L]
+
+# Defence in depth: never serve configuration, migrations or scripts (they are not under public/ anyway).
+RedirectMatch 404 ^/(config\.php(\.example)?|migrations(/.*)?|scripts(/.*)?)$

@@ -18,7 +18,9 @@ Both results have a **Print** button (and a print layout without forms), so you 
 
 **Name affinity.** Join both names and count the letters A, M, O, R, E, in that order. A count of 10 or more keeps its last digit and adds its first digit to the previous slot (for A, to the next one); the five slots form a number. While the number is above 100, replace it by the sums of each pair of adjacent digits (6,6,9 gives 12 and 15, so 135) until it is 100 or less. Example: Andrea Lorenzani and Silvia Pellico have A=4, M=0, O=2, R=2, E=3, so 40223, 4245, 669, 135, and the answer is **48%**. Name affinity, biorhythms, scores and tarot are for wonder, not science.
 
-PHP 8.1+, no Composer, no database. Tropical zodiac, computed with Meeus astronomical algorithms (Sun/Moon ≈ 0.01°). Planets use JPL Keplerian elements (1800-2100, about 0.01-0.05°). Nothing is stored; only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
+PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac, computed with Meeus astronomical algorithms (Sun/Moon ≈ 0.01°). Planets use JPL Keplerian elements (1800-2100, about 0.01-0.05°). Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
+
+**Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address, user agent or cookies are stored, and every page shows a notice. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
 
 ## Run it
 
@@ -33,9 +35,15 @@ php tests/run.php                   # tests (astronomy, time zones, input valida
 2. Upload the whole project (SFTP/git) so `src/`, `templates/`, `cache/` sit beside `public/`.
 3. `chmod 775 cache` so geocoding results can be cached.
 
-If MySQL is added later, create the database in the hosting panel and keep credentials in an untracked `config.php` (see [docs/architecture.md](docs/architecture.md) §7).
+### Database (optional, audit trail)
 
-Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in the target, keep credentials in `~/.password`, commit, then run `scripts/deploy.sh [--dry-run] [--all]`. It runs the tests, uploads only committed files changed since the last deployed commit (via the `sftp-upload` skill), and cannot delete remote files. The `/new-feature` pipeline ends with the `deployer` agent running this.
+1. Create a MySQL database in the hosting panel.
+2. Create `config.php` in the project root (gitignored): either copy `config.php.example` and edit it, or run `scripts/make-config.sh` (reads the database section of `~/.password`; its name is `DB_PASSWORD_SECTION` in `.deploy.local`).
+3. Run `scripts/db-migrate.sh` (needs the `mysql` client and a database server that accepts your machine; otherwise paste `migrations/001_create_magic_audit.sql` into the panel's SQL tool).
+
+If the tables or `config.php` are missing, pages still work and the audit write fails silently. Manual retention: `scripts/db-purge.sh --days N`. Status: the tables have not been created in the real database yet (the server refused the connection from the development machine).
+
+Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in the target, keep credentials in `~/.password`, commit, then run `scripts/deploy.sh [--dry-run] [--all]`. It runs the tests, uploads only committed files changed since the last deployed commit (via the `sftp-upload` skill), and uploads `config.php` too when it changed (contents never shown), and cannot delete remote files. The `/new-feature` pipeline ends with the `deployer` agent running this.
 
 ## How it works
 

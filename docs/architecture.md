@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: v0.3 (PHP, two modes) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
+> Status: v0.4 (PHP, two modes, MySQL audit trail; the audit tables are not yet created in the real database, see §9) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
 
 ## 1. Goal
 
@@ -24,7 +24,7 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
 | # | Decision | Why | Trade-off |
 |---|---|---|---|
 | D1 | **PHP 8.1+, server-rendered, deployable on Apache shared hosting** (Apache + PHP, FTP/SFTP/git deploy). No Composer, no build step, no framework | Hard requirement (hosting). Nothing to install on the server | We write a tiny autoloader/router ourselves |
-| D2 | **Database: MySQL only, and only when a feature needs persistence. v0.2 uses none** | Nothing in the big-three flow needs storing; fewer moving parts, no personal data at rest | Features like accounts/saved charts/share-by-id need an ADR + schema (see §7) |
+| D2 | **Database: MySQL only, via PDO, used only for the audit trail** (superseded in part by ADR [0003](decisions/0003-mysql-audit-trail.md); originally "no database"). Tables are prefixed `magic_`; no accounts, no saved charts | The owner wants an audit record of results; everything else needs no storage. The app still works with no database at all | Personal data now rests in the DB (see §5). Further persistence needs its own ADR (§7) |
 | D3 | **Astronomy implemented in-house in PHP** (`Arcana\Astro\*`, Meeus low-precision series) | No dependency (no Swiss Ephemeris binary on shared hosting), testable. Sun/Moon ≈ 0.01°. Planets (1800–2100) from the JPL Keplerian elements (E. M. Standish, Table 1, valid 1800–2050, extrapolated to 2100): about 0.01° inner planets and Mars, a few hundredths of a degree for Jupiter–Pluto, ignoring light-time and aberration | A sign may be wrong within ~0.01° (Sun/Moon) or ~0.05° (planets) of a boundary; outside 1800–2100 only the big three are shown |
 | D4 | **Tropical zodiac** | The Western standard users expect | Sidereal could be added later |
 | D5 | **Geocoding via Open-Meteo** (lat, lon, IANA time zone), called **server-side**, results cached on disk in `cache/`, bundled fallback list if the API is down | One call yields all place data; server-side call keeps visitors' queries out of third-party JS and allows caching | Needs outbound HTTP (`curl` or `allow_url_fopen`, both normally on at shared hosts) |
@@ -49,10 +49,13 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
     │                                                                              │         Ascendant/Planets/MeanNode/Zodiac
     │                                                                              │    Love\SignAffinity, NameAffinity, Common · Bio\Biorhythm, Synchrony
     │                                                                              │    Tarot\Reading (+ Content\* copy)
-    │                                                                              └─ templates/home.php ► self-result.php | love-result.php (+ partials/)
+    │                                                                              ├─ templates/home.php ► self-result.php | love-result.php (+ partials/)
+    │                                                                              └─ after the page is flushed, only for results:
+    │                                                                                   Audit\AuditRecord (pure) ─► Db\AuditLog::tryWrite ─► MySQL magic_audit*
+    │                                                                                   (no config / DB down / any error: swallowed, page unaffected)
 ```
 
-Layering rule (checked by `reviewer` and `tests/cases/layering.php`): `Astro\*`, `Time\*`, `Chart`, `Love\*`, `Bio\*`, `Tarot\*`, `SelfReading` and `LoveReading` never do I/O (no network, files, `$_GET`, echo, clock). Only `public/` and `Request`/`Geo` touch the outside world. Templates only render; they escape everything with `e()`.
+Layering rule (checked by `reviewer` and `tests/cases/layering.php`): `Astro\*`, `Time\*`, `Chart`, `Love\*`, `Bio\*`, `Tarot\*`, `SelfReading`, `LoveReading` and `Audit\*` never do I/O (no network, files, `$_GET`, echo, clock). Only `public/`, `Request`, `Geo` and `Db` touch the outside world. Templates only render; they escape everything with `e()`.
 
 ## 4. Calculation pipeline
 
@@ -87,11 +90,16 @@ Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet; pla
 
 - All user input validated in `Request::parse` (date/time regex + `checkdate`, lat/lon ranges, `tz` checked against `DateTimeZone::listIdentifiers()`); output escaped with `e()`.
 - Outbound requests go only to the fixed Open-Meteo host; the query is URL-encoded.
-- Only the **city text** is sent to a third party. Birth data and names are processed per request and **not stored** (no DB, no logs of inputs by the app).
+- Only the **city text** is sent to a third party (Open-Meteo).
+- **Audit trail (ADR 0003): personal data IS stored.** For every Self or Love result the app writes to MySQL: the functionality, a UTC timestamp, the reading date, the names, birth date, birth time and place (label, lat, lon, time zone) of the user and, in Love mode, of the loved person (only what was entered), and a YAML summary of the result (signs, name affinity, synchrony, tarot, biorhythm values). **Not stored:** IP address, user agent, referrer, cookies, session ids, the URL or query string. Nothing is written for the mode chooser, validation errors or notes-only pages.
+- **Notice:** every page shows a static notice (footer of `templates/home.php`) saying that the entered details and a result summary are recorded, that no IP address and no cookies are stored, and that the data can be removed on request. The loved person never consented; only what is entered is stored.
+- **Retention and erasure:** there is **no automatic retention or deletion**. The owner is the data controller and must operate the process by hand: `scripts/db-purge.sh --days N` deletes audit rows older than N days (person rows follow through `ON DELETE CASCADE`; run it manually or from a cron job on a trusted machine); remove-on-request is a delete by name query, e.g. `DELETE FROM magic_audit WHERE id IN (SELECT audit_id FROM magic_audit_person WHERE name = ?)` with a bound parameter (examples in [code.md](code.md)). Host backups age out on the host's schedule. Lawful basis, privacy policy and contact address are the owner's decision; this is not legal advice.
+- **Who can read:** whoever has the database credentials (hosting panel, MySQL client, host backups). No page, API or log of the app outputs audit rows. The app logs only an error class and code on a failed write (`audit: write failed <Class> <code>`), never request data, host or user names.
 - **Names now travel in the GET URL** (Love mode also carries the loved person's birth data). They can appear in web-server access logs, browser history and shared links; the Love form warns "share the link only with people you trust". Result pages send `X-Robots-Tag: noindex`, `<meta name="robots" content="noindex">` and `Cache-Control: private, no-store`. POST was rejected because it breaks shareable URLs (D8); a "private mode" would need its own ADR. Mention this in any privacy policy.
+- **SQL and YAML safety:** only prepared statements with bound parameters (emulation off); the YAML emitter quotes every user-derived string and accepts only fixed `[a-z][a-z0-9_]*` keys, so input cannot add keys or documents.
 - Names are validated: 1–40 characters, no control characters, at least one letter, valid UTF-8.
-- `src/`, `templates/`, `cache/`, `tests/`, `docs/` live **outside** the web root (`public/` is the document root); `cache/` also has a deny `.htaccess`.
-- If the web directory is the project root instead, the root `.htaccess` 301-redirects `/public/...` to `/...` and rewrites everything else into `public/`, so `src/`, `templates/`, `cache/`, `docs/`, `tests/` and `README.md` return 404 (this relies on Apache `mod_rewrite`; prefer `public/` as web root).
+- `src/`, `templates/`, `cache/`, `tests/`, `docs/`, `migrations/`, `scripts/` and `config.php` live **outside** the web root (`public/` is the document root); `cache/` also has a deny `.htaccess`.
+- If the web directory is the project root instead, the root `.htaccess` 301-redirects `/public/...` to `/...` and rewrites everything else into `public/`, so `src/`, `templates/`, `cache/`, `docs/`, `tests/` and `README.md` return 404 (this relies on Apache `mod_rewrite`; prefer `public/` as web root). A `RedirectMatch 404` also covers `config.php`, `config.php.example`, `migrations/` and `scripts/` as a second layer.
 - `public/.htaccess` sets a strict CSP (no inline scripts/styles — keep it that way).
 
 ## 6. Agentic development workflow
@@ -111,7 +119,7 @@ Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet; pla
  commit ──► deployer ──► scripts/deploy.sh (tests, then SFTP upload of changed files)
 ```
 
-Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes).
+Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes, 0003 the MySQL audit trail).
 
 ## 7. Extension points
 
@@ -123,19 +131,28 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 | A third mode | `Request::MODES`, a `Request::parseX`, a pure `XReading::build`, `templates/x-result.php`, a chooser card in `templates/home.php` |
 | Tarot cards / copy / languages | `Content\TarotDeck`, `Content\Traits`, `Content\Bodies`, `Content\Signs` only |
 | Scoring weights | constants at the top of `Love\SignAffinity`, `Love\Common`, `Bio\Synchrony::THRESHOLD` |
-| Persistence (saved/shared charts, accounts, caching city lookups in SQL) | **MySQL** via PDO: add `src/Db.php` (config from an untracked `config.php`, MySQL host/user/password from the hosting panel), SQL in `migrations/NNN_*.sql`, an ADR superseding D2. Never store birth data without an explicit privacy decision |
+| Another stored field in the audit | the pure `Audit\AuditRecord` builders (YAML key or person field) and, for a new column, a new idempotent `migrations/NNN_*.sql` plus the INSERT in `Db\AuditLog`; bump `AuditRecord::FORMAT_VERSION` when the YAML layout changes |
+| Other persistence (saved/shared charts, accounts, caching city lookups in SQL) | MySQL via the existing `src/Db` layer (`Config`, `Connection`), SQL in `migrations/NNN_*.sql` with the `magic_` prefix, a new ADR and a privacy decision first |
 | New page/route | new file in `public/` (plain PHP entry scripts; `index.php` is a small front controller on `mode`) + template in `templates/` |
 
 ## 8. Testing
 
-`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`), required by the runner. Astronomy is checked against published values (Meeus examples, equinox, a known natal chart, planets at J2000 and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` and curl/browser.
+`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`, `audit`), required by the runner. Astronomy is checked against published values (Meeus examples, equinox, a known natal chart, planets at J2000 and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `audit` pins the YAML emitter (golden strings, injection), the record builders and the failure isolation of the DB layer (no database needed); `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` and curl/browser.
 
 ## 9. Deployment (Apache shared hosting)
 
 1. Create a domain/subdomain with PHP ≥ 8.1 and set its **web directory to `<project>/public`** (Panel → Domains → Manage Websites → Edit). *Alternative:* leave the web directory at the project root; the root `.htaccess` then serves `public/` as the site (verified live).
 2. Upload the whole project (SFTP/rsync/git) so `src/`, `templates/`, `cache/` sit next to `public/`.
 3. Ensure `cache/` is writable by the PHP user (`chmod 775 cache`).
-4. Visit the site; no configuration needed. (When MySQL is introduced: create the DB in the panel and put credentials in an untracked `config.php`.)
+4. Database (optional; without it every page works and audit writes fail silently):
+   - `config.php` (gitignored, in the project root, **outside `public/`**, denied by the root `.htaccess`) holds the MySQL host, port, database, user and password. Generate it with `scripts/make-config.sh`, which reads the database section of `~/.password` (the section name is kept only in the gitignored `.deploy.local` as `DB_PASSWORD_SECTION`) and writes the file with mode 600, printing no values; or copy `config.php.example` by hand.
+   - `scripts/deploy.sh` uploads `config.php` when its content hash changed (or with `--all`), never showing its content. Caveat: the uploaded file gets the server's default mode, not 600; it is private by location and the deny rules only.
+   - Apply the schema with `scripts/db-migrate.sh` (runs `migrations/*.sql` in order with the `mysql` client; migrations are idempotent, no bookkeeping table).
+   - A database failure (no config, no PDO, refused connection, SQL error, oversize record) never breaks a page: the write happens after the response is flushed (`fastcgi_finish_request()` when available), with a 2 s connect timeout, and only `audit: write failed <Class> <code>` is logged. Under plain CGI the visitor may wait a few seconds; check on the server.
+   - MySQL errors from the shell scripts are sanitised to `mysql error <code> (<SQLSTATE>)`.
+5. Visit the site.
+
+**Current status (honest):** the `magic_audit` and `magic_audit_person` tables have **not** been created in the real database yet. The database server refused the connection (access denied) from the development machine. The migration still has to be applied from a host the database server allows, or by pasting `migrations/001_create_magic_audit.sql` into the hosting panel's SQL tool. Until then the app runs normally and audit writes fail silently (logged as a class and code only).
 
 ### Automated deploy
 
@@ -144,4 +161,4 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 - Refuses to run with uncommitted tracked changes and runs `php tests/run.php` first; failing tests abort the deploy.
 - Uploads only committed files changed since the last deployed commit (recorded in the gitignored `.deploy-state`); `--all` uploads every tracked file.
 - Cannot delete remote files: removed files are listed as warnings and must be deleted manually.
-- Run by the `deployer` agent as the last step of `/new-feature`. Host, domain and provider names never appear in the repo.
+- Run by the `deployer` agent as the last step of `/new-feature`. Host, domain and provider names never appear in the repo. `config.php` is uploaded separately from the tracked files; its last uploaded hash lives in the gitignored `.deploy-config-hash`.

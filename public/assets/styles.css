@@ -67,6 +67,7 @@ button:hover { filter: brightness(1.08); }
 .card__text { margin: 0; }
 .note { color: var(--muted); font-size: .8rem; text-align: center; margin: 0; }
 footer { position: relative; text-align: center; color: var(--muted); font-size: .8rem; padding: 24px 16px 40px; }
+.notice { text-align: center; color: var(--muted); font-size: .75rem; max-width: 60ch; margin: -24px auto 40px; padding: 0 16px; }
 .note--error { color: #ff9b9b; grid-column: 1 / -1; }
 
 /* Modes, forms, results (ADR 0002) */

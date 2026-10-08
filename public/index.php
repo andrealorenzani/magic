@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 require __DIR__ . '/../src/bootstrap.php';
 
+use Arcana\Audit\AuditRecord;
+use Arcana\Db\AuditLog;
 use Arcana\Geo\Geocoder;
 use Arcana\LoveReading;
 use Arcana\Request;
@@ -67,3 +69,22 @@ if ($submitted) {
 }
 
 require ARCANA_ROOT . '/templates/home.php';
+
+// Audit trail (ADR 0003): only for results; after the page is flushed; never allowed to break the page.
+if ($view !== null) {
+    ignore_user_abort(true);
+    set_time_limit(10);
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+    } else {
+        @flush();
+    }
+    try {
+        $record = $mode === 'self'
+            ? AuditRecord::fromSelf($in, $view, $today)
+            : AuditRecord::fromLove($parsed['a'], $parsed['b'], $view, $today);
+        AuditLog::tryWrite(getenv('ARCANA_CONFIG') ?: ARCANA_ROOT . '/config.php', $record);
+    } catch (\Throwable $e) {
+        error_log('audit: build failed ' . get_class($e));
+    }
+}

@@ -4,3 +4,6 @@ DEPLOY_HOST=your.host.example      # section/host name used by the sftp-upload s
 DEPLOY_DIR=your.host.example/      # remote root directory, relative to the SFTP login dir
 DEPLOY_TRUST_NEW_HOST=0            # 1 = pass --trust-new-host (only if you verified the host)
 # DEPLOY_UPLOADER=~/.claude/skills/sftp-upload/scripts/upload.py
+
+# name of the database section in ~/.password (used by scripts/make-config.sh and db-migrate.sh)
+# DB_PASSWORD_SECTION=

@@ -72,6 +72,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     </section>
   </main>
   <footer class="no-print">Tropical zodiac · planets are approximate · astrology, biorhythms, name affinity and tarot are for wonder and entertainment, not advice</footer>
+  <p class="no-print notice">Each result request is recorded in an audit log together with what was entered (names, birth date, time and place, including the details of the person you love in the Love mode) and a summary of the result. No IP address and no cookies are stored. The stored data is kept by the site owner and can be removed on request.</p>
   <script src="assets/autocomplete.js" defer></script>
   <script src="assets/print.js" defer></script>
 </body>
