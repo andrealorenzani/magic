@@ -19,6 +19,9 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
   <h2>Magic · <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
   <p>Reading of <?= e($today) ?></p>
 </div>
+<?php if (!empty($view['dayZone'])): ?>
+<p class="note">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
+<?php endif; ?>
 <div class="toolbar no-print">
   <button type="button" class="print-btn" data-print hidden><?= icon('printer') ?> Print</button>
 </div>
@@ -139,6 +142,12 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
   <?php endif; ?>
 </section>
 
+<?php $synastry = $view['synastry']; include __DIR__ . '/partials/synastry.php'; ?>
+
+<?php $sky = $view['sky']; $skyMode = 'love'; $skyNames = $names; include __DIR__ . '/partials/sky.php'; ?>
+
+<?php $geo = $view['geo'] ?? null; include __DIR__ . '/partials/geo.php'; ?>
+
 <section class="block" aria-labelledby="tarot-h">
   <h2 id="tarot-h"><?= icon('bulb') ?> Your connection in three cards</h2>
   <div class="tarot">
@@ -147,8 +156,8 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
         <h3 class="card__role"><?= e($pp['title']) ?></h3>
         <p class="hint"><?= e($pp['question']) ?></p>
         <div class="tarot__face">
-          <div class="tarot__art<?= $t['reversed'] ? ' tarot__art--reversed' : '' ?>" aria-hidden="true">
-            <span class="tarot__num"><?= e($c['number']) ?></span>
+          <div class="tarot__art<?= $c['suit'] !== null ? ' tarot__art--' . e($c['suit']) : '' ?><?= $t['reversed'] ? ' tarot__art--reversed' : '' ?>" aria-hidden="true">
+            <span class="tarot__num"><?= e($c['mark']) ?></span>
             <span class="tarot__name"><?= e($c['name']) ?></span>
           </div>
         </div>

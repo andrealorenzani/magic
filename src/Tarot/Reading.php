@@ -12,7 +12,7 @@ final class Reading
     /** @return list<array{position:string, card:array, reversed:bool, text:string}> */
     public static function spread(string $seed, string $today): array
     {
-        $n = count(TarotDeck::CARDS);
+        $n = TarotDeck::COUNT;
         $used = [];
         $slots = [];
         foreach (TarotSpread::ORDER as $i => $position) {
@@ -29,7 +29,7 @@ final class Reading
     }
 
     /**
-     * Turns three already validated slots (card number 0-21, orientation) into the spread shape.
+     * Turns three already validated slots (card number 0-77, orientation) into the spread shape.
      * @param list<array{number:int, reversed:bool}> $slots
      * @return list<array{position:string, card:array, reversed:bool, text:string}>
      */
@@ -37,7 +37,7 @@ final class Reading
     {
         $out = [];
         foreach (TarotSpread::ORDER as $i => $position) {
-            $card = TarotDeck::CARDS[$slots[$i]['number']];
+            $card = TarotDeck::card($slots[$i]['number']);
             $rev = (bool) $slots[$i]['reversed'];
             $out[] = ['position' => $position, 'card' => $card, 'reversed' => $rev, 'text' => TarotSpread::text($card['id'], $position, $rev)];
         }

@@ -12,7 +12,9 @@ use Magic\LoveReading;
 use Magic\Request;
 use Magic\SelfReading;
 use Magic\Share\Qr;
+use Magic\Share\ShareCode;
 use Magic\Share\ShareLink;
+use Magic\Time\Zone;
 
 // The page differs by cookie (gate or result): never cache it.
 header('Cache-Control: private, no-store');
@@ -22,6 +24,16 @@ header('Vary: Cookie');
 $consented = Consent::given($_COOKIE);
 // Without accepted Terms and Conditions nothing is processed: the page only shows the terms popup.
 $q = $consented ? array_filter($_GET, 'is_string') : [];
+$codeNote = null;
+if (isset($q['c'])) {
+    $decoded = ShareCode::decode($q['c']);
+    unset($q['c']);
+    if ($decoded === null) {
+        $codeNote = 'The short code in this link is not valid, so it was ignored.';
+    } else {
+        $q = $decoded + $q;
+    }
+}
 $rawQuery = ltrim((string) ($_SERVER['QUERY_STRING'] ?? ''), '?');
 $returnQuery = $consented ? '' : Consent::safeQuery($rawQuery);
 $withdrawn = !$consented && ($_GET['withdrawn'] ?? null) === '1';
@@ -33,16 +45,21 @@ $noAudit = Request::noAudit($q);
 $base = Http::basePath($_SERVER);
 $consentAction = ($base === null ? '' : $base . '/') . 'consent.php';
 $mode = Request::mode($q);
-$today = Request::parseToday($q, gmdate('Y-m-d')); // the clock is read here, nowhere else
+$nowUnix = time(); // the clock is read here, nowhere else
+$userTz = null;
+$today = Request::resolveToday($q, $nowUnix, null);
 
 $field = static fn (string $key, string $default = ''): string => $q[$key] ?? $default;
 $person = static fn (string $p, string $time): array => [
     'name' => $field($p . 'name'), 'date' => $field($p . 'date'), 'time' => $field($p . 'time', $time),
     'city' => $field($p . 'city'), 'lat' => $field($p . 'lat'), 'lon' => $field($p . 'lon'), 'tz' => $field($p . 'tz'),
+    'pos_city' => $field($p . 'pos_city'), 'pos_lat' => $field($p . 'pos_lat'), 'pos_lon' => $field($p . 'pos_lon'), 'pos_tz' => $field($p . 'pos_tz'),
+];
+$nowFields = static fn (?array $now): array => $now === null ? [] : [
+    'pos_city' => $now['city'], 'pos_lat' => (string) $now['lat'], 'pos_lon' => (string) $now['lon'], 'pos_tz' => $now['tz'],
 ];
 $self = $person('', '12:00');
 $love = ['a' => $person('a_', '12:00'), 'b' => $person('b_', '')];
-$onOverride = isset($q['on']) && $q['on'] === $today ? $today : null;
 $errors = [];
 $notes = [];
 $view = null;
@@ -57,9 +74,11 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
     $notes = $parsed['notes'];
     if ($parsed['input'] !== null) {
         $in = $parsed['input'];
-        $view = SelfReading::build($in, $today);
+        $userTz = $in['now']['tz'] ?? null;
+        $today = Request::resolveToday($q, $nowUnix, $userTz);
+        $view = SelfReading::build($in, $today, Request::dayBasis($q, $userTz));
         $notes = array_merge($notes, $view['notes']);
-        $self = array_merge($self, ['city' => $in['city'], 'lat' => (string) $in['lat'], 'lon' => (string) $in['lon'], 'tz' => $in['tz']]);
+        $self = array_merge($self, $nowFields($in['now']), ['city' => $in['city'], 'lat' => (string) $in['lat'], 'lon' => (string) $in['lon'], 'tz' => $in['tz']]);
     }
 } elseif ($mode === 'love') {
     foreach (array_keys($q) as $key) {
@@ -74,12 +93,15 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
         $notes = $parsed['notes'];
         if ($parsed['a'] !== null && $parsed['b'] !== null) {
             $tarotParam = Request::parseTarot($q);
-            $view = LoveReading::build($parsed['a'], $parsed['b'], $today, $tarotParam['slots']);
+            $userTz = $parsed['a']['now']['tz'] ?? null;
+            $today = Request::resolveToday($q, $nowUnix, $userTz);
+            $view = LoveReading::build($parsed['a'], $parsed['b'], $today, $tarotParam['slots'], Request::dayBasis($q, $userTz));
             if ($tarotParam['invalid']) {
                 $notes[] = 'The cards in this link were not valid, so a fresh reading is shown.';
             }
             $notes = array_merge($notes, $view['notes']);
             foreach (['a' => 'a_', 'b' => 'b_'] as $k => $p) {
+                $love[$k] = array_merge($love[$k], $nowFields($parsed[$k]['now']));
                 if ($parsed[$k]['place'] !== null) {
                     $pl = $parsed[$k]['place'];
                     $love[$k] = array_merge($love[$k], ['city' => $pl['city'], 'lat' => (string) $pl['lat'], 'lon' => (string) $pl['lon'], 'tz' => $pl['tz']]);
@@ -89,12 +111,24 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
     }
 }
 
+$onOverride = isset($q['on']) && $q['on'] === $today ? $today : null;
+
 if ($view !== null) {
     // Share section: frozen link (also the QR) and a live link, built from the validated model only.
-    $frozenQuery = $mode === 'self'
+    $longFrozen = $mode === 'self'
         ? ShareLink::self($in, $today)
         : ShareLink::love($parsed['a'], $parsed['b'], $view['tarot'], $today);
-    $liveQuery = $mode === 'self' ? ShareLink::liveSelf($in) : ShareLink::liveLove($parsed['a'], $parsed['b']);
+    $longLive = $mode === 'self' ? ShareLink::liveSelf($in) : ShareLink::liveLove($parsed['a'], $parsed['b']);
+    try {
+        $frozenQuery = ShareLink::codeQuery($mode === 'self'
+            ? ShareCode::encodeSelf($in, $today, true)
+            : ShareCode::encodeLove($parsed['a'], $parsed['b'], $view['tarot'], $today, true));
+        $liveQuery = ShareLink::codeQuery($mode === 'self'
+            ? ShareCode::encodeSelf($in, $today, false)
+            : ShareCode::encodeLove($parsed['a'], $parsed['b'], null, $today, false));
+    } catch (\Throwable $e) {
+        [$frozenQuery, $liveQuery] = [$longFrozen, $longLive];
+    }
     $origin = Http::origin($_SERVER);
     $prefix = ($origin !== null && $base !== null) ? $origin . $base . '/?' : './?';
     $share = ['frozen' => $prefix . $frozenQuery, 'live' => $prefix . $liveQuery, 'qr' => null, 'tooLong' => false];
@@ -102,8 +136,12 @@ if ($view !== null) {
         $share['qr'] = Qr::encode($share['frozen']);
         $share['tooLong'] = $share['qr'] === null;
     }
-    $realToday = gmdate('Y-m-d');
+    $realToday = Zone::dateAt($nowUnix, $userTz ?? 'UTC');
     $fixedDay = $today !== $realToday ? ['date' => $today, 'live' => './?' . $liveQuery] : null;
+}
+
+if ($codeNote !== null) {
+    $notes[] = $codeNote;
 }
 
 if ($submitted) {

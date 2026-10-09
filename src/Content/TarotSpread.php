@@ -20,9 +20,12 @@ final class TarotSpread
         'future' => TarotFuture::TEXT,
     ];
 
-    /** The reading for a card in a position. Throws when the card or position does not exist. */
+    /** The reading for a card in a position (major cards from the position tables, minor cards composed). Throws when the card or position does not exist. */
     public static function text(string $cardId, string $position, bool $reversed): string
     {
+        if (str_contains($cardId, '-of-')) {
+            return TarotMinor::text($cardId, $position, $reversed);
+        }
         $t = self::SOURCES[$position][$cardId][$reversed ? 'rev' : 'up'] ?? null;
         if ($t === null) {
             throw new \InvalidArgumentException("No tarot text for {$cardId} / {$position}");

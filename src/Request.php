@@ -64,6 +64,40 @@ final class Request
     }
 
     /**
+     * Reading day (Y-m-d): a valid `on=` override, else the calendar day at the current position's
+     * time zone for the given instant, else the UTC date.
+     * @param array<string,mixed> $q
+     */
+    public static function resolveToday(array $q, int $nowUnix, ?string $tz): string
+    {
+        $on = self::validOn($q);
+        if ($on !== null) {
+            return $on;
+        }
+        return Zone::dateAt($nowUnix, $tz !== null && Zone::isValid($tz) ? $tz : 'UTC');
+    }
+
+    /** Where the reading day comes from: 'on' | 'current_position' | 'utc'. @param array<string,mixed> $q */
+    public static function dayBasis(array $q, ?string $tz): string
+    {
+        if (self::validOn($q) !== null) {
+            return 'on';
+        }
+        return $tz !== null && Zone::isValid($tz) ? 'current_position' : 'utc';
+    }
+
+    /** @param array<string,mixed> $q */
+    private static function validOn(array $q): ?string
+    {
+        $on = $q['on'] ?? null;
+        if (is_string($on) && preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $on, $m)
+            && checkdate((int) $m[2], (int) $m[3], (int) $m[1]) && (int) $m[1] >= 1900 && (int) $m[1] <= 2100) {
+            return $on;
+        }
+        return null;
+    }
+
+    /**
      * @param array<string,mixed> $q usually $_GET
      * @return array{input: ?array, errors: list<string>, notes: list<string>}
      */
@@ -79,6 +113,7 @@ final class Request
                 'year' => $p['date']['year'], 'month' => $p['date']['month'], 'day' => $p['date']['day'],
                 'hour' => $p['time']['hour'], 'minute' => $p['time']['minute'],
                 'lat' => $p['place']['lat'], 'lon' => $p['place']['lon'], 'tz' => $p['place']['tz'], 'city' => $p['place']['city'],
+                'now' => $p['now'],
             ],
             'errors' => [],
             'notes' => $r['notes'],
@@ -207,6 +242,42 @@ final class Request
             $place = ['lat' => round((float) $lat, 5), 'lon' => round((float) $lon, 5), 'tz' => $tz, 'city' => $city];
         }
 
-        return ['person' => ['date' => $d, 'time' => $t, 'place' => $place], 'errors' => [], 'notes' => $notes];
+        $pos = self::parsePosition($q, $p, $geocoder, $who);
+        array_push($notes, ...$pos['notes']);
+
+        return ['person' => ['date' => $d, 'time' => $t, 'place' => $place, 'now' => $pos['now']], 'errors' => [], 'notes' => $notes];
+    }
+
+    /**
+     * The optional current position (`pos_city`, `pos_lat`, `pos_lon`, `pos_tz`, with the person prefix).
+     * Never an error: an unusable position is dropped with a note.
+     * @param array<string,mixed> $q
+     * @return array{now: ?array{lat:float,lon:float,tz:string,city:string}, notes: list<string>}
+     */
+    private static function parsePosition(array $q, string $p, Geocoder $geocoder, string $who): array
+    {
+        $str = static fn (string $k): string => is_string($q[$k] ?? null) ? $q[$k] : '';
+        $city = trim($str($p . 'pos_city'));
+        if ($city === '') {
+            return ['now' => null, 'notes' => []];
+        }
+        $ignored = ['now' => null, 'notes' => [$who . "Current position ignored: we couldn't find “" . mb_substr($city, 0, 80, 'UTF-8') . '”.']];
+        if (mb_strlen($city, 'UTF-8') > 80 || preg_match('/\p{Cc}/u', $city) === 1) {
+            return $ignored;
+        }
+        $lat = filter_var(is_scalar($q[$p . 'pos_lat'] ?? null) ? $q[$p . 'pos_lat'] : null, FILTER_VALIDATE_FLOAT);
+        $lon = filter_var(is_scalar($q[$p . 'pos_lon'] ?? null) ? $q[$p . 'pos_lon'] : null, FILTER_VALIDATE_FLOAT);
+        $tz = $str($p . 'pos_tz');
+        $notes = [];
+        if (!($lat !== false && $lon !== false && abs($lat) <= 90 && abs($lon) <= 180 && Zone::isValid($tz))) {
+            $found = $geocoder->search($city)[0] ?? null;
+            if ($found === null) {
+                return $ignored;
+            }
+            [$lat, $lon, $tz] = [$found['lat'], $found['lon'], $found['timeZone']];
+            $city = Geocoder::label($found);
+            $notes[] = $who . "Using {$city} as the current position.";
+        }
+        return ['now' => ['lat' => round((float) $lat, 5), 'lon' => round((float) $lon, 5), 'tz' => $tz, 'city' => $city], 'notes' => $notes];
     }
 }

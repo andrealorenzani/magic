@@ -56,7 +56,7 @@ final class Planets
         return $out;
     }
 
-    /** Solve E - e sin E = M (radians) by Newton iteration. */
+    /** Eccentric anomaly E (radians) from mean anomaly M and eccentricity e. */
     public static function kepler(float $M, float $e): float
     {
         $E = $M + $e * sin($M);

@@ -2,15 +2,18 @@
 /** @var array $view @var string $today @var ?array $share */
 
 use Magic\Content\Bodies;
+use Magic\Content\Houses;
 use Magic\Content\Signs;
 
 require_once __DIR__ . '/partials/icons.php';
 require_once __DIR__ . '/partials/bio.php';
+require_once __DIR__ . '/partials/wheel.php';
 
 $chart = $view['chart'];
 $aff = $view['affinity'];
 $bio = $view['bio'];
 $refName = ['sun' => 'Sun', 'moon' => 'Moon', 'ascendant' => 'Ascendant', 'venus' => 'Venus', 'mars' => 'Mars'];
+$houseLine = static fn (int $n): string => 'House ' . $n . ' - ' . Houses::THEMES[$n]['title'];
 $bioClass = ['physical' => 'bio--physical', 'emotional' => 'bio--emotional', 'intellectual' => 'bio--intellectual'];
 $entry = static function (array $s, string $key, string $heading): void { ?>
   <article class="card card--<?= e(strtolower($s['sign']['element'])) ?> affinity">
@@ -31,6 +34,9 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
   <h2>Magic · Self discovery</h2>
   <p>Reading of <?= e($today) ?></p>
 </div>
+<?php if (!empty($view['dayZone'])): ?>
+<p class="note">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
+<?php endif; ?>
 <div class="toolbar no-print">
   <button type="button" class="print-btn" data-print hidden><?= icon('printer') ?> Print</button>
 </div>
@@ -44,9 +50,49 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
     <p class="card__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?> · <?= e($p['modality']) ?></p>
     <p class="card__tag"><?= e($r['tagline']) ?></p>
     <p class="card__text"><?= e(Signs::TEXT[$p['id']]) ?></p>
+    <?php if (isset($chart['houses'][$role])): ?><p class="card__house"><?= e($houseLine($chart['houses'][$role])) ?></p><?php endif; ?>
   </article>
 <?php endforeach; ?>
 </div>
+<?php $born = $view['moonAtBirth']; ?>
+<p class="born"><span aria-hidden="true"><?= e($born['symbol']) ?></span> Born under a <strong><?= e($born['phaseName']) ?></strong> (<?= e($born['illumination']) ?>% lit)</p>
+
+<?php
+$wheelRows = [['id' => 'sun', 'p' => $chart['sun'], 'h' => $chart['houses']['sun']], ['id' => 'moon', 'p' => $chart['moon'], 'h' => $chart['houses']['moon']],
+    ['id' => 'ascendant', 'p' => $chart['ascendant'], 'h' => 1], ['id' => 'midheaven', 'p' => $chart['midheaven'], 'h' => $chart['houses']['midheaven']]];
+foreach ($chart['planets'] as $id => $pl) {
+    $wheelRows[] = ['id' => $id, 'p' => $pl['position'], 'h' => $chart['houses'][$id]];
+}
+$wheelRows[] = ['id' => 'node', 'p' => $chart['node'], 'h' => $chart['houses']['node']];
+$mc = $chart['midheaven'];
+?>
+<section class="block chartwheel" aria-labelledby="wheel-h">
+  <h2 id="wheel-h"><?= icon('bolt') ?> Your chart wheel</h2>
+  <div class="chartwheel__layout">
+    <figure class="chartwheel__figure">
+      <?php wheel_svg($view['wheel'], 'Chart wheel with the Ascendant on the left. ' . implode(', ', array_map(static fn (array $r): string => Bodies::INFO[$r['id']]['title'] . ' in ' . $r['p']['name'] . ' (house ' . $r['h'] . ')', $wheelRows))); ?>
+      <figcaption class="note">Ascendant (AC) on the left, Midheaven (MC) near the top. Glyphs close together are spread apart on the drawing; the table has the exact positions.</figcaption>
+    </figure>
+    <div class="table-wrap">
+      <table class="chartwheel__table">
+        <caption class="sr-only">Position and house of each body</caption>
+        <thead><tr><th scope="col">Body</th><th scope="col">Sign</th><th scope="col">Position</th><th scope="col">House</th></tr></thead>
+        <tbody>
+          <?php foreach ($wheelRows as $r): ?>
+            <tr>
+              <th scope="row"><span aria-hidden="true"><?= e(Bodies::INFO[$r['id']]['glyph']) ?></span> <?= e(Bodies::INFO[$r['id']]['title']) ?></th>
+              <td><span aria-hidden="true"><?= e($r['p']['symbol']) ?></span> <?= e($r['p']['name']) ?></td>
+              <td><?= e($r['p']['degree']) ?>&deg;<?= e(sprintf('%02d', $r['p']['minute'])) ?>&prime;</td>
+              <td><?= e($r['h']) ?> <small><?= e(Houses::THEMES[$r['h']]['title']) ?></small></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p><strong><?= e(Bodies::INFO['midheaven']['title']) ?> in <?= e($mc['name']) ?>.</strong> <?= e(Bodies::INFO['midheaven']['meaning']) ?> <?= e(Signs::TEXT[$mc['id']]) ?></p>
+  <p class="note">Whole-sign houses: the sign of the Ascendant is the first house, the next sign the second, and so on.<?= $chart['polar'] ? ' Beyond the polar circle the Ascendant, Midheaven and houses are only approximate.' : '' ?></p>
+</section>
 
 <?php if ($chart['planetsSupported']): ?>
 <section class="block" aria-labelledby="planets-h">
@@ -58,6 +104,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
         <h3><?= e($b['title']) ?><?php if ($pl['retrograde']): ?> <abbr class="badge" title="Retrograde">R</abbr><?php endif; ?></h3>
         <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
         <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
+        <p class="planet__house"><?= e($houseLine($chart['houses'][$id])) ?></p>
         <p class="planet__text"><?= e($b['meaning']) ?></p>
       </article>
     <?php endforeach; ?>
@@ -67,12 +114,17 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
       <h3><?= e($b['title']) ?></h3>
       <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
       <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
+      <p class="planet__house"><?= e($houseLine($chart['houses']['node'])) ?></p>
       <p class="planet__text"><?= e($b['meaning']) ?></p>
     </article>
   </div>
   <p class="note">Planet positions are approximate (a fraction of a degree); a sign can be off near its boundary. <abbr class="badge" title="Retrograde">R</abbr> = apparently moving backwards.</p>
 </section>
 <?php endif; ?>
+
+<?php $sky = $view['sky']; $skyMode = 'self'; include __DIR__ . '/partials/sky.php'; ?>
+
+<?php $geo = $view['geo'] ?? null; include __DIR__ . '/partials/geo.php'; ?>
 
 <section class="block" aria-labelledby="aff-h">
   <h2 id="aff-h"><?= icon('heart') ?> Your affinities</h2>

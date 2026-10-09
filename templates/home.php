@@ -36,7 +36,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     </form>
   </div>
   <?php endif; ?>
-  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?>>
+  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?><?= $withdrawn ? ' data-forget-memory' : '' ?>>
   <main>
     <header class="hero no-print">
       <p class="hero__eyebrow">✦ Magic ✦</p>
@@ -58,23 +58,25 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     </nav>
 
     <?php if ($mode === 'self'): ?>
-      <form id="birth-form" class="panel no-print" method="get" action="./#results" autocomplete="off">
+      <form id="birth-form" class="panel no-print" method="get" data-memory="self" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="self">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
-        <?php $pf = ['prefix' => '', 'required' => true, 'name' => false, 'values' => $self, 'legend' => 'Your birth']; include __DIR__ . '/partials/person-fields.php'; ?>
+        <?php $pf = ['prefix' => '', 'required' => true, 'name' => false, 'values' => $self, 'legend' => 'Your birth', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
+        <?php $memoryKind = 'self'; include __DIR__ . '/partials/memory.php'; ?>
         <button type="submit">Reveal my sky</button>
       </form>
     <?php elseif ($mode === 'love'): ?>
-      <form id="love-form" class="panel no-print" method="get" action="./#results" autocomplete="off">
+      <form id="love-form" class="panel no-print" method="get" data-memory="love" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="love">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
         <div class="people">
-          <?php $pf = ['prefix' => 'a_', 'required' => true, 'name' => true, 'values' => $love['a'], 'legend' => 'You']; include __DIR__ . '/partials/person-fields.php'; ?>
-          <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'hint' => 'Only the name is required. Add the birth date for signs and biorhythms; add time and city too for the Ascendant.']; include __DIR__ . '/partials/person-fields.php'; ?>
+          <?php $pf = ['prefix' => 'a_', 'required' => true, 'name' => true, 'values' => $love['a'], 'legend' => 'You', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
+          <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'person' => 'loved', 'hint' => 'Only the name is required. Add the birth date for signs and biorhythms; add time and city too for the Ascendant.']; include __DIR__ . '/partials/person-fields.php'; ?>
         </div>
         <p class="hint">Names and dates appear in the address bar; share the link only with people you trust.</p>
+        <?php $memoryKind = 'love'; include __DIR__ . '/partials/memory.php'; ?>
         <button type="submit">Explore our connection</button>
       </form>
     <?php endif; ?>
@@ -99,12 +101,13 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <summary>Terms and Conditions</summary>
       <?php include __DIR__ . '/partials/terms.php'; ?>
       <?php if ($consented): ?>
-      <form method="post" action="<?= e($consentAction) ?>"><button type="submit" name="action" value="withdraw">Withdraw my acceptance and clear the cookie</button></form>
+      <form method="post" action="<?= e($consentAction) ?>" data-memory-forget-on-submit><button type="submit" name="action" value="withdraw">Withdraw my acceptance and clear the cookie</button></form>
       <?php endif; ?>
     </details>
   </section>
   </div>
   <script src="assets/autocomplete.js" defer></script>
+  <script src="assets/memory.js" defer></script>
   <script src="assets/print.js" defer></script>
   <script src="assets/share.js" defer></script>
 </body>

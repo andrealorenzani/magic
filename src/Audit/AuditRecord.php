@@ -6,7 +6,7 @@ namespace Magic\Audit;
 /** Pure builder of the audit record (persons + YAML summary of the response). No I/O. */
 final class AuditRecord
 {
-    public const FORMAT_VERSION = 2;
+    public const FORMAT_VERSION = 3;
     public const MAX_YAML_BYTES = 65536;
 
     /**
@@ -34,6 +34,7 @@ final class AuditRecord
                 'sun' => self::pos($chart['sun']),
                 'ascendant' => self::pos($chart['ascendant']),
                 'moon' => self::pos($chart['moon']),
+                'midheaven' => self::pos($chart['midheaven']),
                 'planets_supported' => (bool) $chart['planetsSupported'],
                 'planets' => $planets,
                 'north_node' => self::pos($chart['node']),
@@ -43,6 +44,10 @@ final class AuditRecord
                 'soulmate' => $view['affinity']['soulmate']['sign']['name'],
             ],
             'biorhythm' => $bio,
+            'sky' => self::sky($view['sky'] ?? null) + ['born_moon_phase' => $view['moonAtBirth']['phase'] ?? null],
+            'current_position' => self::now($input['now'] ?? null),
+            'reading_day_basis' => (string) ($view['dayBasis'] ?? 'utc'),
+            'distance' => ['birth_to_now_km' => self::km($view, 'birth_to_now')],
             'notes' => array_values($view['notes']),
         ];
         $person = [
@@ -98,6 +103,15 @@ final class AuditRecord
                 'band' => $view['bio']['band'] ?? null,
             ],
             'tarot' => $tarot,
+            'sky' => self::sky($view['sky'] ?? null),
+            'synastry' => self::synastry($view['synastry'] ?? null),
+            'positions' => ['a' => self::now($a['now'] ?? null), 'b' => self::now($b['now'] ?? null)],
+            'reading_day_basis' => (string) ($view['dayBasis'] ?? 'utc'),
+            'distance' => [
+                'between_km' => self::km($view, 'between'),
+                'a_birth_to_now_km' => self::km($view, 'a_birth_to_now'),
+                'b_birth_to_now_km' => self::km($view, 'b_birth_to_now'),
+            ],
             'notes' => array_values($view['notes']),
         ];
         $persons = [];
@@ -155,6 +169,57 @@ final class AuditRecord
             'lon' => $pl === null ? null : round((float) $pl['lon'], 5),
             'tz' => $pl === null ? null : (string) $pl['tz'],
         ];
+    }
+
+    /** @param ?array<string,mixed> $sky @return array<string,mixed> */
+    private static function sky(?array $sky): array
+    {
+        return [
+            'moon_phase' => $sky['phase'] ?? null,
+            'moon_illumination' => $sky['illumination'] ?? null,
+            'moon_sign' => $sky['moon']['name'] ?? null,
+        ];
+    }
+
+    /** @param ?array<string,mixed> $syn @return array<string,mixed> */
+    private static function synastry(?array $syn): array
+    {
+        $tightest = [];
+        foreach (array_slice($syn['rows'] ?? [], 0, 3) as $r) {
+            $tightest[] = 'a ' . $r['a'] . ' ' . $r['type'] . ' b ' . $r['b'] . ' ' . number_format((float) $r['orb'], 1, '.', '');
+        }
+        return [
+            'available' => (bool) ($syn['available'] ?? false),
+            'approx' => (bool) ($syn['approx'] ?? false),
+            'total' => (int) ($syn['total'] ?? 0),
+            'counts' => $syn['counts'] ?? ['harmonious' => 0, 'tense' => 0, 'neutral' => 0],
+            'tightest' => $tightest,
+        ];
+    }
+
+    /** @param ?array<string,mixed> $now @return ?array<string,mixed> */
+    private static function now(?array $now): ?array
+    {
+        if ($now === null) {
+            return null;
+        }
+        return [
+            'label' => (string) $now['city'],
+            'lat' => round((float) $now['lat'], 5),
+            'lon' => round((float) $now['lon'], 5),
+            'tz' => (string) $now['tz'],
+        ];
+    }
+
+    /** @param array<string,mixed> $view */
+    private static function km(array $view, string $key): ?int
+    {
+        foreach ($view['geo']['pairs'] ?? [] as $pair) {
+            if ($pair['key'] === $key) {
+                return (int) $pair['km'];
+            }
+        }
+        return null;
     }
 
     private static function label(mixed $city): ?string

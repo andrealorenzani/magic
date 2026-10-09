@@ -12,14 +12,17 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Local run with Docker — `docker compose up --build` (PHP + Apache + MySQL 8.4), `scripts/docker-db.sh`
 - Sharing and polish ([ADR 0004](decisions/0004-sharing-tarot-spread-and-polish.md)) — Share section (frozen and live links, QR in pure PHP, tarot in `t`, share links carry `noaudit`), `?noaudit`, Past/Present/Future tarot spread (replaces the 3-day tarot), compact biorhythm synchrony, richer "In common", Terms gate fixes (no-store, `Vary: Cookie`, query kept, CSP additions), audit `format_version` 2
 - Project renamed from Arcana to Magic (namespace `Magic\`)
+- Current position, short links, browser memory and derived features ([ADR 0005](decisions/0005-profile-compact-share-and-roadmap.md), v0.7): optional current city and reading-day rule, distance and geography, short `?c=` share links with a smaller QR, browser memory with "Forget my data", Midheaven, houses and chart wheel, moon phase and Today's sky, synastry, 78-card tarot, geocoding cache cap, Terms version 2 (audit `format_version` 3)
+- Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)
-- Chart wheel (SVG)
-- Houses (Placidus / Whole Sign) and Midheaven
-- Social image card for shared results
-- Personal tarot spread in Self mode, "Draw again" button
-- Count opens of shared links in the audit (would need a marker column and migration)
-- Manual QR scan test on real phones for a short, typical and longest link; owner review of the 132 tarot texts
+- Planets before 1800 (`Planets::supports` is the gate); skipped in ADR 0005: needs another data source
+- Social image card for shared results; skipped: needs image rendering without dependencies, and result pages are behind the Terms and noindex
+- Personal tarot spread in Self mode, "Draw again" button; skipped: needs more copy or non-reproducible readings (owner decision)
+- Count opens of shared links in the audit; skipped: needs a marker column and migration
+- Another house system (e.g. Placidus); skipped: would need a house-system selector
+- Manual QR scan test on real phones for a short, typical and longest link; owner review of the tarot and daily texts
+- Manual QA of keyboard navigation (share box, saved-people select) and Print to PDF in Chrome and Firefox (wheel, synastry, details open)
 - MySQL: saved charts / accounts (needs privacy ADR)
 - Automatic retention job for the audit (today `scripts/db-purge.sh --days N` is manual)
 - Write rate limit / de-duplication of audit rows
@@ -28,12 +31,6 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Mode 600 for the uploaded `config.php` (the uploader keeps the server default)
 - Italian and other languages
 - Sidereal zodiac toggle
-- Full synastry (planet-to-planet aspects between two charts)
-- Daily horoscope / moon phase widget
 - PWA / offline support
-- Manual QA of keyboard navigation (incl. the new notice) and Print to PDF in Chrome and Firefox (A4 layout, ADR 0002 risk)
-- Planets before 1800 (`Planets::supports` is the gate)
-- Client time zone for "today" (server uses the UTC date, so it can be a day off)
-- More tarot cards (minor arcana) and more copy variety
-- Cap/cleanup of the geocoding cache in `cache/`
 - Optional "private mode" (POST) so names stay out of URLs and logs
+- Longer place labels in short codes (today cut at 32 bytes)

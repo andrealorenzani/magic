@@ -5,7 +5,7 @@ namespace Magic\Astro;
 
 final class Ascendant
 {
-    /** Greenwich mean sidereal time, degrees. */
+    /** Greenwich sidereal angle, degrees. */
     public static function gmst(float $jd): float
     {
         $T = Angles::centuries($jd);

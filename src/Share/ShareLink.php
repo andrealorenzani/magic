@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Magic\Share;
 
+use Magic\Content\TarotDeck;
+
 /**
  * Builds canonical share queries from validated models (never from the raw query) and
  * reads/writes the tarot code. Pure: no I/O.
@@ -45,13 +47,19 @@ final class ShareLink
         return self::join(array_merge(['mode' => 'love'], self::personFields('a_', $a), self::personFields('b_', $b), ['noaudit' => '']));
     }
 
+    /** Query part carrying a compact code. */
+    public static function codeQuery(string $code): string
+    {
+        return 'c=' . $code;
+    }
+
     /** "16u,5r,9u" @param list<array{card:array, reversed:bool}> $spread */
     public static function tarotCode(array $spread): string
     {
         return implode(',', array_map(static fn (array $s): string => $s['card']['number'] . ($s['reversed'] ? 'r' : 'u'), $spread));
     }
 
-    /** @return ?list<array{number:int, reversed:bool}> null when the code is not exactly three distinct cards 0-21 */
+    /** @return ?list<array{number:int, reversed:bool}> null when the code is not exactly three distinct cards 0-77 */
     public static function parseTarot(string $code): ?array
     {
         if (strlen($code) > 20 || !preg_match('/^(\d{1,2})([ur]),(\d{1,2})([ur]),(\d{1,2})([ur])$/', $code, $m)) {
@@ -60,7 +68,7 @@ final class ShareLink
         $slots = [];
         for ($i = 1; $i <= 5; $i += 2) {
             $n = (int) $m[$i];
-            if ($n > 21) {
+            if ($n >= TarotDeck::COUNT) {
                 return null;
             }
             $slots[] = ['number' => $n, 'reversed' => $m[$i + 1] === 'r'];
@@ -91,6 +99,20 @@ final class ShareLink
             'lat' => self::coord((float) $in['lat']),
             'lon' => self::coord((float) $in['lon']),
             'tz' => (string) $in['tz'],
+        ] + self::nowFields('', $in['now'] ?? null);
+    }
+
+    /** The optional current position. @param ?array<string,mixed> $now @return array<string,string> */
+    private static function nowFields(string $prefix, ?array $now): array
+    {
+        if ($now === null) {
+            return [];
+        }
+        return [
+            $prefix . 'pos_city' => self::trimCity((string) $now['city']),
+            $prefix . 'pos_lat' => self::coord((float) $now['lat']),
+            $prefix . 'pos_lon' => self::coord((float) $now['lon']),
+            $prefix . 'pos_tz' => (string) $now['tz'],
         ];
     }
 
@@ -108,7 +130,7 @@ final class ShareLink
                 $out[$prefix . 'tz'] = (string) $p['place']['tz'];
             }
         }
-        return $out;
+        return $out + self::nowFields($prefix, $p['now'] ?? null);
     }
 
     private static function coord(float $v): string

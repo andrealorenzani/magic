@@ -204,7 +204,10 @@ summary { cursor: pointer; }
 .share__label { display: grid; gap: 6px; }
 .share__input { font-size: .85rem; }
 .share__qr { display: flex; justify-content: center; }
-.qr { width: 100%; max-width: 320px; height: auto; background: #fff; border-radius: 8px; }
+.qr { background: #fff; border-radius: 8px; }
+.share__qr svg { width: clamp(112px, 38vw, 150px); height: auto; }
+.share__more { margin-top: 10px; }
+.share__more summary { cursor: pointer; }
 .share__live { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
 .share a { color: var(--gold); }
 @media (min-width: 640px) {
@@ -215,6 +218,72 @@ summary { cursor: pointer; }
   .sync-card, .chip, .pill { background: #fff; color: #000; border-color: #000; }
   .chip__sign, .pill--level, .share a { color: #000; }
   .share__input { border: 1px solid #000; background: #fff; color: #000; }
-  .qr { max-width: 220px; }
+  .share__qr svg { width: 3cm; }
+  .share__more > * { display: block; }
   .sync-more > * { display: block; }
+}
+.geo__list { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.memory { display: grid; gap: 8px; margin: 10px 0; }
+.memory[hidden], .saved[hidden], .memory button[hidden] { display: none; }
+.memory__actions, .saved { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.linklike { background: none; border: 0; padding: 4px 0; color: var(--gold); text-decoration: underline; cursor: pointer; font: inherit; }
+
+/* Chart wheel, moon phase, synastry, minor arcana (ADR 0005, part C) */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.table-wrap table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.table-wrap th, .table-wrap td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.table-wrap thead th { color: var(--muted); font-weight: 400; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+.table-wrap tbody th { font-weight: 400; }
+.card__house, .planet__house { margin: .4em 0 0; font-size: .85rem; color: var(--muted); }
+.born { margin: 0; text-align: center; color: var(--muted); }
+.born strong { color: var(--gold); font-weight: 400; }
+.chartwheel__layout { display: grid; gap: 16px; align-items: start; }
+.chartwheel__figure { margin: 0; display: grid; gap: 8px; justify-items: center; }
+.wheel { width: min(100%, 420px); height: auto; background: #0f0d2c; border: 1px solid var(--line); border-radius: 50%; }
+.wheel__ring { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.wheel__divider { stroke: var(--line); stroke-width: 1; }
+.wheel__axis { stroke-width: 2; }
+.wheel__axis--ascendant { stroke: var(--gold); }
+.wheel__axis--midheaven { stroke: #e89bd2; }
+.wheel__axis-label { fill: var(--gold); font: 600 11px Georgia, serif; }
+.wheel__sign { font-size: 15px; }
+.wheel__sign--fire { fill: var(--fire); } .wheel__sign--earth { fill: var(--earth); }
+.wheel__sign--air { fill: var(--air); }   .wheel__sign--water { fill: var(--water); }
+.wheel__house { fill: var(--muted); font-size: 10px; }
+.wheel__tick { stroke: var(--muted); stroke-width: 1; }
+.wheel__body { fill: var(--ink); font-size: 15px; }
+@media (max-width: 400px) {
+  .wheel__sign, .wheel__body { font-size: 20px; }
+  .wheel__house { font-size: 14px; }
+  .wheel__axis-label { font-size: 14px; }
+}
+.chartwheel__table small { color: var(--muted); }
+.sky__phase { font-size: 1.1rem; }
+.sky__symbol { font-size: 1.6rem; vertical-align: -.1em; }
+.sky__people { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+.synastry__table th[scope="row"] { min-width: 12em; }
+.synastry__tone { white-space: nowrap; }
+.synastry__row--harmonious .synastry__tone { border-color: var(--earth); color: var(--earth); }
+.synastry__row--tense .synastry__tone { border-color: var(--fire); color: var(--fire); }
+.synastry__row--neutral .synastry__tone { border-color: var(--gold); color: var(--gold); }
+.tarot__art--wands { color: var(--fire); }
+.tarot__art--cups { color: var(--water); }
+.tarot__art--swords { color: var(--air); }
+.tarot__art--pentacles { color: var(--earth); }
+@media (min-width: 760px) {
+  .chartwheel__layout { grid-template-columns: minmax(0, 420px) 1fr; }
+}
+@media print {
+  .wheel { background: #fff; border-color: #000; width: 11cm; }
+  .wheel__ring, .wheel__divider, .wheel__tick { stroke: #000; }
+  .wheel__axis, .wheel__axis--ascendant, .wheel__axis--midheaven { stroke: #000; }
+  .wheel__axis-label, .wheel__sign, .wheel__sign--fire, .wheel__sign--earth, .wheel__sign--air, .wheel__sign--water, .wheel__house, .wheel__body { fill: #000; }
+  .chartwheel__layout { grid-template-columns: 1fr; }
+  .chartwheel, .sky, .synastry, .synastry__table tr { break-inside: avoid; }
+  .table-wrap { overflow: visible; }
+  .table-wrap th, .table-wrap td { border-bottom: 1px solid #000; color: #000; }
+  .card__house, .planet__house, .born, .born strong, .chartwheel__table small { color: #222; }
+  .synastry__row--harmonious .synastry__tone, .synastry__row--tense .synastry__tone, .synastry__row--neutral .synastry__tone { color: #000; border-color: #000; background: #fff; }
+  .tarot__art--wands, .tarot__art--cups, .tarot__art--swords, .tarot__art--pentacles { color: #000; }
 }

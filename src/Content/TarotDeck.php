@@ -6,6 +6,9 @@ namespace Magic\Content;
 /** The 22 Major Arcana with love-oriented readings. Entertainment, not prediction. */
 final class TarotDeck
 {
+    /** The full deck: 22 major cards (0-21), then the minor suits (22-77). */
+    public const COUNT = 78;
+
     public const CARDS = [
         ['id' => 'fool', 'number' => 0, 'name' => 'The Fool', 'upright' => 'A fresh start: step forward with an open heart and a light bag.', 'reversed' => 'Hesitation or recklessness: look before you leap, then leap anyway.'],
         ['id' => 'magician', 'number' => 1, 'name' => 'The Magician', 'upright' => 'You have everything you need to charm and create: speak your wish clearly.', 'reversed' => 'Mixed signals or unused talent: say what you actually mean.'],
@@ -30,4 +33,16 @@ final class TarotDeck
         ['id' => 'judgement', 'number' => 20, 'name' => 'Judgement', 'upright' => 'A call to answer honestly: forgive and begin again.', 'reversed' => 'Self-criticism: release old verdicts about yourself or others.'],
         ['id' => 'world', 'number' => 21, 'name' => 'The World', 'upright' => 'Completion and wholeness: a cycle closes beautifully.', 'reversed' => 'Almost there: one last step before the celebration.'],
     ];
+
+    /**
+     * Any card of the 78-card deck, with the same keys for major and minor cards.
+     * @return array{id:string, number:int, name:string, upright:string, reversed:string, arcana:string, suit:?string, rank:?string, mark:string}
+     */
+    public static function card(int $n): array
+    {
+        if ($n >= 0 && $n < count(self::CARDS)) {
+            return self::CARDS[$n] + ['arcana' => 'major', 'suit' => null, 'rank' => null, 'mark' => (string) $n];
+        }
+        return TarotMinor::card($n);
+    }
 }

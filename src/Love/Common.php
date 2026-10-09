@@ -49,7 +49,7 @@ final class Common
     }
 
     /** @return array{0: string, 1: int, 2: list<string>} */
-    private static function level(array $a, array $b): array
+    public static function level(array $a, array $b): array
     {
         if ($a['index'] === $b['index']) {
             return ['sign', 100, Traits::SIGNS[$a['id']]];

@@ -11,6 +11,9 @@ final class Geocoder
 {
     private const ENDPOINT = 'https://geocoding-api.open-meteo.com/v1/search';
     private const TTL = 30 * 86400;
+    public const MAX_FILES = 500;
+    public const PRUNE_TO = 400;
+    public const PRUNE_EVERY = 86400;
 
     public function __construct(private readonly string $cacheDir)
     {
@@ -37,6 +40,7 @@ final class Geocoder
         }
         if (is_dir($this->cacheDir) && is_writable($this->cacheDir)) {
             @file_put_contents($cacheFile, json_encode($results, JSON_UNESCAPED_UNICODE), LOCK_EX);
+            self::pruneDaily($this->cacheDir, time());
         }
         return $results;
     }
@@ -80,6 +84,60 @@ final class Geocoder
         $ctx = stream_context_create(['http' => ['timeout' => 4, 'ignore_errors' => false]]);
         $body = @file_get_contents($url, false, $ctx);
         return $body === false ? null : $body;
+    }
+
+    /**
+     * Keeps the cache bounded: removes expired files first, then the oldest until at most PRUNE_TO remain.
+     * Touches only geo-*.json files and never throws.
+     * @return int files removed
+     */
+    public static function prune(string $dir, int $now): int
+    {
+        $removed = 0;
+        try {
+            $files = glob(rtrim($dir, '/') . '/geo-*.json') ?: [];
+            $info = [];
+            foreach ($files as $f) {
+                $m = @filemtime($f);
+                if ($m === false) {
+                    continue;
+                }
+                if ($now - $m >= self::TTL) {
+                    if (@unlink($f)) {
+                        $removed++;
+                    }
+                    continue;
+                }
+                $info[$f] = $m;
+            }
+            if (count($info) > self::MAX_FILES) {
+                asort($info);
+                $excess = count($info) - self::PRUNE_TO;
+                foreach (array_keys($info) as $f) {
+                    if ($excess-- <= 0) {
+                        break;
+                    }
+                    if (@unlink($f)) {
+                        $removed++;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            // best effort only
+        }
+        return $removed;
+    }
+
+    /** Runs prune() at most once per PRUNE_EVERY seconds (the marker file's mtime is the throttle). */
+    private static function pruneDaily(string $dir, int $now): void
+    {
+        $marker = rtrim($dir, '/') . '/.pruned';
+        $last = @filemtime($marker);
+        if ($last !== false && $now - $last < self::PRUNE_EVERY) {
+            return;
+        }
+        @touch($marker, $now);
+        self::prune($dir, $now);
     }
 
     public static function label(array $c): string

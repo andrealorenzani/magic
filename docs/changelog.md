@@ -1,0 +1,106 @@
+# Changelog
+
+Newest first. Maintained by the `documenter` agent: every change to `src/`, `public/`, `templates/` or `migrations/` adds a line under "Unreleased" in the same commit, and a release moves them into a dated version.
+
+## Unreleased
+
+Nothing yet.
+
+## v0.7 - 2026-10-09 - Current position, short links, browser memory, derived features
+
+ADR: [0005](decisions/0005-profile-compact-share-and-roadmap.md).
+
+**Added**
+- Optional "Current city" in Self and Love (for you and for the loved person); the reading day follows it (in Love, person A's), and the result says "Today for you: ...".
+- "Distance and geography" card (approximate, km and miles, time difference).
+- Midheaven, the house of each body and an SVG chart wheel (Self).
+- Moon phase, "Today's sky" (Self; compact in Love) and "Born under" (Self).
+- Synastry table in Love (aspects between the two charts, with counts).
+- Tarot uses the full 78-card deck (minor arcana as composed texts).
+- Short share links (`?c=` code, version 1, up to 400 characters), a time-zone table for them, and a collapsed link box with a small QR in the Share section.
+- Browser memory (`public/assets/memory.js`): the user's own details are remembered in the browser, "Saved people" in Love, "Remember these details", "Forget my data".
+- Geocoding cache size cap with daily clean-up.
+- New pure namespaces `Earth`, `Sky`; new `ChartWheel`, `Share\ShareCode`, `Share\TimeZoneTable`; `docs/features.md` and this changelog.
+
+**Changed**
+- Terms cookie value is now `2`; the Terms text names the current position and the browser memory.
+- Audit `format_version` is 3 (YAML keys only, no migration): current positions, reading-day basis, distances, moon phase, synastry counts, Midheaven.
+- Share links default to the short code; old long links are accepted unchanged. A `c=` code is merged with other query keys and the code wins; a damaged code is ignored with a note.
+- Live tarot readings can differ from before for the same people and day (the deck is now 78 cards); frozen links with `t=` keep their meaning.
+- The clock is read once, in `public/index.php`; "today" can now come from the current position's time zone.
+- Place labels in short codes are cut at 32 bytes (known limit). Coordinates keep 5 decimals.
+
+**Fixed**
+- Cosmetic typos in ADR 0005.
+
+**Privacy**
+- The audit now also records the current position (when entered) and the new result summaries. Nothing new in the SQL columns.
+- Browser memory stays on the visitor's device, is named in the Terms, and is erased by "Forget my data" and by withdrawing acceptance. It is not read or written by any server code.
+
+**Migration:** visitors re-accept the Terms (one time). No database migration.
+
+## v0.6.1 - 2026-10-09 - Workflow
+
+**Changed**
+- Agent workflow: clarify step, architecture-change gate, reviewer "Docs drift" list, changelog rule.
+
+## v0.6 - 2026-10-09 - Sharing and polish
+
+ADR: [0004](decisions/0004-sharing-tarot-spread-and-polish.md).
+
+**Added**
+- Share section: frozen and live links, QR code generated in pure PHP, tarot spread in `t=`.
+- `?noaudit` to skip the audit write; share links carry it.
+- Past / Present / Future tarot spread with position-specific texts.
+- Richer "In common" and a compact biorhythm synchrony.
+
+**Changed**
+- Terms gate fixes: `no-store`, `Vary: Cookie`, query kept through acceptance, CSP additions.
+- Audit `format_version` 2.
+
+**Removed**
+- The 3-day tarot.
+
+## v0.5 - 2026-10-09 - Rename and local run
+
+**Added**
+- Docker local run (`docker compose up --build`) and `scripts/docker-db.sh`.
+- Terms and Conditions consent popup and withdraw section.
+
+**Changed**
+- Project renamed from Arcana to Magic (namespace `Magic\`).
+
+**Removed**
+- Algorithm details and references from docs and code comments.
+
+## v0.4 - 2026-10-09 - Audit trail and consent
+
+ADR: [0003](decisions/0003-mysql-audit-trail.md).
+
+**Added**
+- MySQL audit trail (`magic_audit`, `magic_audit_person`) with a YAML summary, written after the page is sent; migration, migrate and purge scripts.
+
+**Privacy**
+- Personal data is now stored on the server for each result; no IP address or user agent. The tables were not yet created in the real database.
+
+## v0.3 - 2026-10-09 - Two modes
+
+ADR: [0002](decisions/0002-self-discovery-and-love-modes.md).
+
+**Added**
+- Self discovery: Mercury to Pluto and North Node, sign affinities, "love of your life" sign, biorhythms.
+- Love: name affinity, biorhythm synchrony, common values, tarot; partial data for the loved person.
+- Printable results; `on=` to fix "today".
+
+## v0.2 - 2026-10-08 - Deployment
+
+**Added**
+- Serve `public/` from the project root through a root `.htaccess`.
+- Deploy to the server after every commit (`scripts/deploy.sh`); hosting details kept private.
+
+## v0.1 - 2026-10-08 - PHP rewrite
+
+ADR: [0001](decisions/0001-rewrite-in-php.md).
+
+**Added**
+- Sun, Ascendant and Moon signs from date, time and city, in PHP with no database.

@@ -106,6 +106,21 @@ check('audit record: self (Einstein reference chart)', function () use ($selfRec
     same(strlen($r['response_yaml']) <= 65536, true);
     same($selfRec(), $r);
 });
+check('audit record: self has the Midheaven, the moon phase of the day and at birth', function () use ($selfRec) {
+    $y = $selfRec()['response_yaml'];
+    same(str_contains($y, "  midheaven:\n    sign: "), true);
+    same(str_contains($y, "sky:\n  moon_phase: waning-crescent\n  moon_illumination: 2\n  moon_sign: Libra\n  born_moon_phase: "), true);
+    same(preg_match('/born_moon_phase: [a-z-]+\n/', $y), 1);
+});
+check('audit record: love has the moon of the day and the synastry counts and tightest aspects', function () use ($loveRec, $andrea) {
+    $y = $loveRec($andrea + ['b_name' => 'Silvia', 'b_date' => '1991-03-02'])['response_yaml'];
+    same(str_contains($y, "sky:\n  moon_phase: waning-crescent\n"), true);
+    same(str_contains($y, "synastry:\n  available: true\n  approx: true\n  total: "), true);
+    same(preg_match('/tightest:\n    - a [a-z]+ [a-z]+ b [a-z]+ \d\.\d\n/', $y), 1);
+    $y = $loveRec($andrea + ['b_name' => 'Silvia'])['response_yaml'];
+    same(str_contains($y, "synastry:\n  available: false\n"), true);
+    same(str_contains($y, "tightest: []"), true);
+});
 check('audit record: love (ADR 0002 reference, no self row)', function () use ($loveRec, $andrea) {
     $r = $loveRec($andrea + ['b_name' => 'Silvia Pellico']);
     same(array_column($r['persons'], 'role'), ['user', 'loved']);
@@ -212,7 +227,7 @@ check('audit log: connection failure is fast, logged without request data or cre
 
 // Run public/index.php in a subprocess and return [exit code, output].
 $runPage = function (array $get, string $config, string $errorLog, bool $consent = true) use ($root): array {
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "1"]' : '[]') . '; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "2"]' : '[]') . '; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
     $cmd = 'MAGIC_CONFIG=' . escapeshellarg($config) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($errorLog)
         . ' -r ' . escapeshellarg($code) . ' ' . escapeshellarg((string) json_encode($get)) . ' ' . escapeshellarg($root . '/public/index.php') . ' 2>&1';
     exec($cmd, $out, $rc);
@@ -239,8 +254,9 @@ check('without accepted terms: popup only, no result, no audit attempt', functio
     same(is_file($log) && str_contains((string) file_get_contents($log), 'audit:'), false);
 });
 check('consent: cookie check and safe redirect query', function () {
-    same(\Magic\Consent::given(['magic_terms' => '1']), true);
+    same(\Magic\Consent::given(['magic_terms' => '2']), true);
     same(\Magic\Consent::given(['magic_terms' => '0']), false);
+    same(\Magic\Consent::given(['magic_terms' => '1']), false); // text changed: everyone accepts again
     same(\Magic\Consent::given([]), false);
     same(\Magic\Consent::safeQuery('?mode=self&date=1990-01-01'), 'mode=self&date=1990-01-01');
     same(\Magic\Consent::safeQuery("a=1\r\nSet-Cookie: x"), '');

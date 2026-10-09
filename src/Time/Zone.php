@@ -30,4 +30,24 @@ final class Zone
         $local = sprintf('%04d-%02d-%02d %02d:%02d:00', $year, $month, $day, $hour, $minute);
         return (new DateTimeImmutable($local, new DateTimeZone($timeZone)))->getTimestamp();
     }
+
+    /** Calendar day (Y-m-d) at a time zone for a Unix timestamp. */
+    public static function dateAt(int $unix, string $timeZone): string
+    {
+        return self::at($unix, $timeZone)->format('Y-m-d');
+    }
+
+    /** Offset from UTC in minutes (east positive) at a time zone for a Unix timestamp. */
+    public static function offsetMinutes(int $unix, string $timeZone): int
+    {
+        return intdiv(self::at($unix, $timeZone)->getOffset(), 60);
+    }
+
+    private static function at(int $unix, string $timeZone): DateTimeImmutable
+    {
+        if (!self::isValid($timeZone)) {
+            throw new InvalidArgumentException('Unknown time zone');
+        }
+        return (new DateTimeImmutable('@' . $unix))->setTimezone(new DateTimeZone($timeZone));
+    }
 }

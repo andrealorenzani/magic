@@ -128,7 +128,7 @@ final class Qr
         return implode('', $parts);
     }
 
-    /** Reed-Solomon remainder (EC codewords) of `$data` over GF(256), polynomial 0x11D. @param list<int> $data @return list<int> */
+    /** Error-correction codewords for `$data`. @param list<int> $data @return list<int> */
     public static function rsRemainder(array $data, int $ecLen): array
     {
         self::tables();
@@ -356,7 +356,7 @@ final class Qr
         return self::$exp[self::$log[$a] + self::$log[$b]];
     }
 
-    /** Generator polynomial coefficients (without the leading 1), highest degree first. @return list<int> */
+    /** Error-correction generator coefficients. @return list<int> */
     private static function generator(int $degree): array
     {
         $poly = [1];

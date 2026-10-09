@@ -25,5 +25,6 @@ final class Signs
         'sun' => ['title' => 'Sun sign', 'tagline' => 'Your core self and vital spark'],
         'ascendant' => ['title' => 'Ascendant', 'tagline' => 'The mask you wear and the first impression you give'],
         'moon' => ['title' => 'Moon sign', 'tagline' => 'Your inner world, instincts and emotional needs'],
+        'midheaven' => ['title' => 'Midheaven', 'tagline' => 'Your calling and the way the world sees your achievements'],
     ];
 }

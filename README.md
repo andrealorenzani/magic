@@ -5,26 +5,32 @@ A page for magic lovers with two modes (choose on the home page):
 **Self discovery** — enter your **birth date**, **birth time** and **birth city**:
 - ☉ ↑ ☽ **Sun, Ascendant and Moon** signs
 - **Mercury to Pluto** and the mean North Node, with retrograde marks (births 1800-2100)
+- the **Midheaven**, the house of each body and a **chart wheel**
 - the **signs with most affinity** to you and the sign of the **love of your life**
+- **born under** (moon phase at birth) and **Today's sky**
 - your three **biorhythms** (physical, emotional, intellectual) for today, with next peaks and troughs
 
 **Love** — your name and birth data plus a loved person (their name is enough; date, time and city are optional):
 - **name affinity** in percent
 - **biorhythm synchrony** of the two of you (needs both birth dates)
-- **common values** in Sun, Moon and Ascendant
-- a **Past / Present / Future tarot spread** for the two of you (same input and day give the same cards)
+- **common values** in Sun, Moon and Ascendant, and a **synastry** table
+- a **Past / Present / Future tarot spread** (78 cards) for the two of you (same input and day give the same cards)
+
+Both modes have an optional **current city**: it sets your local "today" and shows the **distance** between places. Details in [docs/features.md](docs/features.md).
 
 Both results have a **Share** section and a **Print** button (and a print layout without forms), so you can keep a paper copy.
 
-**Sharing.** Under a result, "Share this reading" shows a link to the exact reading (same day, and in Love the same tarot cards) with a QR code, a link to a live reading (same people, today's values), and a Copy button where the browser supports it. The QR is generated on the server in pure PHP; if the link is too long for a QR only the link is shown. Links contain the names and birth details you entered: share them only with people you trust. Opening a shared link is not recorded in the audit again, because share links carry `noaudit`.
+**Sharing.** Under a result, "Share this reading" shows a short link (`?c=...`) to the exact reading (same day, and in Love the same tarot cards) with a small QR code, a link to a live reading (same people, today's values), and a Copy button where the browser supports it. Old long links still work. The QR is generated on the server in pure PHP; if the link is too long for a QR only the link is shown. Links contain the names and birth details you entered: share them only with people you trust. Opening a shared link is not recorded in the audit again, because share links carry `noaudit`.
 
 **Testing without recording.** Add `&noaudit` (or `?noaudit`) to any URL and that request is not written to the audit log.
 
 Name affinity, biorhythms, scores and tarot are for wonder, not science.
 
-PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac. Sun and Moon are very accurate; planets (1800-2100) are approximate. Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
+PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac. Sun and Moon are very accurate; planets (1800-2100) are approximate. Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the day at your current city if you enter one, else the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
 
-**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
+**Browser memory.** If your browser allows it, your own details (and a short list of people you looked up in Love) are remembered in your browser only, never stored by the server; "Forget my data" erases them, and so does withdrawing your acceptance.
+
+**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.7, so everybody accepts once again. The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
 
 **Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address or user agent is stored and nothing is used to track you. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
 
@@ -49,7 +55,7 @@ PHP 8.1+ is needed only if you prefer the built-in server or want to run the tes
 
 ```bash
 php -S localhost:8081 -t public     # http://localhost:8081 (no database unless config.php exists)
-php tests/run.php                   # tests (astronomy, time zones, input validation, both modes, audit)
+php tests/run.php                   # 200 tests (astronomy, time zones, input validation, both modes, audit, short links, browser memory)
 ```
 
 ## Deploy (Apache shared hosting)
@@ -72,7 +78,7 @@ Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in
 
 The wall-clock birth time is converted to UTC with the PHP time zone database (historical DST), then the signs are determined for that instant and place. The Ascendant changes quickly, so birth-time precision matters; at extreme latitudes it is approximate.
 
-Docs: [architecture](docs/architecture.md) · [code map](docs/code.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/).
+Docs: [features](docs/features.md) · [architecture](docs/architecture.md) · [code map](docs/code.md) · [changelog](docs/changelog.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/).
 
 ## Building new features with agents
 

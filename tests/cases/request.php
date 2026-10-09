@@ -36,7 +36,7 @@ check('request love: loved person with only a name is valid, no notes', function
     $r = Request::parseLove($A + ['b_name' => 'Bob'], $g);
     same($r['errors'], []);
     same($r['notes'], []);
-    same($r['b'], ['name' => 'Bob', 'date' => null, 'time' => null, 'place' => null]);
+    same($r['b'], ['name' => 'Bob', 'date' => null, 'time' => null, 'place' => null, 'now' => null]);
     same($r['a']['place']['tz'], 'Europe/Rome');
     same($r['a']['time'], ['hour' => 8, 'minute' => 30]);
 });
@@ -85,7 +85,7 @@ check('request love: name rules', function () use ($g, $A) {
 check('request self: old queries still parse; mode key is ignored by parse()', function () use ($g) {
     $r = Request::parse(['mode' => 'self', 'date' => '1990-07-15', 'time' => '08:30', 'city' => 'Rome', 'lat' => '41.9', 'lon' => '12.5', 'tz' => 'Europe/Rome'], $g);
     same($r['errors'], []);
-    same(array_keys($r['input']), ['year', 'month', 'day', 'hour', 'minute', 'lat', 'lon', 'tz', 'city']);
+    same(array_keys($r['input']), ['year', 'month', 'day', 'hour', 'minute', 'lat', 'lon', 'tz', 'city', 'now']);
 });
 check('builders: SelfReading and LoveReading (pure, deterministic)', function () use ($g, $A) {
     $in = Request::parse(['date' => '1990-07-15', 'time' => '08:30', 'city' => 'Rome', 'lat' => '41.9', 'lon' => '12.5', 'tz' => 'Europe/Rome'], $g)['input'];

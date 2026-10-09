@@ -1,6 +1,6 @@
 # Architecture
 
-> Status: v0.6 (PHP, two modes, sharing with link + QR, Past/Present/Future tarot, MySQL audit trail, Terms and Conditions consent, Docker local run; the audit tables are not yet created in the real database, see §9) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
+> Status: v0.7 (PHP, two modes, current position, short share links + QR, browser memory, Midheaven/houses/wheel, moon phase and Today's sky, synastry, 78-card tarot, MySQL audit trail, Terms and Conditions consent, Docker local run; the audit tables are not yet created in the real database, see §9) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
 
 ## 1. Goal
 
@@ -14,10 +14,10 @@ Magic is a web page for magic lovers. The visitor enters **birth date**, **birth
 
 The home page offers two modes (ADR [0002](decisions/0002-self-discovery-and-love-modes.md)):
 
-- **Self discovery** (`?mode=self`): the three results above plus Mercury–Pluto and the mean North Node, the signs with most affinity, a "love of your life" sign, the three biorhythms and a printable page.
-- **Love** (`?mode=love`): the user and a loved person (only the name is required for the loved person): name affinity %, biorhythm synchrony, common Sun/Moon/Ascendant values, a Past/Present/Future tarot spread for the couple, printable. Both modes have a **Share** section (link + QR code, ADR [0004](decisions/0004-sharing-tarot-spread-and-polish.md)).
+- **Self discovery** (`?mode=self`): the three results above plus Mercury–Pluto and the mean North Node, Midheaven, houses and a chart wheel, the signs with most affinity, a "love of your life" sign, the three biorhythms, moon phase and "Today's sky", and a printable page.
+- **Love** (`?mode=love`): the user and a loved person (only the name is required for the loved person): name affinity %, biorhythm synchrony, common Sun/Moon/Ascendant values, synastry, a Past/Present/Future tarot spread (78 cards) for the couple, printable. Both modes have an optional current position (ADR [0005](decisions/0005-profile-compact-share-and-roadmap.md)) and a **Share** section (short link + QR code, ADR [0004](decisions/0004-sharing-tarot-spread-and-polish.md)).
 
-Long-term ambition: the most-used page for magic lovers, so adding features (houses…) must be cheap.
+Long-term ambition: the most-used page for magic lovers, so adding features must be cheap. Visitor-facing behaviour is described in [features.md](features.md); the release history in [changelog.md](changelog.md).
 
 ## 2. Constraints & key decisions
 
@@ -33,6 +33,9 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
 | D8 | **Progressive enhancement**: the page works without JavaScript (server resolves the city text); JS only adds city autocomplete | Robust, SEO-friendly, shareable GET URLs | — |
 | D10 | **Shareable state lives in the URL** (ADR 0004, rule in CLAUDE.md): whatever a result shows that is not purely derived from the form input (reading day `on`, tarot cards and orientation `t`) is encoded in the share URL, validated on read (invalid: ignored with a note, never a crash) and covered by a round-trip test | A shared page shows exactly what the sender saw, with no server-side storage | Links are long and carry personal data |
 | D9 | **Agentic dev workflow** in `.claude/` | See §6 | — |
+| D11 | **Current position and the reading day** (ADR 0005): an optional current city gives the local calendar day for "today" (Love: person A's); `on=` wins; otherwise the UTC date. The clock is read only in `public/index.php` | A link opens identically anywhere because the day comes from a place, not from the browser | Visitors without a current city still get the UTC date |
+| D12 | **Compact share code** (ADR 0005): the primary share link is `?c=<code>`, versioned and decoded strictly; the long readable query stays accepted. A `c=` code is merged with other query keys and the code wins | Short links and small QR codes | A place label is cut at 32 bytes in a code; codes are capped at 400 characters |
+| D13 | **Browser memory** (ADR 0005): `public/assets/memory.js` keeps the visitor's own details in `localStorage`, validated on read, no network, no HTML injection; named in the Terms; erased by "Forget my data" and by withdrawing acceptance | Convenience without server-side accounts | Shared computers (mitigated by the visible forget button and no automatic save of link data) |
 
 ## 3. System overview
 
@@ -42,9 +45,10 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
          └─ GET /?mode=love&a_name&a_date&a_time&a_city..&b_name&b_..    ├─► public/index.php
     │                                                                     ┘        │
     │  assets/autocomplete.js (one per [data-place])                               ├─ Consent::given (cookie magic_terms) else only the terms popup
-    │                                                                              ├─ Request::mode / parseToday (clock read here only)
+    │                                                                              ├─ Share\ShareCode::decode(c) merged into the query · Request::mode / resolveToday (clock read here only)
     │  assets/share.js (copy / Web Share buttons)
     │      └─ GET api/cities.php?q= ──► Geocoder ──────────────────────────────────┤
+    │  assets/memory.js (browser-only memory of the visitor's details)
     │  assets/print.js (un-hides the Print button)                                 ├─ Request::parse | parseLove ─► Geo\Geocoder ─► Open-Meteo
     │                                                                              │      (cache/ on disk, Geo\FallbackCities if unreachable)
     │                                                                              ├─ SelfReading::build  ─┐ pure view-models
@@ -52,39 +56,42 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
     │                                                                              │    Chart::full / partial ─► Time\Zone, Astro\Angles/Sun/Moon/
     │                                                                              │         Ascendant/Planets/MeanNode/Zodiac
     │                                                                              │    Love\SignAffinity, NameAffinity, Common · Bio\Biorhythm, Synchrony
-    │                                                                              │    Tarot\Reading (+ Content\* copy) · Share\ShareLink, Share\Qr (pure)
+    │                                                                              │    Tarot\Reading (+ Content\* copy) · Share\ShareLink, ShareCode, Qr (pure)
+    │                                                                              │    Astro\Houses/MoonPhase/Aspects · Sky\Today · Love\Synastry · Earth\Geography · ChartWheel (pure)
     │                                                                              ├─ templates/home.php ► self-result.php | love-result.php (+ partials/)
     │                                                                              └─ after the page is flushed, only for results:
     │                                                                                   Audit\AuditRecord (pure) ─► Db\AuditLog::tryWrite ─► MySQL magic_audit*
     │                                                                                   (no config / DB down / any error: swallowed, page unaffected)
 ```
 
-Layering rule (checked by `reviewer` and `tests/cases/layering.php`): `Astro\*`, `Time\*`, `Chart`, `Love\*`, `Bio\*`, `Tarot\*`, `Share\*`, `SelfReading`, `LoveReading` and `Audit\*` never do I/O (no network, files, `$_GET`, echo, clock). Only `public/`, `Request`, `Geo` and `Db` touch the outside world. Templates only render; they escape everything with `e()`.
+Layering rule (checked by `reviewer` and `tests/cases/layering.php`): `Astro\*`, `Time\*`, `Earth\*`, `Sky\*`, `Chart`, `ChartWheel`, `Love\*`, `Bio\*`, `Tarot\*`, `Share\*`, `SelfReading`, `LoveReading` and `Audit\*` never do I/O (no network, files, `$_GET`, echo, clock). The clock is read only in `public/index.php` (`time()` once, passed down). Only `public/`, `Request`, `Geo` and `Db` touch the outside world. `public/assets/memory.js` is the only code that uses browser storage. Templates only render; they escape everything with `e()`.
 
 ## 4. Feature pipeline
 
 Shared core (both modes): wall-clock birth data plus place and time zone become a UTC instant (`Zone::toUnix`, DST gap shifted forward, overlap resolved to the first occurrence); `Chart` then gives the Sun, Moon and Ascendant signs, each as a `Zodiac::fromLongitude` position (sign, degree, minute).
 
-Self mode (`SelfReading::build($input, $today)`): `Chart::full` adds Mercury–Pluto with retrograde marks (years 1800–2100) and the mean North Node (any year); `SignAffinity::rank` returns the 3 signs with most affinity and one "love of your life" sign; `Biorhythm::forPerson` gives the three biorhythms for `today`.
+Self mode (`SelfReading::build($input, $today)`): `Chart::full` adds Mercury–Pluto with retrograde marks (years 1800–2100), the mean North Node (any year), the Midheaven and the house of each body; `ChartWheel::layout` prepares the drawing; `Sky\Today` gives the moon phase and "Today's sky" (also the phase at birth); `Earth\Geography` gives the optional distance card; `SignAffinity::rank` returns the 3 signs with most affinity and one "love of your life" sign; `Biorhythm::forPerson` gives the three biorhythms for `today`.
 
-Love mode (`LoveReading::build($a, $b, $today)`): `Chart::partial` builds a chart with whatever data each person gave (date only gives Sun and Moon flagged `approx` when the sign may depend on the birth time; no Ascendant); `NameAffinity` gives a percentage; `Synchrony::pair` compares the two people's biorhythms; `Common::between` lists shared Sun/Moon/Ascendant values with a score; `Tarot\Reading::spread` gives a stateless Past / Present / Future spread of three distinct cards with position-specific texts (same people and day give the same cards; a valid `t=` parameter replaces the draw). Self mode has no tarot.
+Love mode (`LoveReading::build($a, $b, $today)`): `Chart::partial` builds a chart with whatever data each person gave (date only gives Sun and Moon flagged `approx` when the sign may depend on the birth time; no Ascendant); `NameAffinity` gives a percentage; `Synchrony::pair` compares the two people's biorhythms; `Common::between` lists shared Sun/Moon/Ascendant values with a score; `Love\Synastry::between` lists aspects between the two charts; `Sky\Today` and `Earth\Geography` add a compact sky and the distance card; `Tarot\Reading::spread` gives a stateless Past / Present / Future spread of three distinct cards with position-specific texts (same people and day give the same cards; a valid `t=` parameter replaces the draw). Self mode has no tarot.
 
-"Today" is the **server's UTC date** (`gmdate`), read only in `public/index.php`, and may be overridden by a valid `on=YYYY-MM-DD` (1900–2100) for tests and reproducible shared links. A visitor far from UTC can therefore see biorhythms and tarot one day off.
+The reading day ("today") is chosen by `Request::resolveToday`: a valid `on=YYYY-MM-DD` (1900–2100) wins; otherwise the calendar day at the user's current position (Self: the visitor; Love: person A), computed from the single clock read in `public/index.php`; otherwise the server's UTC date. A visitor with no current city far from UTC can therefore see biorhythms and tarot one day off.
 
-Sharing (ADR 0004): `Share\ShareLink` builds canonical query strings from the validated model, never from the raw query. The Share section offers a **frozen link** (people, `on=`, and in Love `t=<spread>`, e.g. `t=16u,5r,9u`: Past, Present, Future as card number + `u`/`r`) shown as text and as a QR code, and a **live link** (people only). The QR is generated in pure PHP (`Share\Qr`) and rendered as inline SVG; nothing goes to a third party. Links up to 520 bytes get a QR, longer ones show the link only. Coordinates are rounded to 5 decimals at parse time so sender and recipient see identical results. An invalid `t` is ignored with a note. A page fixed to a past `on=` shows a note with a link to the live version. The absolute link origin is built in `public/index.php` from `Http::origin`/`basePath` (validated Host header; relative link and no QR if odd).
+Sharing (ADR 0004): `Share\ShareLink` and `Share\ShareCode` build links from the validated model, never from the raw query. The primary link is the short code `?c=<code>` (ADR 0005); the readable long query (`Share\ShareLink`, `t=<spread>` e.g. `t=16u,5r,9u`: card number 0-77 + `u`/`r`) stays accepted. `index.php` decodes `c` right after the consent check and merges it over the other query keys (the code wins); a bad code is ignored with a note. The Share section offers a **frozen link** (people, reading day, and in Love the tarot spread) with a small QR code and a **live link** (people only), the links inside a collapsed `<details>`. Place labels are cut at 32 bytes in a code, codes are capped at 400 characters, and time zones in a code come from the append-only `Share\TimeZoneTable`. The QR is generated in pure PHP (`Share\Qr`) and rendered as inline SVG; nothing goes to a third party. Links up to 520 bytes get a QR, longer ones show the link only. Coordinates are rounded to 5 decimals at parse time (unchanged by ADR 0005) so sender and recipient see identical results. An invalid `t` is ignored with a note. A page fixed to a past `on=` shows a note with a link to the live version. The absolute link origin is built in `public/index.php` from `Http::origin`/`basePath` (validated Host header; relative link and no QR if odd).
 
 `?noaudit` (any value) skips the audit write for that request; share links carry it, so opening a shared link is not recorded again. It is a testing and owner-side switch, not a security control.
 
-Limits: Ascendant flagged approximate at extreme latitudes; no houses yet; planets unavailable outside 1800–2100; biorhythms, scores, name affinity and tarot are entertainment. Love results show a compact biorhythm synchrony (three cards, curves inside a collapsible `<details>`) and a reorganised "In common" section (summary, sign chips, level pills, trait pills, a meaning sentence per body, placeholder cards for what could not be compared). Documentation never describes how values are computed (CLAUDE.md rule).
+Limits: Ascendant (and houses, wheel) flagged approximate at extreme latitudes; whole-sign houses only; planets unavailable outside 1800–2100; biorhythms, scores, name affinity and tarot are entertainment. Love results show a compact biorhythm synchrony (three cards, curves inside a collapsible `<details>`) and a reorganised "In common" section (summary, sign chips, level pills, trait pills, a meaning sentence per body, placeholder cards for what could not be compared). Documentation never describes how values are computed (CLAUDE.md rule).
 
 ## 5. Security & privacy
 
 - All user input validated in `Request::parse` (date/time regex + `checkdate`, lat/lon ranges, `tz` checked against `DateTimeZone::listIdentifiers()`); output escaped with `e()`.
 - Outbound requests go only to the fixed Open-Meteo host; the query is URL-encoded.
-- Only the **city text** is sent to a third party (Open-Meteo).
+- Only the **city text** (birth city and, if entered, current city) is sent to a third party (Open-Meteo).
 - **Audit trail (ADR 0003): personal data IS stored.** For every Self or Love result the app writes to MySQL: the functionality, a UTC timestamp, the reading date, the names, birth date, birth time and place (label, lat, lon, time zone) of the user and, in Love mode, of the loved person (only what was entered), and a YAML summary of the result (signs, name affinity, synchrony, tarot, biorhythm values), unless the request carries `noaudit`. **Not stored:** IP address, user agent, referrer, session ids, the URL or query string. Nothing is written for the mode chooser, validation errors or notes-only pages.
 - **Terms and Conditions consent (ADR 0003, update):** the page is unusable until the visitor accepts the T&Cs. Without the cookie `magic_terms` a blocking popup is shown; the request is not processed (the query is ignored) and **no audit record is written**. Accepting is a POST to `public/consent.php`, which sets the cookie and redirects back (carrying the original query through `Consent::safeQuery`; a query that could not be kept shows a sentence on the gate); a withdraw button in the T&Cs section clears it and returns to `./?withdrawn=1`. The gate fixes of ADR 0004: every response of `index.php` and `consent.php` sends `Cache-Control: private, no-store` and `Vary: Cookie`; the footer and Terms section are inert behind the gate; the accept button has autofocus; small-screen layout scrolls; the cookie is `Secure` also behind a TLS-terminating proxy (`Http::isSecure`); the form posts to a root-relative `consent.php`. The text is `templates/partials/terms.php`, shown in the popup and as an expandable "Terms and Conditions" section at the end of the page. The loved person never consented; only what is entered is stored.
-- **Cookies:** no tracking cookies. The only cookie is the **functional consent cookie** `magic_terms` (value `1`, 1 year, `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, no identifier).
+- **Cookies:** no tracking cookies. The only cookie is the **functional consent cookie** `magic_terms` (value `2` since ADR 0005, so every visitor accepted the new Terms once; 1 year, `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, no identifier).
+- **Current position (ADR 0005):** the optional current city is recorded in the audit YAML (label, coordinates, time zone) with the day basis and distances; the Terms say so. The SQL columns still describe the birth place only; `format_version` is 3.
+- **Browser storage (ADR 0005):** `memory.js` keeps the visitor's own details and a short list of people in `localStorage` (keys `magic.me.v1`, `magic.loved.v1`), only on the visitor's device. No server code reads or writes it; it is sent only as the form data the visitor submits. The Terms name it; "Forget my data" and withdrawing acceptance erase it; details that arrived through a link are saved only after an explicit button. The script has no network calls and never injects HTML (checked by `tests/cases/memory.php`).
 - **Retention and erasure:** there is **no automatic retention or deletion**. The owner is the data controller and must operate the process by hand: `scripts/db-purge.sh --days N` deletes audit rows older than N days (person rows follow through `ON DELETE CASCADE`; run it manually or from a cron job on a trusted machine); remove-on-request is a delete by name query, e.g. `DELETE FROM magic_audit WHERE id IN (SELECT audit_id FROM magic_audit_person WHERE name = ?)` with a bound parameter (examples in [code.md](code.md)). Host backups age out on the host's schedule. Lawful basis, privacy policy and contact address are the owner's decision; this is not legal advice.
 - **Who can read:** whoever has the database credentials (hosting panel, MySQL client, host backups). No page, API or log of the app outputs audit rows. The app logs only an error class and code on a failed write (`audit: write failed <Class> <code>`), never request data, host or user names.
 - **Names now travel in the GET URL** (Love mode also carries the loved person's birth data). They can appear in web-server access logs, browser history and shared links; the Love form warns "share the link only with people you trust". Result pages send `X-Robots-Tag: noindex` and `<meta name="robots" content="noindex">`; all pages send `Cache-Control: private, no-store`. The Share section repeats the warning that links contain names and birth details. POST was rejected because it breaks shareable URLs (D8); a "private mode" would need its own ADR. Mention this in any privacy policy.
@@ -106,31 +113,34 @@ Limits: Ascendant flagged approximate at extreme latitudes; no houses yet; plane
     ▼
  reviewer ──► layering, accuracy, security, a11y ──► findings (loop to implementer if blocking)
     ▼
- documenter ──► updates architecture.md, code.md, roadmap.md, README.md
+ documenter ──► updates architecture.md, code.md, features.md, changelog.md, roadmap.md, README.md
     ▼
  commit ──► deployer ──► scripts/deploy.sh (tests, then SFTP upload of changed files)
 ```
 
-Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes, 0003 the MySQL audit trail and the consent update, 0004 sharing, the tarot spread and the gate fixes).
+Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes, 0003 the MySQL audit trail and the consent update, 0004 sharing, the tarot spread and the gate fixes, 0005 current position, short links, browser memory and the derived features).
 
 ## 7. Extension points
 
 | To add… | Touch |
 |---|---|
 | A body in Self mode | planets are data-driven: add a row to `Planets::ELEMENTS`/`BODIES`, copy in `Content\Bodies::INFO`, and the planet grid in `templates/self-result.php` picks it up from `Chart::full` |
-| Houses | new `src/Astro/Houses.php` reusing `Angles`/`Ascendant::gmst`; expose it in `Chart::full` |
+| Another house system | `Astro\Houses` (whole-sign today) and `Chart::full`'s `houses`; the wheel and `Content\Houses` follow |
+| A new aspect type or orb | constants in `Astro\Aspects` and copy in `Content\Aspects` |
+| Daily reading copy | `Content\Daily`, composed in `Sky\Today` |
 | Planets before 1800 | extend `Planets`; `supports()` is the single gate |
 | A third mode | `Request::MODES`, a `Request::parseX`, a pure `XReading::build`, `templates/x-result.php`, a chooser card in `templates/home.php` |
-| Tarot cards / copy / languages | `Content\TarotDeck`, `Content\TarotPast`/`TarotPresent`/`TarotFuture` (per-position texts, read through `Content\TarotSpread`), `Content\Traits`, `Content\Bodies`, `Content\Signs` only |
+| Tarot cards / copy / languages | `Content\TarotDeck`, `Content\TarotMinor` (minor arcana), `Content\TarotPast`/`TarotPresent`/`TarotFuture` (per-position texts, read through `Content\TarotSpread`), `Content\Traits`, `Content\Bodies`, `Content\Signs` only |
 | Scoring weights | constants at the top of `Love\SignAffinity`, `Love\Common`, `Bio\Synchrony::THRESHOLD` |
 | Another stored field in the audit | the pure `Audit\AuditRecord` builders (YAML key or person field) and, for a new column, a new idempotent `migrations/NNN_*.sql` plus the INSERT in `Db\AuditLog`; bump `AuditRecord::FORMAT_VERSION` when the YAML layout changes |
-| A new shareable output | encode it in `Share\ShareLink` (and parse/validate it in `Request`), classify it as derived or encoded, add a round-trip test in `tests/cases/share.php` |
+| A new shareable output | encode it in `Share\ShareLink` and `Share\ShareCode` (new format fields need a new code version; the time-zone table is append-only), parse/validate it in `Request`, classify it as derived or encoded, add a round-trip test in `tests/cases/share.php` and `tests/cases/code.php` |
+| Browser-stored data | only through `public/assets/memory.js` with documented keys, validation on read, and the Terms text updated |
 | Other persistence (saved/shared charts, accounts, caching city lookups in SQL) | MySQL via the existing `src/Db` layer (`Config`, `Connection`), SQL in `migrations/NNN_*.sql` with the `magic_` prefix, a new ADR and a privacy decision first |
 | New page/route | new file in `public/` (plain PHP entry scripts; `index.php` is a small front controller on `mode`) + template in `templates/` |
 
 ## 8. Testing
 
-`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`, `audit`, `share`), required by the runner. Astronomy is checked against published reference values (equinox, a known natal chart, planets at a fixed epoch and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `audit` pins the YAML emitter (golden strings, injection), the record builders and the failure isolation of the DB layer (no database needed); `share` checks the QR encoder's structure, share-link round trips and `noaudit`; `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` or the Docker setup (§10) and curl/browser. The optional DB integration test runs only with `MAGIC_DB_TEST=1` and a `config.php`.
+`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`, `audit`, `share`, `position`, `sky`, `code`, `memory`), required by the runner. Astronomy is checked against published reference values (equinox, a known natal chart, planets at a fixed epoch and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `audit` pins the YAML emitter (golden strings, injection), the record builders and the failure isolation of the DB layer (no database needed); `share` checks the QR encoder's structure, share-link round trips and `noaudit`; `position` the reading day, current position and distances; `sky` houses, moon phase, aspects, synastry, the wheel and daily copy; `code` the short codes (round trips, invalid codes, the time-zone table, the gate); `memory` that `memory.js` has no network or HTML injection and the templates carry the hooks; `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` or the Docker setup (§10) and curl/browser. The optional DB integration test runs only with `MAGIC_DB_TEST=1` and a `config.php`.
 
 ## 9. Deployment (Apache shared hosting)
 

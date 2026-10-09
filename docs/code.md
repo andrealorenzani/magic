@@ -10,22 +10,24 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 /config.php                  (gitignored) real DB settings, project root, outside public/; made by scripts/make-config.sh
 public/                      ← web root (the server's "web directory")
   consent.php                POST accept/withdraw the Terms and Conditions: sets/clears cookie magic_terms (Secure also behind a proxy), 303 to ./ (accept carries the sanitised original query; withdraw goes to ./?withdrawn=1)
-  index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sends no-store + `Vary: Cookie` on every response and noindex on results; reads `t=` and `noaudit`; builds the Share model (frozen/live link, QR); after rendering a result, flushes and writes the audit record (errors swallowed)
+  index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sends no-store + `Vary: Cookie` on every response and noindex on results; reads `t=` and `noaudit`; reads the clock once (`time()`), decodes a `c=` short code and merges it over the query (the code wins), builds the Share model (frozen/live short links, QR); after rendering a result, flushes and writes the audit record (errors swallowed)
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
   assets/styles.css          All styling (dark/starry theme, element colours, bio chart classes, @media print)
   assets/autocomplete.js     Progressive enhancement: suggestions + fills hidden lat/lon/tz, one instance per [data-place] container
+  assets/memory.js           Browser memory: remembers the visitor's own details (`localStorage`, keys `magic.me.v1`, `magic.loved.v1`), saved people in Love, "Remember these details", "Forget my data"; validates on read; no network, no HTML injection
   assets/print.js            Un-hides the Print button and calls window.print()
   assets/share.js            Un-hides the Copy link / Share buttons (clipboard, Web Share); the section works without it
   .htaccess                  Apache hardening + CSP (incl. frame-ancestors, form-action, base-uri) + caching
 src/
   autoload.php               PSR-4 style autoloader for namespace Magic\ (no Composer)
   bootstrap.php              Loads autoloader, defines MAGIC_ROOT and the e() escape helper
-  Chart.php                  ★ Chart::compute (big three), Chart::full (+ planets, node), Chart::partial (optional time/place)
-  Consent.php                Consent::COOKIE/VALUE/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
+  Chart.php                  ★ Chart::compute (big three + midheaven), Chart::full (+ planets, node, houses), Chart::partial (optional time/place), Chart::longitudes (bodies a person has, for synastry)
+  ChartWheel.php             Pure: ChartWheel::layout($chart) → drawing data for the wheel (SIZE, radii, MIN_SEPARATION), spread(), point()
+  Consent.php                Consent::COOKIE/VALUE ('2')/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
   Http.php                   Pure helpers on a passed-in server array: isSecure (HTTPS or forwarded proto), basePath, origin (validated Host)
-  Request.php                mode(), parseToday(), noAudit(), parseTarot() (validates `t`), parse() (Self), parseLove(), parsePerson(): validated input / errors / notes; lat/lon rounded to 5 dp
-  SelfReading.php            Pure: SelfReading::build($input, $today) → Self view-model
-  LoveReading.php            Pure: LoveReading::build($a, $b, $today, ?$tarotSlots = null) → Love view-model
+  Request.php                mode(), parseToday(), resolveToday() (reading day), dayBasis(), noAudit(), parseTarot() (validates `t`), parse() (Self), parseLove(), parsePerson() (incl. optional `pos_*` current position): validated input / errors / notes; lat/lon rounded to 5 dp
+  SelfReading.php            Pure: SelfReading::build($input, $today, $dayBasis) → Self view-model
+  LoveReading.php            Pure: LoveReading::build($a, $b, $today, ?$tarotSlots = null, $dayBasis = 'utc') → Love view-model
   Astro/Angles.php           rad, norm360, julianDay, centuries, nutationLongitude, obliquity
   Astro/Sun.php              Sun::longitude($jd)
   Astro/Moon.php             Moon::longitude($jd)
@@ -33,41 +35,54 @@ src/
   Astro/Zodiac.php           Zodiac::SIGNS, Zodiac::fromLongitude($lon)
   Astro/Planets.php          Mercury–Pluto (1800–2100, approximate): supports($jd), longitude($id,$jd), all($jd)
   Astro/MeanNode.php         MeanNode::longitude($jd) — mean North Node
+  Astro/Houses.php           Houses::midheaven($jd,$lon), midheavenFromRamc(), wholeSign($ascLon,$bodyLon) → house 1-12
+  Astro/MoonPhase.php        MoonPhase::at($jd) → angle, illumination, phase; PHASES, MAIN_HALF_WIDTH (10°), name()
+  Astro/Aspects.php          Aspects::between($lonA,$lonB) → type + orb or null; TYPES (orb limits pinned by tests)
+  Earth/Distance.php         Distance::km(), miles() — straight-line distance
+  Earth/Geography.php        Geography::between(), forSelf(), forLove(), formatOffset() — the "Distance and geography" model
+  Sky/Today.php              Today::for($day, $sunSigns) → phase, illumination, Moon sign and reading; phaseAt($jd) (also "born under")
   Bio/Biorhythm.php          dayNumber/date/dayOf, value, forPerson (3 cycles, peaks, 30-day curve)
   Bio/Synchrony.php          Synchrony::pair — per-cycle delta/sync/amplitude/combined peaks, overall, band
   Love/NameAffinity.php      Name affinity percentage: compute($nameA, $nameB)
   Love/SignAffinity.php      Sign-vs-sign scoring: rank($refs) → ranking, mostAffine (3), soulmate
   Love/Common.php            Common::between($chartA, $chartB) — shared Sun/Moon/Ascendant values
-  Tarot/Reading.php          Reading::spread($seed, $today) — deterministic Past/Present/Future, 3 distinct cards; fromSlots() for a validated shared spread
-  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical query strings), tarotCode/parseTarot, MAX_URL_FOR_QR (520), trimCity
+  Love/Synastry.php          Synastry::between($lonsA, $lonsB, $limit) → rows, counts, approx; ORDER, PERSONAL, MAX_ROWS (12)
+  Tarot/Reading.php          Reading::spread($seed, $today) — deterministic Past/Present/Future, 3 distinct cards from 78; fromSlots() for a validated shared spread
+  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings), codeQuery(), tarotCode/parseTarot (0-77), MAX_URL_FOR_QR (520), trimCity
+  Share/ShareCode.php        Pure: VERSION 1, MAX_CHARS 400, MAX_LABEL_BYTES 32; encodeSelf/encodeLove → code string, decode($code) → long-query array or null (strict, canonical only), cutLabel()
+  Share/TimeZoneTable.php    Append-only list of time zones used by short codes (never reorder or remove)
   Share/Qr.php               Pure QR code generator: encode($data): ?modules (null if over 520 bytes), path($modules) for SVG, capacity(); generated in pure PHP
   Audit/Yaml.php             Pure: Yaml::dump(array): string — small deterministic block-style emitter, strict quoting, fixed [a-z][a-z0-9_]* keys
-  Audit/AuditRecord.php      Pure: fromSelf / fromLove → record (persons + response_yaml), FORMAT_VERSION, MAX_YAML_BYTES (64 KiB, else a `truncated: true` document)
+  Audit/AuditRecord.php      Pure: fromSelf / fromLove → record (persons + response_yaml), FORMAT_VERSION (3), MAX_YAML_BYTES (64 KiB, else a `truncated: true` document)
   Db/Config.php              I/O: Config::load($path): ?array — reads config.php, null if missing/invalid, silent
   Db/Connection.php          I/O: Connection::open($cfg): PDO — utf8mb4, exceptions, 2 s connect timeout, no emulated prepares
   Db/AuditLog.php            I/O: AuditLog::tryWrite(?$configPath, $record): bool — one transaction, prepared statements, never throws
-  Time/Zone.php              Zone::toUnix(y,m,d,h,i,$tz), Zone::isValid($tz)
-  Geo/Geocoder.php           Open-Meteo search + disk cache + fallback; Geocoder::label()
+  Time/Zone.php              Zone::toUnix(y,m,d,h,i,$tz), Zone::isValid($tz), dateAt($unix,$tz), offsetMinutes($unix,$tz)
+  Geo/Geocoder.php           Open-Meteo search + disk cache + fallback; Geocoder::label(); prune() caps the cache (MAX_FILES 500, PRUNE_TO 400, once a day)
   Geo/FallbackCities.php     Bundled major cities, search()
   Content/Signs.php          Signs::TEXT (per sign) and Signs::ROLES (sun/asc/moon copy)
   Content/Bodies.php         Bodies::INFO — glyph, title, tagline, meaning per planet/node
   Content/Traits.php         Keywords per sign/element/modality, complements, levels, aspects, biorhythm VERDICTS, COMMON_VERDICTS, COMMON_MEANING, level pill labels
-  Content/TarotDeck.php      TarotDeck::CARDS — 22 Major Arcana with upright/reversed love text (kept as the card's short essence line)
-  Content/TarotSpread.php    ORDER, POSITIONS (title, question, intro), text($cardId, $position, $reversed) — throws on a missing key
+  Content/TarotDeck.php      TarotDeck::CARDS (22 Major Arcana), COUNT (78), card($n) → card shape for 0-77
+  Content/TarotMinor.php     56 minor arcana: SUITS, RANKS, RANK_ESSENCE, RANK_TEXT, SUIT_TEXT, card(), text()
+  Content/TarotSpread.php    ORDER, POSITIONS (title, question, intro), text($cardId, $position, $reversed) — throws on a missing key; minors delegate to TarotMinor
+  Content/Daily.php          Moon phase names/symbols and the "Today's sky" sentences (MOOD, RELATION, INVITATION)
+  Content/Houses.php         THEMES: title and one line for each of the 12 houses
+  Content/Aspects.php        NAMES, MEANING, TONE, TONE_LABELS for synastry
   Content/TarotPast.php      TEXT: 22 cards x up/rev, Past position
   Content/TarotPresent.php   same, Present position
   Content/TarotFuture.php    same, Future position
 templates/home.php           Page shell: hero, mode chooser, form for the mode, includes the result template; escapes via e()
-templates/self-result.php    Self result: big three, planets, affinities, biorhythms, share, print button
-templates/love-result.php    Love result: name %, compact synchrony, common values, Past/Present/Future spread, share, print button
-templates/partials/          person-fields.php (date/time/city fields per prefix), icons.php (static SVG), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section: links, QR, buttons), qr.php (qr_svg())
+templates/self-result.php    Self result: big three, Midheaven, planets with houses, wheel, affinities, biorhythms, born under, Today's sky, distance, share, print button
+templates/love-result.php    Love result: name %, compact synchrony, common values, synastry, Today's sky, distance, Past/Present/Future spread, share, print button
+templates/partials/          person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), geo.php (distance card), memory.php (browser-memory bar and saved-people select)
 docker-compose.yml           Local run: web (PHP + Apache, bind mount, 127.0.0.1:8081) and db (MySQL 8.4, volume dbdata, migrations/ as initdb, not published)
 docker/Dockerfile            php:8.3-apache + pdo_mysql + rewrite/headers/expires; Apache config allowing the root .htaccess
 docker/config.php            DB settings for the Docker setup, read from the container environment (MAGIC_DB_*)
 migrations/001_create_magic_audit.sql   Idempotent schema for magic_audit and magic_audit_person (CREATE TABLE IF NOT EXISTS)
 cache/                       Geocoding cache (writable, denied from web; not in web root)
 tests/run.php                Dependency-free test runner (core checks), requires tests/cases/*.php
-tests/cases/                 planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit)
+tests/cases/                 planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit), position.php (ADR 0005: reading day, current position, distances), sky.php (houses, moon phase, aspects, synastry, wheel, daily copy), code.php (short codes, time-zone table, gate), memory.php (memory.js static checks, hooks in templates)
 scripts/docker-db.sh         Docker DB helper: migrate | shell | query "SQL" | audit [N] | reset (password stays in the container)
 scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill
 scripts/make-config.sh       Writes config.php (mode 600) from the database section of ~/.password; prints only "config.php written"
@@ -77,7 +92,7 @@ scripts/lib/dbcred.sh        Sourced helper: load_db_credentials, write_mysql_de
 .deploy.local.example        Template for the gitignored .deploy.local (host, remote dir, DB_PASSWORD_SECTION); credentials in ~/.password
 .deploy-state                (gitignored) last deployed commit SHA
 .deploy-config-hash          (gitignored) content hash of the last uploaded config.php
-docs/                        architecture.md, code.md, roadmap.md, decisions/ (ADRs)
+docs/                        architecture.md, code.md, features.md (visitor view), changelog.md, roadmap.md, decisions/ (ADRs)
 .claude/agents/              architect, implementer, reviewer, documenter, deployer
 .claude/commands/            new-feature.md (workflow entry point)
 CLAUDE.md                    Rules for AI agents
@@ -87,35 +102,40 @@ CLAUDE.md                    Rules for AI agents
 
 ```php
 // Chart::compute(int $year, int $month, int $day, int $hour, int $minute, float $lat, float $lon, string $timeZone)
-['sun' => $pos, 'moon' => $pos, 'ascendant' => $pos, 'utc' => 'Y-m-d H:i', 'polar' => bool]
+['sun' => $pos, 'moon' => $pos, 'ascendant' => $pos, 'midheaven' => $pos, 'utc' => 'Y-m-d H:i', 'polar' => bool]
 // Chart::full(...same args) = compute + :
 ['planetsSupported' => bool,                       // 1800..2100
  'planets' => ['mercury' => ['position' => $pos, 'retrograde' => bool], ... 'pluto' => ...],   // [] when unsupported
- 'node' => $pos]                                   // mean North Node, any year
+ 'node' => $pos,                                  // mean North Node, any year
+ 'houses' => ['sun','moon','mercury'.. 'pluto','node' => int 1-12]]
 // Chart::partial(y, m, d, ?h, ?mi, ?lat, ?lon, ?tz)
-['sun' => ?$pos, 'moon' => ?$pos, 'ascendant' => ?$pos, 'approx' => ['sun' => bool, 'moon' => bool]]
+['sun' => ?$pos, 'moon' => ?$pos, 'ascendant' => ?$pos, 'midheaven' => ?$pos (with time and place), 'approx' => ['sun' => bool, 'moon' => bool]]
+// Chart::longitudes(y,m,d,?h,?mi,?lat,?lon,?tz) → array<string,float> of the bodies that exist for the input (synastry)
 // $pos (Zodiac::fromLongitude)
 ['id','name','symbol','element','modality','index','longitude','degree','minute']
 // city (Geocoder / FallbackCities)
 ['name','admin','country','lat','lon','timeZone']
 
-// Request::parse (Self) → ['input' => ['year','month','day','hour','minute','lat','lon','tz','city'] | null, 'errors', 'notes']
+// Request::parse (Self) → ['input' => ['year','month','day','hour','minute','lat','lon','tz','city','now' => ?['lat','lon','tz','city']] | null, 'errors', 'notes']
 // Request::parseLove → ['a' => $person|null, 'b' => $person|null, 'errors', 'notes']; errors prefixed "You: " / "Loved person: "
-$person = ['name' => string, 'date' => ?['year','month','day'], 'time' => ?['hour','minute'], 'place' => ?['lat','lon','tz','city']]
+$person = ['name' => string, 'date' => ?['year','month','day'], 'time' => ?['hour','minute'], 'place' => ?['lat','lon','tz','city'], 'now' => ?['lat','lon','tz','city']]  // 'now' = optional current position (query keys pos_city, pos_lat, pos_lon, pos_tz with the person prefix)
 
 // SelfReading::build → ['chart' => Chart::full, 'refs' => ['sun','moon','ascendant'(,'venus','mars') => sign index],
-//   'affinity' => SignAffinity::rank, 'bio' => Biorhythm::forPerson, 'today', 'notes']
+//   'affinity' => SignAffinity::rank, 'bio' => Biorhythm::forPerson, 'today', 'dayBasis' (utc|current_position|on), 'dayZone',
+//   'wheel' => ChartWheel::layout, 'sky' => Today::for, 'moonAtBirth' => Today::phaseAt, 'geo' => Geography::forSelf|null, 'notes']
 // LoveReading::build → ['names','affinity' => NameAffinity::compute, 'charts' => ['a','b' => partial|null],
-//   'common' => Common::between|null, 'bio' => Synchrony::pair|null, 'tarot' => Reading::spread, 'tarotShared' => bool, 'today', 'notes']
+//   'common' => Common::between|null, 'bio' => Synchrony::pair|null, 'tarot' => Reading::spread, 'tarotShared' => bool, 'today', 'dayBasis', 'dayZone',
+//   'sky' => Today::for, 'synastry' => ['rows','total','counts','approx','available'], 'geo' => Geography::forLove|null, 'notes']
 // NameAffinity::compute → ['percent', 'noLetters', plus supporting values shown by the template]
 // Synchrony::pair → ['cycles' => [physical|emotional|intellectual => delta, sync, amplitude, flat, peaksTogether,
 //   nextCombinedPeak/Trough, nextBothHigh/Low, curveA/B], 'overall' => float, 'band' => tune|complementary|apart]
 // Reading::spread → list of ['position' => past|present|future,'card','reversed','text']
 // Share: ShareLink::love(...) → 'mode=love&a_name=…&on=YYYY-MM-DD&t=16u,5r,9u&noaudit'; t = three slots <0-21><u|r>, distinct numbers;
 //   self → 'mode=self&date&time&city&lat&lon&tz&on&noaudit'; live links omit on and t. Invalid t: ignored, note shown.
+//   Primary link: ShareCode::encodeSelf|encodeLove(...) → '?c=<code>' (decode → the same long-query array; a `c=` merged with other keys, the code wins; bad code: ignored with a note).
 
 // AuditRecord::fromSelf($input, $selfView, $today) / fromLove($a, $b, $loveView, $today, ?$self = null) → record
-['functionality' => 'self'|'love', 'on_date' => 'YYYY-MM-DD' (UTC reading date or on=), 'format_version' => 2,
+['functionality' => 'self'|'love', 'on_date' => 'YYYY-MM-DD' (UTC reading date or on=), 'format_version' => 3,
  'persons' => list of ['role' => 'self'|'user'|'loved', 'name', 'birth_date' => ?'Y-m-d', 'birth_time' => ?'HH:MM:SS',
                        'place_label' => ?string(<=255), 'lat' => ?float(5 dp), 'lon' => ?float, 'tz' => ?string],
  'response_yaml' => string]
@@ -134,7 +154,13 @@ magic_audit_person  id BIGINT UNSIGNED PK AI · audit_id → magic_audit.id ON D
                     · tz VARCHAR(64) NULL                                                   (unique: audit_id+role; idx: name)
 ```
 
-YAML summary (`format_version` 2; keys are code constants). Self: `functionality`, `on_date`, `chart` (`utc`, `polar`, `sun`/`ascendant`/`moon` as `{sign, degree, minute}`, `planets_supported`, `planets.<body>` with `retrograde`, `north_node`), `affinity` (`most_affine`, `soulmate`), `biorhythm` (`physical`, `emotional`, `intellectual`), `notes`. Love: `functionality`, `on_date`, `name_affinity` (`percent` and supporting values), `charts.a|b` (`sun`, `moon`, `ascendant`, `sun_approx`, `moon_approx`; null when no chart), `common.score`, `synchrony` (`overall`, `band`), `tarot` (list of `position`, `card`, `reversed`; version 1 rows had `date` instead of `position`), `notes`.
+YAML summary (`format_version` 3; versions 1 and 2 stay readable; keys are code constants). Version 3 adds, for Self: `chart.midheaven`, `sky` (`moon_phase`, `moon_illumination`, `moon_sign`, `born_moon_phase`), `current_position` (`label`, `lat`, `lon`, `tz`, or null), `reading_day_basis`, `distance.birth_to_now_km`; for Love: `sky`, `synastry` (`available`, `approx`, `total`, `counts`, `tightest`), `positions.a|b`, `reading_day_basis`, `distance` (`between_km`, `a_birth_to_now_km`, `b_birth_to_now_km`). Self: `functionality`, `on_date`, `chart` (`utc`, `polar`, `sun`/`ascendant`/`moon` as `{sign, degree, minute}`, `planets_supported`, `planets.<body>` with `retrograde`, `north_node`), `affinity` (`most_affine`, `soulmate`), `biorhythm` (`physical`, `emotional`, `intellectual`), `notes`. Love: `functionality`, `on_date`, `name_affinity` (`percent` and supporting values), `charts.a|b` (`sun`, `moon`, `ascendant`, `sun_approx`, `moon_approx`; null when no chart), `common.score`, `synchrony` (`overall`, `band`), `tarot` (list of `position`, `card`, `reversed`; version 1 rows had `date` instead of `position`), `notes`.
+
+## View keys and DOM hooks
+
+- Share model built in `public/index.php`: `frozen`, `live`, `qr` (modules or null), `tooLong` for `templates/partials/share.php`.
+- `memory.js` reads these `data-` attributes (rendered by `templates/home.php`, `partials/person-fields.php`, `partials/memory.php`): `data-memory="self|love"` on the form; `data-person="me|loved"` on a person fieldset; `data-memory-bar`, `data-memory-save`, `data-memory-forget`, `data-memory-status`, `data-saved`, `data-saved-select`, `data-saved-remove`; `data-memory-forget-on-submit` on the withdraw form; `data-forget-memory` on `#page` after a withdrawal. Place blocks carry `data-place` with `data-kind="birth|pos"` (`autocomplete.js` works per `[data-place]`).
+- `share.js` hooks: `[data-copy]`, and the link input `#share-link` inside `details.share__more`.
 
 ## Request flow
 
@@ -148,7 +174,7 @@ Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie
 
 Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result) and the request has no `noaudit` parameter, `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `MAGIC_CONFIG` exists so tests can point to another file.
 
-`on=YYYY-MM-DD` overrides "today" (default: server UTC date). No `mode` and no input shows the mode chooser.
+`on=YYYY-MM-DD` overrides "today" (default: the day at the user's current position, else the server UTC date). `?c=<code>` is decoded first and merged over the query. Gate and `noaudit` rules are unchanged. No `mode` and no input shows the mode chooser.
 
 Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::search` → JSON.
 
@@ -157,7 +183,7 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 - **Run locally:** `docker compose up --build` (page at http://localhost:8081, accept the T&Cs in the popup) or `php -S localhost:8081 -t public` · **Test:** `php tests/run.php` (also loads `tests/cases/*.php`; no per-file runner, all checks run every time)
 - **Reproducible readings:** add `&on=2026-10-09` to a URL to fix "today" (biorhythms, tarot); add `&noaudit` to skip the audit write. Shared links carry both (plus `t=` in Love).
 - **Add a planet-like body:** compute it in `Chart::full` → copy in `Content\Bodies::INFO` → show in `templates/self-result.php` → reference-value test in `tests/cases/planets.php`.
-- **Add a tarot card or change its text:** `Content\TarotDeck::CARDS` for the card and its essence line, and its up/rev entries in `Content\TarotPast`, `TarotPresent`, `TarotFuture` (a missing key throws; update the goldens in `tests/cases/tarot.php`). `t=` accepts card numbers 0-21 only.
+- **Add a tarot card or change its text:** `Content\TarotDeck::CARDS` for the card and its essence line, and its up/rev entries in `Content\TarotPast`, `TarotPresent`, `TarotFuture` (a missing key throws; update the goldens in `tests/cases/tarot.php`). Minor arcana (22-77) live in `Content\TarotMinor`; `t=` accepts card numbers 0-77.
 - **Make a new output shareable:** classify it as derived or encoded (CLAUDE.md rule); if encoded, add it to `Share\ShareLink` and `Request`, and a round-trip test in `tests/cases/share.php`.
 - **Tune affinity scoring:** constants in `Love\SignAffinity`; expectations in `tests/cases/love.php`.
 - **Add a field to the audit:** put it in `AuditRecord` (a YAML key in the `$doc` of `fromSelf`/`fromLove`, or a person field), bump `FORMAT_VERSION` if the YAML layout changes; for a new column add an idempotent `migrations/NNN_*.sql` (guarded `ALTER`) and extend the INSERT in `Db\AuditLog`; update `tests/cases/audit.php`.
@@ -174,6 +200,25 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 - **Change copy:** `src/Content/Signs.php`. **Change look:** `public/assets/styles.css` (tokens in `:root`).
 - **Wrong sign?** Call `Chart::compute` from CLI with the same input; check `utc` first (time-zone issues are the usual cause), then compare longitudes with an ephemeris.
 - **Geocoding stale/broken:** delete `cache/geo-*.json`.
+
+## Where do I...
+
+| Task | Go to |
+|---|---|
+| Change what counts as "today" | `Request::resolveToday`, `Zone::dateAt`; clock read in `public/index.php` |
+| Add or change a current-position field | `Request::parsePerson`, `templates/partials/person-fields.php`, `tests/cases/position.php` |
+| Change the distance card | `Earth\Geography`, `templates/partials/geo.php` |
+| Change houses / Midheaven | `Astro\Houses`, `Chart::compute`/`full`, `Content\Houses` |
+| Change the wheel drawing | `ChartWheel`, `templates/partials/wheel.php`, wheel classes in `styles.css` |
+| Change moon phase or Today's sky text | `Astro\MoonPhase`, `Sky\Today`, `Content\Daily`, `templates/partials/sky.php` |
+| Change synastry | `Astro\Aspects`, `Love\Synastry`, `Content\Aspects`, `templates/partials/synastry.php` |
+| Change minor arcana text | `Content\TarotMinor`, goldens in `tests/cases/tarot.php` |
+| Change the short link format | `Share\ShareCode` (new format = new `VERSION`, keep old codes decodable), `tests/cases/code.php` |
+| Add a time zone to the code table | append to `Share\TimeZoneTable::ZONES` (never reorder), update the pinned checkpoint in `tests/cases/code.php` |
+| Change what the browser remembers | `public/assets/memory.js`, `templates/partials/memory.php`, the Terms (`partials/terms.php`), `tests/cases/memory.php` |
+| Force everyone to re-accept the Terms | bump `Consent::VALUE` |
+| Add an audit key | `Audit\AuditRecord`, bump `FORMAT_VERSION` if the layout changes, `tests/cases/audit.php` |
+| Document a release | `docs/changelog.md` (Unreleased) |
 
 ## Conventions
 

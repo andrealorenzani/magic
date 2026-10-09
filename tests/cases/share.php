@@ -33,14 +33,14 @@ check('request: tarot parameter is validated as a whole', function () {
 });
 
 // ---- ShareLink ----
-$einstein = ['year' => 1879, 'month' => 3, 'day' => 14, 'hour' => 11, 'minute' => 30, 'lat' => 48.4, 'lon' => 10.0, 'tz' => 'Europe/Berlin', 'city' => 'Ulm'];
+$einstein = ['year' => 1879, 'month' => 3, 'day' => 14, 'hour' => 11, 'minute' => 30, 'lat' => 48.4, 'lon' => 10.0, 'tz' => 'Europe/Berlin', 'city' => 'Ulm', 'now' => null];
 check('share link: frozen Self and live strings (canonical order)', function () use ($einstein) {
     same(ShareLink::self($einstein, '2026-10-09'), 'mode=self&date=1879-03-14&time=11:30&city=Ulm&lat=48.40000&lon=10.00000&tz=Europe/Berlin&on=2026-10-09&noaudit');
     same(ShareLink::liveSelf($einstein), 'mode=self&date=1879-03-14&time=11:30&city=Ulm&lat=48.40000&lon=10.00000&tz=Europe/Berlin&noaudit');
 });
 $loveA = ['name' => 'A&B=C #1 %', 'date' => ['year' => 1990, 'month' => 7, 'day' => 15], 'time' => ['hour' => 8, 'minute' => 30],
-    'place' => ['lat' => 41.9, 'lon' => 12.5, 'tz' => 'Europe/Rome', 'city' => 'São Paulo, Brazil']];
-$loveB = ['name' => 'Zoë "Z" 🙂', 'date' => ['year' => 1991, 'month' => 3, 'day' => 2], 'time' => null, 'place' => null];
+    'place' => ['lat' => 41.9, 'lon' => 12.5, 'tz' => 'Europe/Rome', 'city' => 'São Paulo, Brazil'], 'now' => null];
+$loveB = ['name' => 'Zoë "Z" 🙂', 'date' => ['year' => 1991, 'month' => 3, 'day' => 2], 'time' => null, 'place' => null, 'now' => null];
 check('share link: frozen Love string, encoding and fields that exist', function () use ($loveA, $loveB) {
     $spread = Reading::fromSlots([['number' => 16, 'reversed' => false], ['number' => 5, 'reversed' => true], ['number' => 9, 'reversed' => false]]);
     same(ShareLink::love($loveA, $loveB, $spread, '2026-10-09'),
@@ -284,7 +284,7 @@ $shareClosed = function () use ($shareTmp): string {
 };
 $sharePage = function (array $get, array $server = [], bool $consent = true, ?string $log = null) use ($shareRoot, $shareClosed, $shareTmp): array {
     $log ??= "$shareTmp/sp-" . bin2hex(random_bytes(3)) . '.log';
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "1"]' : '[]')
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "2"]' : '[]')
         . '; $_SERVER = array_merge($_SERVER, ["REQUEST_METHOD" => "GET"], json_decode($argv[3], true)); ob_start(); require $argv[2];'
         . ' $o = ob_get_clean(); echo json_encode(["out" => $o, "headers" => headers_list()]);';
     $cmd = 'MAGIC_CONFIG=' . escapeshellarg($shareClosed()) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($log)
@@ -353,7 +353,7 @@ $shareHttp = (function () use ($shareRoot, $shareClosed, $shareTmp): callable {
 })();
 check('pages send no-store and Vary: Cookie on the chooser, the gate and results', function () use ($shareHttp, $selfGet) {
     $qs = http_build_query($selfGet);
-    foreach ([['/', []], ['/', ['Cookie: magic_terms=1']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=1']]] as [$path, $hdr]) {
+    foreach ([['/', []], ['/', ['Cookie: magic_terms=2']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=2']]] as [$path, $hdr]) {
         [$code, $h, $body] = $shareHttp('GET', $path, '', $hdr);
         $hs = strtolower(implode("\n", $h));
         same($code, 200);
@@ -389,7 +389,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same($code, 303);
     same(str_contains($hs, 'Location: ./?' . $qs . '#results'), true);
-    same(preg_match('/Set-Cookie: magic_terms=1;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
+    same(preg_match('/Set-Cookie: magic_terms=2;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
     same(stripos($hs, '; secure') === false, true);
     same(str_contains($hs, 'Cache-Control: private, no-store') && preg_match('/^Vary:.*Cookie/mi', $hs) === 1, true);
     [, $h] = $post(['action' => 'accept', 'next' => $qs], ['X-Forwarded-Proto: https']);
@@ -403,7 +403,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same([$code, str_contains($hs, 'Location: ./'), str_contains($hs, 'Set-Cookie')], [303, true, false]);
     // Following the redirect with the cookie shows the result and no gate.
-    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=1']);
+    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=2']);
     same(str_contains($body, 'class="gate"'), false);
     same(str_contains($body, 'Share this reading'), true);
     [, , $body] = $shareHttp('GET', '/?' . $qs);
@@ -420,17 +420,20 @@ check('csp: frame-ancestors, form-action and base-uri are set', function () use 
 // ---- Result pages ----
 check('self page: share section with link, QR and live link; fixed-day note', function () use ($sharePage, $selfGet) {
     [$out] = $sharePage($selfGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/?x']);
-    same(preg_match('/id="share-link" class="share__input" readonly value="http:\/\/localhost:8081\/\?mode=self&amp;date=1879-03-14[^"]*&amp;on=2026-10-09&amp;noaudit"/', $out), 1);
+    same(preg_match('/id="share-link" class="share__input" readonly value="http:\/\/localhost:8081\/\?c=[A-Za-z0-9_-]+"/', $out), 1);
+    preg_match('/id="share-link"[^>]*value="[^"]*\?c=([^"]*)"/', $out, $cm);
+    $dec = \Magic\Share\ShareCode::decode($cm[1]);
+    same($dec['date'] . '|' . $dec['on'] . '|' . isset($dec['noaudit']), '1879-03-14|2026-10-09|1');
     same(substr_count($out, '<svg class="qr"'), 1);
     [$fixed] = $sharePage(array_merge($selfGet, ['on' => '2001-02-03']), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     same(str_contains($fixed, 'This reading is fixed to 2001-02-03.') && str_contains($fixed, 'Open the live version'), true);
-    same(preg_match('/Link to a live reading[^<]*<a href="http:\/\/localhost:8081\/\?mode=self[^"]*noaudit"/', $out) === 1 && !preg_match('/live reading[^<]*<a href="[^"]*&amp;on=/', $out), true);
+    same(preg_match('/Link to a live reading[^<]*<a href="http:\/\/localhost:8081\/\?c=[A-Za-z0-9_-]+"/', $out) === 1, true);
     same(str_contains($out, 'src="assets/share.js"') && str_contains($out, 'data-copy="share-link" hidden'), true);
     [$out] = $sharePage(array_diff_key($selfGet, ['on' => 1]), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     same(str_contains($out, 'This reading is fixed to'), false);
     [$out] = $sharePage($selfGet, []); // no usable origin: relative link, no QR
     same(str_contains($out, '<svg class="qr"'), false);
-    same(str_contains($out, 'value="./?mode=self'), true);
+    same(str_contains($out, 'value="./?c='), true);
 });
 check('love page: three sync cards, curves only in details, spread order, no tarot dates', function () use ($sharePage, $loveGet) {
     [$out] = $sharePage($loveGet, ['HTTP_HOST' => 'localhost', 'REQUEST_URI' => '/']);
@@ -452,11 +455,12 @@ check('love page: three sync cards, curves only in details, spread order, no tar
     // The share link carries the cards; opening it gives the same ones.
     preg_match('/id="share-link"[^>]*value="([^"]*)"/', $out, $m);
     $link = html_entity_decode($m[1]);
-    parse_str((string) parse_url($link, PHP_URL_QUERY), $q);
+    parse_str((string) parse_url($link, PHP_URL_QUERY), $cq);
+    $q = \Magic\Share\ShareCode::decode($cq['c']);
     same(isset($q['t'], $q['on'], $q['noaudit']), true);
-    preg_match_all('/tarot__num">(\d+)</', $out, $nums);
+    preg_match_all('/tarot__name">([^<]+)</', $out, $names);
     preg_match_all('/(\d+)[ur]/', $q['t'], $codes);
-    same($nums[1], $codes[1]);
+    same($names[1], array_map(fn (string $n): string => \Magic\Content\TarotDeck::card((int) $n)['name'], $codes[1]));
 });
 check('love page: a valid t shows exactly those cards; an invalid t is ignored with a note', function () use ($sharePage, $loveGet) {
     [$out] = $sharePage($loveGet + ['t' => '16u,5r,9u']);
@@ -505,10 +509,10 @@ check('in common copy: every body and level has a meaning, a label and a band', 
         same(isset(Magic\Content\Traits::COMMON_VERDICTS[$band]), true);
     }
 });
-check('audit record: tarot is a list of position/card/reversed, format version 2', function () use ($loveA, $loveB) {
+check('audit record: tarot is a list of position/card/reversed, format version 3', function () use ($loveA, $loveB) {
     $v = LoveReading::build($loveA, $loveB, '2026-10-09');
     $r = Magic\Audit\AuditRecord::fromLove($loveA, $loveB, $v, '2026-10-09');
-    same($r['format_version'], 2);
+    same($r['format_version'], 3);
     same(str_contains($r['response_yaml'], "tarot:\n  - position: past\n    card: "), true);
     same(preg_match('/^\s+(- )?date:/m', $r['response_yaml']), 0);
 });

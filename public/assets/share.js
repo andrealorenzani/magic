@@ -7,7 +7,6 @@
     if (!input) return;
     btn.hidden = false;
     btn.addEventListener("click", async () => {
-      input.select();
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(input.value);
@@ -16,6 +15,8 @@
         }
         btn.textContent = "Copied";
       } catch (e) {
+        const more = input.closest("details");
+        if (more) more.open = true;
         input.select();
       }
     });

@@ -5,3 +5,4 @@ config.php
 .deploy-state
 .deploy-config-hash
 .config.*
+cache/.pruned
