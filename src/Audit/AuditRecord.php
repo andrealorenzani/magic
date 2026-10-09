@@ -6,7 +6,7 @@ namespace Magic\Audit;
 /** Pure builder of the audit record (persons + YAML summary of the response). No I/O. */
 final class AuditRecord
 {
-    public const FORMAT_VERSION = 1;
+    public const FORMAT_VERSION = 2;
     public const MAX_YAML_BYTES = 65536;
 
     /**
@@ -85,7 +85,7 @@ final class AuditRecord
         }
         $tarot = [];
         foreach ($view['tarot'] as $t) {
-            $tarot[] = ['date' => $t['date'], 'card' => $t['card']['name'], 'reversed' => (bool) $t['reversed']];
+            $tarot[] = ['position' => $t['position'], 'card' => $t['card']['name'], 'reversed' => (bool) $t['reversed']];
         }
         $doc = [
             'functionality' => 'love',

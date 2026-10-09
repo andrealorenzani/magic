@@ -15,9 +15,10 @@ final class LoveReading
     /**
      * @param array<string,mixed> $a person shape (see Request::parseLove)
      * @param array<string,mixed> $b person shape; date/time/place may be null
+     * @param ?list<array{number:int, reversed:bool}> $tarotSlots a validated shared spread, used instead of the deterministic one
      * @return array<string,mixed>
      */
-    public static function build(array $a, array $b, string $today): array
+    public static function build(array $a, array $b, string $today, ?array $tarotSlots = null): array
     {
         $chartA = self::chart($a);
         $chartB = self::chart($b);
@@ -37,7 +38,8 @@ final class LoveReading
             'charts' => ['a' => $chartA, 'b' => $chartB],
             'common' => $common,
             'bio' => $bio,
-            'tarot' => Reading::draw($seed, $today),
+            'tarot' => $tarotSlots !== null ? Reading::fromSlots($tarotSlots) : Reading::spread($seed, $today),
+            'tarotShared' => $tarotSlots !== null,
             'today' => $today,
             'notes' => $notes,
         ];

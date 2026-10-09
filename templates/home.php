@@ -2,11 +2,12 @@
 /**
  * @var ?string $mode @var array $self @var array $love @var list<string> $errors @var list<string> $notes
  * @var ?array $view @var bool $submitted @var string $today @var bool $consented @var string $returnQuery
+ * @var ?string $onOverride @var bool $noAudit @var string $consentAction @var bool $withdrawn @var bool $queryDropped
+ * @var ?array $share @var ?array $fixedDay
  */
 
 require_once __DIR__ . '/partials/icons.php';
 
-$onOverride = isset($_GET['on']) && is_string($_GET['on']) && $_GET['on'] === $today ? $today : null;
 $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun, Ascendant & Moon');
 ?><!doctype html>
 <html lang="en">
@@ -14,24 +15,29 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Magic · <?= e($title) ?></title>
-  <meta name="description" content="Discover your planets, signs and biorhythms, or compare two people: name affinity, biorhythm synchrony, common signs and a three-day tarot reading.">
+  <meta name="description" content="Discover your planets, signs and biorhythms, or compare two people: name affinity, biorhythm synchrony, common signs and a Past, Present and Future tarot spread.">
   <?php if ($submitted): ?><meta name="robots" content="noindex"><?php endif; ?>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
   <?php if (!$consented): ?>
-  <div class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h">
-    <form class="gate__box" method="post" action="consent.php">
+  <div class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h" aria-describedby="gate-terms">
+    <form class="gate__box" method="post" action="<?= e($consentAction) ?>">
       <h2 id="gate-h">Terms and Conditions</h2>
-      <?php include __DIR__ . '/partials/terms.php'; ?>
+      <?php if ($withdrawn): ?><p class="note note--gate">You withdrew your acceptance.</p><?php endif; ?>
+      <?php if ($queryDropped): ?><p class="note note--gate">Your link could not be kept, please open it again after accepting.</p><?php endif; ?>
+      <div id="gate-terms"><?php include __DIR__ . '/partials/terms.php'; ?></div>
       <input type="hidden" name="next" value="<?= e($returnQuery) ?>">
-      <button type="submit" name="action" value="accept">I accept the Terms and Conditions</button>
-      <p class="hint">Without accepting you cannot use this page.</p>
+      <div class="gate__actions">
+        <button type="submit" name="action" value="accept" autofocus>I accept the Terms and Conditions</button>
+      </div>
+      <p class="hint">Without accepting you cannot use this page. Your browser must allow cookies to remember your choice.</p>
     </form>
   </div>
   <?php endif; ?>
-  <main<?= $consented ? '' : ' inert aria-hidden="true"' ?>>
+  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?>>
+  <main>
     <header class="hero no-print">
       <p class="hero__eyebrow">✦ Magic ✦</p>
       <h1>Read your sky</h1>
@@ -47,7 +53,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <a class="chooser__card<?= $mode === 'love' ? ' is-active' : '' ?>" href="?mode=love"<?= $mode === 'love' ? ' aria-current="page"' : '' ?>>
         <span class="chooser__icon" aria-hidden="true">♀ <?= icon('heart') ?></span>
         <strong>Love</strong>
-        <span>Name affinity, biorhythm synchrony, common signs and a tarot reading.</span>
+        <span>Name affinity, biorhythm synchrony, common signs and a tarot spread.</span>
       </a>
     </nav>
 
@@ -55,6 +61,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <form id="birth-form" class="panel no-print" method="get" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="self">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
+        <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
         <?php $pf = ['prefix' => '', 'required' => true, 'name' => false, 'values' => $self, 'legend' => 'Your birth']; include __DIR__ . '/partials/person-fields.php'; ?>
         <button type="submit">Reveal my sky</button>
       </form>
@@ -62,6 +69,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <form id="love-form" class="panel no-print" method="get" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="love">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
+        <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
         <div class="people">
           <?php $pf = ['prefix' => 'a_', 'required' => true, 'name' => true, 'values' => $love['a'], 'legend' => 'You']; include __DIR__ . '/partials/person-fields.php'; ?>
           <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'hint' => 'Only the name is required. Add the birth date for signs and biorhythms; add time and city too for the Ascendant.']; include __DIR__ . '/partials/person-fields.php'; ?>
@@ -71,10 +79,13 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       </form>
     <?php endif; ?>
 
-    <section id="results" class="results" aria-live="polite">
+    <section id="results" class="results">
       <?php foreach ($errors as $err): ?>
-        <p class="note note--error"><?= e($err) ?></p>
+        <p class="note note--error" aria-live="polite"><?= e($err) ?></p>
       <?php endforeach; ?>
+      <?php if ($fixedDay !== null): ?>
+        <p class="note">This reading is fixed to <?= e($fixedDay['date']) ?>. <a href="<?= e($fixedDay['live']) ?>">Open the live version</a>.</p>
+      <?php endif; ?>
       <?php if ($view && $mode === 'self'): include __DIR__ . '/self-result.php'; endif; ?>
       <?php if ($view && $mode === 'love'): include __DIR__ . '/love-result.php'; endif; ?>
       <?php foreach ($notes as $n): ?>
@@ -88,11 +99,13 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <summary>Terms and Conditions</summary>
       <?php include __DIR__ . '/partials/terms.php'; ?>
       <?php if ($consented): ?>
-      <form method="post" action="consent.php"><button type="submit" name="action" value="withdraw">Withdraw my acceptance</button></form>
+      <form method="post" action="<?= e($consentAction) ?>"><button type="submit" name="action" value="withdraw">Withdraw my acceptance and clear the cookie</button></form>
       <?php endif; ?>
     </details>
   </section>
+  </div>
   <script src="assets/autocomplete.js" defer></script>
   <script src="assets/print.js" defer></script>
+  <script src="assets/share.js" defer></script>
 </body>
 </html>

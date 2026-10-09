@@ -1,5 +1,5 @@
 <?php
-/** @var array $view @var string $today */
+/** @var array $view @var string $today @var ?array $share */
 
 use Magic\Content\Bodies;
 use Magic\Content\Signs;
@@ -111,3 +111,5 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
   </ul>
   <p class="note">Next 30 days from <?= e($today) ?>. Biorhythms are a popular theory, not scientifically validated.</p>
 </section>
+
+<?php if ($share !== null) { include __DIR__ . '/partials/share.php'; } ?>

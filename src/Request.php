@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Magic;
 
 use Magic\Geo\Geocoder;
+use Magic\Share\ShareLink;
 use Magic\Time\Zone;
 
 /** Validates the query string of the main page and turns it into chart inputs. */
@@ -23,6 +24,29 @@ final class Request
             return is_string($m) && in_array($m, self::MODES, true) ? $m : null;
         }
         return (isset($q['date']) || isset($q['city'])) ? 'self' : null;
+    }
+
+    /**
+     * `noaudit` (any value, plain string) asks not to record the request. Not a security control.
+     * @param array<string,mixed> $q already filtered to plain strings
+     */
+    public static function noAudit(array $q): bool
+    {
+        return isset($q['noaudit']);
+    }
+
+    /**
+     * The shared tarot spread (`t=`): validated slots, or `invalid` when a value was given but is not usable.
+     * @param array<string,mixed> $q
+     * @return array{slots: ?list<array{number:int, reversed:bool}>, invalid: bool}
+     */
+    public static function parseTarot(array $q): array
+    {
+        if (!isset($q['t']) || !is_string($q['t'])) {
+            return ['slots' => null, 'invalid' => false];
+        }
+        $slots = ShareLink::parseTarot($q['t']);
+        return ['slots' => $slots, 'invalid' => $slots === null];
     }
 
     /**
@@ -180,7 +204,7 @@ final class Request
                 $city = Geocoder::label($found);
                 $notes[] = $who . "Using {$city}.";
             }
-            $place = ['lat' => (float) $lat, 'lon' => (float) $lon, 'tz' => $tz, 'city' => $city];
+            $place = ['lat' => round((float) $lat, 5), 'lon' => round((float) $lon, 5), 'tz' => $tz, 'city' => $city];
         }
 
         return ['person' => ['date' => $d, 'time' => $t, 'place' => $place], 'errors' => [], 'notes' => $notes];

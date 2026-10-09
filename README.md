@@ -12,9 +12,13 @@ A page for magic lovers with two modes (choose on the home page):
 - **name affinity** in percent
 - **biorhythm synchrony** of the two of you (needs both birth dates)
 - **common values** in Sun, Moon and Ascendant
-- a **3-day tarot reading** (same input and day give the same cards)
+- a **Past / Present / Future tarot spread** for the two of you (same input and day give the same cards)
 
-Both results have a **Print** button (and a print layout without forms), so you can keep a paper copy.
+Both results have a **Share** section and a **Print** button (and a print layout without forms), so you can keep a paper copy.
+
+**Sharing.** Under a result, "Share this reading" shows a link to the exact reading (same day, and in Love the same tarot cards) with a QR code, a link to a live reading (same people, today's values), and a Copy button where the browser supports it. The QR is generated on the server in pure PHP; if the link is too long for a QR only the link is shown. Links contain the names and birth details you entered: share them only with people you trust. Opening a shared link is not recorded in the audit again, because share links carry `noaudit`.
+
+**Testing without recording.** Add `&noaudit` (or `?noaudit`) to any URL and that request is not written to the audit log.
 
 Name affinity, biorhythms, scores and tarot are for wonder, not science.
 

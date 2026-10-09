@@ -4,8 +4,8 @@ declare(strict_types=1);
 /** Pure core files must not do I/O or read the clock (token-based check). */
 check('layering: pure core has no I/O, echo, globals, clock reads', function () {
     $root = dirname(__DIR__, 2) . '/src';
-    $files = [$root . '/Chart.php', $root . '/SelfReading.php', $root . '/LoveReading.php'];
-    foreach (['Astro', 'Time', 'Love', 'Bio', 'Tarot', 'Audit'] as $dir) {
+    $files = [$root . '/Chart.php', $root . '/SelfReading.php', $root . '/LoveReading.php', $root . '/Http.php'];
+    foreach (['Astro', 'Time', 'Love', 'Bio', 'Tarot', 'Audit', 'Share', 'Content'] as $dir) {
         foreach (glob("$root/$dir/*.php") as $f) {
             $files[] = $f;
         }
