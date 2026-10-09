@@ -1,7 +1,7 @@
 <?php
 /**
  * @var ?string $mode @var array $self @var array $love @var list<string> $errors @var list<string> $notes
- * @var ?array $view @var bool $submitted @var string $today
+ * @var ?array $view @var bool $submitted @var string $today @var bool $consented @var string $returnQuery
  */
 
 require_once __DIR__ . '/partials/icons.php';
@@ -13,16 +13,27 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Arcana · <?= e($title) ?></title>
+  <title>Magic · <?= e($title) ?></title>
   <meta name="description" content="Discover your planets, signs and biorhythms, or compare two people: name affinity, biorhythm synchrony, common signs and a three-day tarot reading.">
   <?php if ($submitted): ?><meta name="robots" content="noindex"><?php endif; ?>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
-  <main>
+  <?php if (!$consented): ?>
+  <div class="gate" role="dialog" aria-modal="true" aria-labelledby="gate-h">
+    <form class="gate__box" method="post" action="consent.php">
+      <h2 id="gate-h">Terms and Conditions</h2>
+      <?php include __DIR__ . '/partials/terms.php'; ?>
+      <input type="hidden" name="next" value="<?= e($returnQuery) ?>">
+      <button type="submit" name="action" value="accept">I accept the Terms and Conditions</button>
+      <p class="hint">Without accepting you cannot use this page.</p>
+    </form>
+  </div>
+  <?php endif; ?>
+  <main<?= $consented ? '' : ' inert aria-hidden="true"' ?>>
     <header class="hero no-print">
-      <p class="hero__eyebrow">✦ Arcana ✦</p>
+      <p class="hero__eyebrow">✦ Magic ✦</p>
       <h1>Read your sky</h1>
       <p class="hero__lead">Discover yourself, or find out how you and someone you love fit together.</p>
     </header>
@@ -72,7 +83,15 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     </section>
   </main>
   <footer class="no-print">Tropical zodiac · planets are approximate · astrology, biorhythms, name affinity and tarot are for wonder and entertainment, not advice</footer>
-  <p class="no-print notice">Each result request is recorded in an audit log together with what was entered (names, birth date, time and place, including the details of the person you love in the Love mode) and a summary of the result. No IP address and no cookies are stored. The stored data is kept by the site owner and can be removed on request.</p>
+  <section id="terms" class="no-print notice">
+    <details>
+      <summary>Terms and Conditions</summary>
+      <?php include __DIR__ . '/partials/terms.php'; ?>
+      <?php if ($consented): ?>
+      <form method="post" action="consent.php"><button type="submit" name="action" value="withdraw">Withdraw my acceptance</button></form>
+      <?php endif; ?>
+    </details>
+  </section>
   <script src="assets/autocomplete.js" defer></script>
   <script src="assets/print.js" defer></script>
 </body>

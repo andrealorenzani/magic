@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Bio\Biorhythm;
-use Arcana\Bio\Synchrony;
+use Magic\Bio\Biorhythm;
+use Magic\Bio\Synchrony;
 
 check('biorhythm: day numbers', function () {
     same(Biorhythm::dayNumber(1970, 1, 1), 0);

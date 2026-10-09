@@ -24,7 +24,7 @@ Today a request carries ONE set of user data: Self = one person; Love = person A
 2. Tables: `magic_audit` (one row per result) and `magic_audit_person` (0..3 rows per result, `role` = `self|user|loved`, `ON DELETE CASCADE`). InnoDB, utf8mb4.
 3. **Building the record and the YAML are pure** (`src/Audit/AuditRecord.php`, `src/Audit/Yaml.php`). **All I/O is in `src/Db/`** (`Config`, `Connection`, `AuditLog`). Hook: `public/index.php`, after the template has been rendered, only when `$view !== null` (not for the chooser, validation errors or notes-only pages).
 4. **Failure isolation**: config missing, PDO extension missing, connect error (2 s timeout), SQL error, oversize record: caught, a single `error_log` line without any request data, page unaffected. The write happens after the response is flushed (`fastcgi_finish_request()` when available, else `flush()`), with `ignore_user_abort(true)` and `set_time_limit(10)`.
-5. **No IP, no user agent, no URL, no cookies, no session id** are stored. `noindex` / `no-store` on result pages stays.
+5. **No IP, no user agent, no URL, no session id** are stored (the only cookie is the functional consent cookie, see "Update: consent"). `noindex` / `no-store` on result pages stays.
 6. **Privacy consequences are accepted explicitly** (section "Privacy").
 7. Time: `created_at` is a UTC `DATETIME` filled by MySQL with `UTC_TIMESTAMP()` (independent of session/server time zone). `on_date` is the reading date used by the builders (`$today`, UTC date, possibly the `on=` override), because biorhythms and tarot in the response depend on it.
 
@@ -49,7 +49,7 @@ tests/cases/audit.php               required by tests/run.php
 
 ### Files to change
 
-- `public/index.php`: after `require templates/home.php`, if `$view !== null`: build the record and call `AuditLog::tryWrite` (see "Hook"). Reads the config path from `getenv('ARCANA_CONFIG') ?: ARCANA_ROOT.'/config.php'` (the env override exists for tests).
+- `public/index.php`: after `require templates/home.php`, if `$view !== null`: build the record and call `AuditLog::tryWrite` (see "Hook"). Reads the config path from `getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php'` (the env override exists for tests).
 - `templates/home.php`: a static privacy notice in the footer (text below; escaped via `e()` if it uses variables, otherwise literal).
 - `scripts/deploy.sh`: also upload `config.php` when its content changed (see "Deploy").
 - `.gitignore`: add `.deploy-config-hash`. (`config.php` is already there.)
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS magic_audit_person (
 
 Notes: the YAML is text, so `MEDIUMTEXT` (utf8mb4) rather than a binary blob (readable in any client, correct charset); the 64 KiB app cap keeps rows small. The `name` index exists for the erasure process. No extra "app version" column (the repo has no version constant; `format_version` covers the one thing that matters for reading old rows). No request id (the auto-increment id is it).
 
-### Pure record builder (`Arcana\Audit\AuditRecord`)
+### Pure record builder (`Magic\Audit\AuditRecord`)
 
 ```php
 AuditRecord::fromSelf(array $input, array $view, string $today): array
@@ -155,9 +155,7 @@ Love:
 functionality: love
 on_date: "2026-10-09"
 name_affinity:
-  percent: 48
-  counts: {a: 4, m: 0, o: 2, r: 2, e: 3}
-  chain: [40223, 4245, 669, 135, 48]
+  percent: 48                              # plus a few supporting values of the result
 charts:
   a: {sun: Sign, moon: Sign, ascendant: Sign}   # null/absent keys when the body is missing; approx flags as sun_approx / moon_approx
   b: {...}
@@ -176,7 +174,7 @@ notes: []
 
 If the dumped YAML exceeds 65536 bytes (not expected: a few KB), the builder replaces it by a minimal document `functionality`, `on_date`, `truncated: true` so the row is still written and never partially cut inside a multibyte character.
 
-### Pure YAML emitter (`Arcana\Audit\Yaml`)
+### Pure YAML emitter (`Magic\Audit\Yaml`)
 
 `Yaml::dump(array $data): string` — block style, 2-space indent, `\n` line endings, trailing newline, deterministic (insertion order kept; no sorting). Supported values: `null`, `bool`, `int`, `float`, `string`, lists, maps. Anything else throws `InvalidArgumentException` (programmer error, caught by `tryWrite`).
 
@@ -213,7 +211,7 @@ if ($view !== null) {
     $record = $mode === 'self'
         ? AuditRecord::fromSelf($in, $view, $today)
         : AuditRecord::fromLove($parsed['a'], $parsed['b'], $view, $today);
-    AuditLog::tryWrite(getenv('ARCANA_CONFIG') ?: ARCANA_ROOT . '/config.php', $record);
+    AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT . '/config.php', $record);
 }
 ```
 
@@ -248,15 +246,15 @@ return ['host' => 'localhost', 'port' => 3306, 'name' => 'database', 'user' => '
 
 ### Deploy (`scripts/deploy.sh`)
 
-After the tracked-files loop and only when not `--dry-run`: if `config.php` exists, compute `sha256sum config.php`, compare to the gitignored `.deploy-config-hash`; if different, upload it with the same uploader call used for other files (`--dir "${DEPLOY_DIR%/}/"`, `--force`, stdout to `/dev/null`), print only `uploaded config.php (contents not shown)`, then write the new hash. In `--dry-run`, print `would upload config.php` when the hash differs. If `config.php` is absent, print nothing (the page works without it). If the uploader supports setting a file mode, request 600; otherwise the file is private by location (outside `public/`) and by the deny rules. The script never `cat`s or echoes the file; `--all` also forces the config upload.
+After the tracked-files loop and only when not `--dry-run`: if `config.php` exists, compute a content hash of `config.php`, compare to the gitignored `.deploy-config-hash`; if different, upload it with the same uploader call used for other files (`--dir "${DEPLOY_DIR%/}/"`, `--force`, stdout to `/dev/null`), print only `uploaded config.php (contents not shown)`, then write the new hash. In `--dry-run`, print `would upload config.php` when the hash differs. If `config.php` is absent, print nothing (the page works without it). If the uploader supports setting a file mode, request 600; otherwise the file is private by location (outside `public/`) and by the deny rules. The script never `cat`s or echoes the file; `--all` also forces the config upload.
 
 ### Privacy (the consequences of superseding D2 and §5)
 
-1. **What is stored**: functionality, UTC timestamp, reading date, names, birth date/time/place of the user and (Love) of the loved one, and the YAML summary of the result. **Not stored**: IP address, user agent, referrer, cookies, full URL/query string, the typed city text beyond the resolved label. An IP would add identifiability without being needed for an audit of results; revisit only with a concrete abuse/rate-limiting need and a new ADR.
+1. **What is stored**: functionality, UTC timestamp, reading date, names, birth date/time/place of the user and (Love) of the loved one, and the YAML summary of the result. **Not stored**: IP address, user agent, referrer, session ids, full URL/query string, the typed city text beyond the resolved label. An IP would add identifiability without being needed for an audit of results; revisit only with a concrete abuse/rate-limiting need and a new ADR.
 2. **Third parties**: the loved person never consented and is a data subject too. Mitigation by minimisation: the form already makes everything but the name optional for them, and only what was provided is stored; nothing is inferred or enriched; no email or free text. Names are stored as typed (the spec requires it); a later hardening could store a hash instead of the loved one's name, at the cost of the audit value.
 3. **Who can read**: the database owner (hosting panel, MySQL client, backups made by the host). Access from the application only: the DB credentials are in the gitignored `config.php` (mode 600, outside `public/`) and in `~/.password`; there is no page, API or log that outputs audit rows. The DB user should be used by this project only (a DB per project is the shared-hosting norm).
 4. **Retention (suggested default)**: 90 days, enforced by `scripts/db-purge.sh --days 90` run manually or from a cron job on a trusted machine; the owner may choose a different period but must state it in the notice. Deleting on demand (erasure): `DELETE FROM magic_audit WHERE id IN (SELECT audit_id FROM magic_audit_person WHERE name = ?)` (documented in the README/ops notes, run by the owner with a parameterised statement); cascade removes the person rows. Backups made by the host age out on the host's schedule: say so in the notice.
-5. **Notice on the page** (static footer text in `templates/home.php`, English like the rest): "To keep an audit record, Arcana stores the details you enter (names, birth date, time and place) and a summary of your result for 90 days. It does not store your IP address. To have your data deleted, contact the site owner." The Love form already warns about names in the URL; add: "The details of the person you love are stored too, only what you enter." The notice text must match the retention actually configured. (No contact address is invented here; the owner supplies it.)
+5. **Notice on the page** (static footer text in `templates/home.php`, English like the rest): "To keep an audit record, Magic stores the details you enter (names, birth date, time and place) and a summary of your result for 90 days. It does not store your IP address. To have your data deleted, contact the site owner." The Love form already warns about names in the URL; add: "The details of the person you love are stored too, only what you enter." The notice text must match the retention actually configured. (No contact address is invented here; the owner supplies it.)
 6. **Search engines/caches**: `X-Robots-Tag: noindex`, `<meta name="robots">` and `Cache-Control: private, no-store` stay on result pages.
 7. **Legal**: GDPR-style obligations (lawful basis, information, erasure, minimisation, storage limitation) apply if EU visitors use the site; the owner is the controller. This ADR provides the technical means (notice, minimisation, retention purge, erasure query) and does not constitute legal advice; the owner should decide the lawful basis (e.g. legitimate interest for an audit trail) before go-live.
 8. **Sensitivity in the YAML**: the response summary repeats signs and numbers that follow from the stored birth data; it contains no extra personal data beyond that and no secrets.
@@ -313,7 +311,7 @@ All in `tests/cases/audit.php` (dependency-free, no DB needed unless stated).
 
 **AuditRecord (pure, fixed inputs):**
 - Self, Albert Einstein, 1879-03-14 11:30, Ulm (48.4, 10.0, `Europe/Berlin`), today `2026-10-09`: record `functionality` `self`, exactly one person with role `self`, `birth_date` `1879-03-14`, `birth_time` `11:30:00`, `lat` 48.4, `tz` `Europe/Berlin`; YAML contains `sun:` with sign `Pisces`, `ascendant` `Sagittarius`, `moon` `Cancer` (existing reference chart of the suite), `on_date: "2026-10-09"`; `response_yaml` ends with `\n` and is <= 65536 bytes; same input twice -> identical record.
-- Love, A Andrea Lorenzani (date/time/place given) and B Silvia Pellico (name only), today `2026-10-09`: roles `user` and `loved`; B has `birth_date`, `birth_time`, `place_label`, `lat`, `lon`, `tz` all `null`; YAML has `percent: 48` and `chain: [40223, 4245, 669, 135, 48]` (ADR 0002 reference); no `self` person; with the optional `$self` argument a third `self` row appears.
+- Love, A Andrea Lorenzani (date/time/place given) and B Silvia Pellico (name only), today `2026-10-09`: roles `user` and `loved`; B has `birth_date`, `birth_time`, `place_label`, `lat`, `lon`, `tz` all `null`; YAML has `percent: 48`; no `self` person; with the optional `$self` argument a third `self` row appears.
 - B with date+city but no time: `birth_time` null. B time without date: time ignored in `Request`, record has null.
 - Oversize: a synthetic view with a 70 KiB note string yields the `truncated: true` document, valid UTF-8.
 - Names containing quotes, `%`, `;`, `'--`, emoji pass through the record unchanged in `persons` (escaping is the DB layer's job via binding) and are quoted in the YAML.
@@ -323,11 +321,11 @@ All in `tests/cases/audit.php` (dependency-free, no DB needed unless stated).
 - `Config::load` returns null for a missing path, a directory, a file returning a non-array, and an array missing `password`; no output and no warnings (run with `error_reporting(E_ALL)` and an error handler that fails the check).
 - `AuditLog::tryWrite('/nonexistent/config.php', $record)` returns false, does not throw, writes nothing to the error log.
 - `tryWrite` with a temp config pointing to `127.0.0.1` on a closed port returns false in < 4 s, with an `error_log` file (set via `ini_set('error_log', tmp)`) containing `audit: write failed` and **not** containing the record's name, host or user (assert absent).
-- Page renders without the database: run `php -r` in a subprocess that sets `$_GET` to the Einstein Self query (with `lat/lon/tz` supplied so no network is needed) and `ARCANA_CONFIG=/nonexistent`, requires `public/index.php` with output buffering, and asserts exit code 0, output contains `Pisces`, and the notice text "does not store your IP address". Same for a Love query containing `Silvia Pellico`. Chooser and validation-error queries produce no audit attempt (assert via a closed-port config plus an empty `error_log` file: nothing logged because nothing was attempted).
+- Page renders without the database: run `php -r` in a subprocess that sets `$_GET` to the Einstein Self query (with `lat/lon/tz` supplied so no network is needed) and `MAGIC_CONFIG=/nonexistent`, requires `public/index.php` with output buffering, and asserts exit code 0, output contains `Pisces`, and the notice text "does not store your IP address". Same for a Love query containing `Silvia Pellico`. Chooser and validation-error queries produce no audit attempt (assert via a closed-port config plus an empty `error_log` file: nothing logged because nothing was attempted).
 
 **Layering:** add `Audit` to the pure directories in `tests/cases/layering.php` (no echo, `$_GET`, file/curl, clock). New check for `src/Db/*.php`: no `$_GET`/`$_POST`, no `echo`/`print`, no `query(`/`exec(` calls, every `prepare(` argument is a string literal without `$` interpolation, and `error_log(` arguments never contain `getMessage`. Scripts check: `scripts/*.sh` and `scripts/lib/*.sh` contain no `set -x`, no `echo`/`printf` of variables whose name contains `PASS`, `PWD`, `CRED`, `HOST`, and no `cat` of `~/.password` (grep test); no tracked file contains the private section name (the test reads it from `.deploy.local` when present and greps `git ls-files` content, skipped otherwise).
 
-**Optional integration (skipped when `config.php` is absent):** with a real `config.php` against a test/throwaway database, run the migration twice (idempotent), call `tryWrite` with the Einstein and Andrea/Silvia records, select the rows back through PDO and assert: `created_at` within 5 s of `UTC_TIMESTAMP()`, one `magic_audit` row, persons `1` / `2`, `response_yaml` byte-equal to the record, names with quotes and emoji round-trip exactly (utf8mb4), a name of 41 characters is rejected by the column (strict mode) and returns false, deleting the audit row cascades to persons. The test deletes its own rows (by id) afterwards and never prints config values. It must refuse to run unless an env flag `ARCANA_DB_TEST=1` is set, so a developer pointing `config.php` at production cannot add rows by accident.
+**Optional integration (skipped when `config.php` is absent):** with a real `config.php` against a test/throwaway database, run the migration twice (idempotent), call `tryWrite` with the Einstein and Andrea/Silvia records, select the rows back through PDO and assert: `created_at` within 5 s of `UTC_TIMESTAMP()`, one `magic_audit` row, persons `1` / `2`, `response_yaml` byte-equal to the record, names with quotes and emoji round-trip exactly (utf8mb4), a name of 41 characters is rejected by the column (strict mode) and returns false, deleting the audit row cascades to persons. The test deletes its own rows (by id) afterwards and never prints config values. It must refuse to run unless an env flag `MAGIC_DB_TEST=1` is set, so a developer pointing `config.php` at production cannot add rows by accident.
 
 **Manual:** `php -S localhost:8081 -t public` without `config.php` (pages work, no error output); with `config.php` after `scripts/db-migrate.sh` (rows appear for Self and Love only; none for the chooser or an invalid date); `scripts/deploy.sh --dry-run` prints `would upload config.php` only when the hash changed and never prints its content; the live site responds 404 for `/config.php`, `/migrations/001_create_magic_audit.sql` and `/scripts/deploy.sh`; the footer notice is visible and matches the retention.
 
@@ -340,6 +338,17 @@ Deviations from the design above:
 - Empty arrays are emitted as `[]` by the YAML emitter.
 - The Love YAML layout is the one built in `AuditRecord::fromLove` (see `docs/code.md`): `name_affinity`, `charts.a|b` with `sun_approx`/`moon_approx`, `common.score`, `synchrony`, `tarot`, `notes`.
 - The page notice no longer states "90 days": there is no automatic purge. `scripts/db-purge.sh --days N` is manual and nothing schedules it; the footer says the data can be removed on request.
+- Superseded in part by the Terms and Conditions consent (see "Update: consent" below).
 - Errors of the `mysql` client in the scripts are sanitised to `mysql error <code> (<SQLSTATE>)` (stderr is never shown, as it can contain user and client address).
 
 Operational status: the tables have **not** been created in the real database. The database server refused the connection (access denied) from the development machine. `scripts/db-migrate.sh` must still be run from an allowed host, or `migrations/001_create_magic_audit.sql` pasted into the hosting panel's SQL tool. Until then the app runs normally and audit writes fail silently (logged as class and code only). Also open: the uploaded `config.php` is not mode 600 on the server.
+
+## Update: consent (Terms and Conditions)
+
+The notice section above is superseded: a footer notice alone is no longer enough. The page now requires acceptance of the Terms and Conditions before anything is processed.
+
+- First visit (no cookie `magic_terms`): a blocking popup shows the terms. Nothing is processed, no result is shown and **no audit record is written** until the visitor accepts.
+- Accepting posts to `public/consent.php`, which sets the functional cookie `magic_terms` (1 year, `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, no identifier) and redirects back, keeping the visitor's query so the result is then shown. A withdraw button in the Terms section clears the cookie.
+- The text lives in `templates/partials/terms.php` and is shown both in the popup and as an expandable "Terms and Conditions" section at the end of the page. It states that results are recorded (what is entered, including the loved person's details, and a result summary), that the IP address is not recorded, that nothing is used to track the visitor, and that the data can be removed on request.
+- Logic is in `Magic\Consent` (cookie name, `given()`, `safeQuery()`), so the stored data stays limited to the audit and the cookie carries no personal data.
+- "No cookies" statements elsewhere now read: no tracking cookies; one functional consent cookie.

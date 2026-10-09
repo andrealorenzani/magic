@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Db;
+namespace Magic\Db;
 
 /** Loads config.php (a PHP file returning an array). Never throws, never outputs. */
 final class Config

@@ -4,16 +4,16 @@ declare(strict_types=1);
 // Dependency-free test runner: `php tests/run.php`. Exits non-zero on failure.
 require __DIR__ . '/../src/autoload.php';
 
-use Arcana\Astro\Angles;
-use Arcana\Astro\Ascendant;
-use Arcana\Astro\Moon;
-use Arcana\Astro\Sun;
-use Arcana\Astro\Zodiac;
-use Arcana\Chart;
-use Arcana\Geo\FallbackCities;
-use Arcana\Geo\Geocoder;
-use Arcana\Request;
-use Arcana\Time\Zone;
+use Magic\Astro\Angles;
+use Magic\Astro\Ascendant;
+use Magic\Astro\Moon;
+use Magic\Astro\Sun;
+use Magic\Astro\Zodiac;
+use Magic\Chart;
+use Magic\Geo\FallbackCities;
+use Magic\Geo\Geocoder;
+use Magic\Request;
+use Magic\Time\Zone;
 
 $failures = 0;
 $count = 0;

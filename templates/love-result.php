@@ -1,7 +1,7 @@
 <?php
 /** @var array $view @var string $today */
 
-use Arcana\Content\Traits;
+use Magic\Content\Traits;
 
 require_once __DIR__ . '/partials/icons.php';
 require_once __DIR__ . '/partials/bio.php';
@@ -15,7 +15,7 @@ $when = ['Today', 'Tomorrow', 'The day after'];
 $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $p['degree'] . '°';
 ?>
 <div class="print-only print-head">
-  <h2>Arcana · <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
+  <h2>Magic · <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
   <p>Reading of <?= e($today) ?></p>
 </div>
 <div class="toolbar no-print">
@@ -27,17 +27,10 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
   <p class="heart__percent"><span aria-hidden="true">♥</span> <?= e($aff['percent']) ?>%</p>
   <p><meter min="0" max="100" value="<?= e($aff['percent']) ?>"><?= e($aff['percent']) ?>%</meter></p>
   <?php if ($aff['noLetters']): ?>
-    <p>These names share no letters of AMORE.</p>
+    <p>These names have nothing in common for the affinity reading.</p>
   <?php else: ?>
-    <p>Name affinity from the letters of AMORE in your two names.</p>
+    <p>Name affinity of your two names.</p>
   <?php endif; ?>
-  <details>
-    <summary>How this was computed</summary>
-    <p>Letter counts:
-      <?php foreach ($aff['counts'] as $l => $n): ?><strong><?= e($l) ?></strong> <?= e($n) ?> <?php endforeach; ?>
-      → digits <strong><?= e(implode('', $aff['slots'])) ?></strong>, start value <?= e($aff['start']) ?>.</p>
-    <p>Adding neighbouring digits until the value is 100 or less: <?= e(implode(' → ', $aff['chain'])) ?>.</p>
-  </details>
 </section>
 
 <?php if ($bio): ?>

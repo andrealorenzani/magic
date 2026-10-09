@@ -3,15 +3,19 @@ declare(strict_types=1);
 
 require __DIR__ . '/../src/bootstrap.php';
 
-use Arcana\Audit\AuditRecord;
-use Arcana\Db\AuditLog;
-use Arcana\Geo\Geocoder;
-use Arcana\LoveReading;
-use Arcana\Request;
-use Arcana\SelfReading;
+use Magic\Audit\AuditRecord;
+use Magic\Consent;
+use Magic\Db\AuditLog;
+use Magic\Geo\Geocoder;
+use Magic\LoveReading;
+use Magic\Request;
+use Magic\SelfReading;
 
 // Only plain strings are accepted from the query string (no arrays).
-$q = array_filter($_GET, 'is_string');
+$consented = Consent::given($_COOKIE);
+// Without accepted Terms and Conditions nothing is processed: the page only shows the terms popup.
+$q = $consented ? array_filter($_GET, 'is_string') : [];
+$returnQuery = $consented ? '' : Consent::safeQuery((string) ($_SERVER['QUERY_STRING'] ?? ''));
 $mode = Request::mode($q);
 $today = Request::parseToday($q, gmdate('Y-m-d')); // the clock is read here, nowhere else
 
@@ -29,7 +33,7 @@ $submitted = false;
 
 if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
     $submitted = true;
-    $parsed = Request::parse($q, new Geocoder(ARCANA_ROOT . '/cache'));
+    $parsed = Request::parse($q, new Geocoder(MAGIC_ROOT . '/cache'));
     $errors = $parsed['errors'];
     $notes = $parsed['notes'];
     if ($parsed['input'] !== null) {
@@ -46,7 +50,7 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
         }
     }
     if ($submitted) {
-        $parsed = Request::parseLove($q, new Geocoder(ARCANA_ROOT . '/cache'));
+        $parsed = Request::parseLove($q, new Geocoder(MAGIC_ROOT . '/cache'));
         $errors = $parsed['errors'];
         $notes = $parsed['notes'];
         if ($parsed['a'] !== null && $parsed['b'] !== null) {
@@ -68,7 +72,7 @@ if ($submitted) {
     header('Cache-Control: private, no-store');
 }
 
-require ARCANA_ROOT . '/templates/home.php';
+require MAGIC_ROOT . '/templates/home.php';
 
 // Audit trail (ADR 0003): only for results; after the page is flushed; never allowed to break the page.
 if ($view !== null) {
@@ -83,7 +87,7 @@ if ($view !== null) {
         $record = $mode === 'self'
             ? AuditRecord::fromSelf($in, $view, $today)
             : AuditRecord::fromLove($parsed['a'], $parsed['b'], $view, $today);
-        AuditLog::tryWrite(getenv('ARCANA_CONFIG') ?: ARCANA_ROOT . '/config.php', $record);
+        AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT . '/config.php', $record);
     } catch (\Throwable $e) {
         error_log('audit: build failed ' . get_class($e));
     }

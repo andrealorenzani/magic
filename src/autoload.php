@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-// Minimal PSR-4 autoloader: Arcana\Foo\Bar -> src/Foo/Bar.php (no Composer needed on shared hosting).
+// Minimal PSR-4 autoloader: Magic\Foo\Bar -> src/Foo/Bar.php (no Composer needed on shared hosting).
 spl_autoload_register(static function (string $class): void {
-    $prefix = 'Arcana\\';
+    $prefix = 'Magic\\';
     if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
         return;
     }

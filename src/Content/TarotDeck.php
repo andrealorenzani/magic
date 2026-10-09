@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Content;
+namespace Magic\Content;
 
 /** The 22 Major Arcana with love-oriented readings. Entertainment, not prediction. */
 final class TarotDeck

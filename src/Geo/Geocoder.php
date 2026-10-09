@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Geo;
+namespace Magic\Geo;
 
 /**
  * City search through the Open-Meteo geocoding API (no key). Returns coordinates and the IANA time zone.

@@ -1,19 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Love;
+namespace Magic\Love;
 
-/**
- * "AMORE" name affinity. Count the letters A, M, O, R, E in both names together; turn the counts
- * into a five-digit string; repeatedly replace it by the overlapping sums of adjacent digits
- * until the value is 100 or less. That value is the percentage.
- *
- * Carry rule ("its first digit is added to the highest digit"): a count c >= 10 keeps its last
- * digit in its own slot and its first digit is added to the PRECEDING slot (A has no predecessor:
- * its carry goes to M). This is the only reading that turns A=3,M=2,O=12,R=2,E=1 into 33221.
- * A slot may exceed 9 after a carry; the value is read as a polynomial (sum slot*10^(4-i)).
- * Counts >= 100 (impossible with 40-character names) drop their middle digits.
- */
+/** Name affinity between two names, as a percentage with its working values. */
 final class NameAffinity
 {
     public const LETTERS = ['A', 'M', 'O', 'R', 'E'];

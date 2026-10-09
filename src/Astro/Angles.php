@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Astro;
+namespace Magic\Astro;
 
 /** Time and angle helpers shared by all astronomy classes. Angles are in degrees at the API boundary. */
 final class Angles

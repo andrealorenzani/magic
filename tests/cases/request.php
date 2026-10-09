@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Geo\Geocoder;
-use Arcana\LoveReading;
-use Arcana\Request;
-use Arcana\SelfReading;
+use Magic\Geo\Geocoder;
+use Magic\LoveReading;
+use Magic\Request;
+use Magic\SelfReading;
 
 $g = new Geocoder(sys_get_temp_dir());
 $A = ['a_name' => 'Ann', 'a_date' => '1990-07-15', 'a_time' => '08:30', 'a_city' => 'Rome', 'a_lat' => '41.9', 'a_lon' => '12.5', 'a_tz' => 'Europe/Rome'];

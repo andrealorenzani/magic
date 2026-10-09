@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Db;
+namespace Magic\Db;
 
 use PDO;
 

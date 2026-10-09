@@ -8,6 +8,9 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Planets Mercury–Pluto (without chart wheel) — shipped in v0.3
 - Compatibility between two people (basic, via common values) — shipped in v0.3
 - Audit trail ([ADR 0003](decisions/0003-mysql-audit-trail.md)) — every Self/Love result is recorded in MySQL (`magic_audit`, `magic_audit_person`) with a YAML summary; code, scripts, notice and tests shipped. **Pending operation:** the tables are not created in the real database yet (connection refused from the dev machine); apply `scripts/db-migrate.sh` from an allowed host or via the hosting panel's SQL tool
+- Terms and Conditions consent ([ADR 0003](decisions/0003-mysql-audit-trail.md), update) — blocking popup on first visit, functional cookie `magic_terms`, expandable T&Cs section with withdraw; no result and no audit without consent
+- Local run with Docker — `docker compose up --build` (PHP + Apache + MySQL 8.4), `scripts/docker-db.sh`
+- Project renamed from Arcana to Magic (namespace `Magic\`)
 
 ## Ideas (unprioritised)
 - Chart wheel (SVG)
@@ -25,7 +28,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Daily horoscope / moon phase widget
 - PWA / offline support
 - Manual QA of keyboard navigation (incl. the new notice) and Print to PDF in Chrome and Firefox (A4 layout, ADR 0002 risk)
-- Planets before 1800 (Standish Table 2 extra terms; `Planets::supports` is the gate)
+- Planets before 1800 (`Planets::supports` is the gate)
 - Client time zone for "today" (server uses the UTC date, so it can be a day off)
 - More tarot cards (minor arcana) and more copy variety
 - Cap/cleanup of the geocoding cache in `cache/`

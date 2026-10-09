@@ -1,10 +1,10 @@
 # Architecture
 
-> Status: v0.4 (PHP, two modes, MySQL audit trail; the audit tables are not yet created in the real database, see §9) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
+> Status: v0.5 (PHP, two modes, MySQL audit trail, Terms and Conditions consent, Docker local run; the audit tables are not yet created in the real database, see §9) · Owner of this file: the `documenter` agent (`.claude/agents/documenter.md`).
 
 ## 1. Goal
 
-Arcana is a web page for magic lovers. The visitor enters **birth date**, **birth time (hh:mm)** and **birth city**, and receives:
+Magic is a web page for magic lovers. The visitor enters **birth date**, **birth time (hh:mm)** and **birth city**, and receives:
 
 | Result | Meaning | Depends on |
 |---|---|---|
@@ -25,21 +25,23 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
 |---|---|---|---|
 | D1 | **PHP 8.1+, server-rendered, deployable on Apache shared hosting** (Apache + PHP, FTP/SFTP/git deploy). No Composer, no build step, no framework | Hard requirement (hosting). Nothing to install on the server | We write a tiny autoloader/router ourselves |
 | D2 | **Database: MySQL only, via PDO, used only for the audit trail** (superseded in part by ADR [0003](decisions/0003-mysql-audit-trail.md); originally "no database"). Tables are prefixed `magic_`; no accounts, no saved charts | The owner wants an audit record of results; everything else needs no storage. The app still works with no database at all | Personal data now rests in the DB (see §5). Further persistence needs its own ADR (§7) |
-| D3 | **Astronomy implemented in-house in PHP** (`Arcana\Astro\*`, Meeus low-precision series) | No dependency (no Swiss Ephemeris binary on shared hosting), testable. Sun/Moon ≈ 0.01°. Planets (1800–2100) from the JPL Keplerian elements (E. M. Standish, Table 1, valid 1800–2050, extrapolated to 2100): about 0.01° inner planets and Mars, a few hundredths of a degree for Jupiter–Pluto, ignoring light-time and aberration | A sign may be wrong within ~0.01° (Sun/Moon) or ~0.05° (planets) of a boundary; outside 1800–2100 only the big three are shown |
+| D3 | **Astronomy implemented in-house in PHP** (`Magic\Astro\*`) | No dependency (no Swiss Ephemeris binary on shared hosting), testable. Sun and Moon are very accurate; planets (1800–2100) are approximate | A sign may be wrong very close to a boundary (more likely for planets); outside 1800–2100 only the big three are shown |
 | D4 | **Tropical zodiac** | The Western standard users expect | Sidereal could be added later |
 | D5 | **Geocoding via Open-Meteo** (lat, lon, IANA time zone), called **server-side**, results cached on disk in `cache/`, bundled fallback list if the API is down | One call yields all place data; server-side call keeps visitors' queries out of third-party JS and allows caching | Needs outbound HTTP (`curl` or `allow_url_fopen`, both normally on at shared hosts) |
 | D6 | **Time zones via PHP's `DateTimeZone`** | Correct historical DST/offsets from the tz database, no library | Very old dates use LMT as in the tz database |
-| D7 | **Pure core, thin web layer** | `Arcana\Astro`, `Chart`, `Time` have no I/O and are unit-tested from the CLI | — |
+| D7 | **Pure core, thin web layer** | `Magic\Astro`, `Chart`, `Time` have no I/O and are unit-tested from the CLI | — |
 | D8 | **Progressive enhancement**: the page works without JavaScript (server resolves the city text); JS only adds city autocomplete | Robust, SEO-friendly, shareable GET URLs | — |
 | D9 | **Agentic dev workflow** in `.claude/` | See §6 | — |
 
 ## 3. System overview
 
 ```
+  POST consent.php ──► Consent (sets/clears cookie magic_terms, 303 back to /)
  Browser ── GET /?mode=self&date&time&city[&lat&lon&tz][&on=]            ┐
          └─ GET /?mode=love&a_name&a_date&a_time&a_city..&b_name&b_..    ├─► public/index.php
     │                                                                     ┘        │
-    │  assets/autocomplete.js (one per [data-place])                               ├─ Request::mode / parseToday (clock read here only)
+    │  assets/autocomplete.js (one per [data-place])                               ├─ Consent::given (cookie magic_terms) else only the terms popup
+    │                                                                              ├─ Request::mode / parseToday (clock read here only)
     │      └─ GET api/cities.php?q= ──► Geocoder ──────────────────────────────────┤
     │  assets/print.js (un-hides the Print button)                                 ├─ Request::parse | parseLove ─► Geo\Geocoder ─► Open-Meteo
     │                                                                              │      (cache/ on disk, Geo\FallbackCities if unreachable)
@@ -57,42 +59,26 @@ Long-term ambition: the most-used page for magic lovers, so adding features (hou
 
 Layering rule (checked by `reviewer` and `tests/cases/layering.php`): `Astro\*`, `Time\*`, `Chart`, `Love\*`, `Bio\*`, `Tarot\*`, `SelfReading`, `LoveReading` and `Audit\*` never do I/O (no network, files, `$_GET`, echo, clock). Only `public/`, `Request`, `Geo` and `Db` touch the outside world. Templates only render; they escape everything with `e()`.
 
-## 4. Calculation pipeline
+## 4. Feature pipeline
 
-Shared core (both modes):
+Shared core (both modes): wall-clock birth data plus place and time zone become a UTC instant (`Zone::toUnix`, DST gap shifted forward, overlap resolved to the first occurrence); `Chart` then gives the Sun, Moon and Ascendant signs, each as a `Zodiac::fromLongitude` position (sign, degree, minute).
 
-1. **Input** — `year, month, day, hour, minute` (wall-clock at birthplace) + `lat, lon (east+), timeZone`.
-2. **UTC** — `Zone::toUnix` via `DateTimeImmutable` in the IANA zone. DST gap → shifted forward; overlap → first occurrence.
-3. **Julian Day** — `Angles::julianDay(unix)`; UT used as TT (≤ 0.01° effect on the Moon).
-4. **Sun** — apparent longitude (Meeus ch. 25). **Moon** — 38 largest terms of Meeus ch. 47 + nutation.
-5. **Ascendant** — `RAMC = GMST + lon`; `ASC = atan2(cos RAMC, −(sin RAMC·cos ε + tan φ·sin ε))`.
-6. **Sign** — `floor(lon/30)`; remainder → degree/minute.
+Self mode (`SelfReading::build($input, $today)`): `Chart::full` adds Mercury–Pluto with retrograde marks (years 1800–2100) and the mean North Node (any year); `SignAffinity::rank` returns the 3 signs with most affinity and one "love of your life" sign; `Biorhythm::forPerson` gives the three biorhythms for `today`.
 
-Self mode (`SelfReading::build($input, $today)`):
-
-7. **Planets** — `Chart::full` adds Mercury–Pluto (Kepler equation per body from JPL elements, Earth subtracted, precession and nutation added; retrograde = longitude falls over ±12 h) when the year is 1800–2100, and the mean North Node (any year).
-8. **Affinities** — `SignAffinity::rank` scores the 11 other signs against the user's Sun, Moon, Ascendant, Venus and Mars (aspect 60% + ruler friendship 25% + modality 15%): top 3 by a balanced weighting and one "love of your life" sign by a heart-focused weighting.
-9. **Biorhythms** — physical 23, emotional 28, intellectual 33 days from the birth *date* to `today`.
-
-Love mode (`LoveReading::build($a, $b, $today)`):
-
-7. **Partial charts** — `Chart::partial`: with date+time+place all three signs; with date only, Sun and Moon at 12:00 UTC flagged `approx` when the sign changes during that UTC day; no Ascendant.
-8. **Name affinity** — AMORE counts, carry rule, repeated pair sums down to a value ≤ 100 (see README).
-9. **Synchrony** — per cycle phase offset `delta`, `sync`, `amplitude`, next combined peak/trough, next day both are high/low.
-10. **Common values** — same sign 100, same element 80, complementary elements 60, same modality 40, else 20; weighted Sun 2, Moon 2, Ascendant 1.
-11. **Tarot** — `hash('sha256', seed|date|i)` picks 3 distinct Major Arcana for today, tomorrow, the day after; stateless, same input and day give the same cards.
+Love mode (`LoveReading::build($a, $b, $today)`): `Chart::partial` builds a chart with whatever data each person gave (date only gives Sun and Moon flagged `approx` when the sign may depend on the birth time; no Ascendant); `NameAffinity` gives a percentage; `Synchrony::pair` compares the two people's biorhythms; `Common::between` lists shared Sun/Moon/Ascendant values with a score; `Tarot\Reading::draw` gives a stateless 3-day reading (same input and day give the same cards).
 
 "Today" is the **server's UTC date** (`gmdate`), read only in `public/index.php`, and may be overridden by a valid `on=YYYY-MM-DD` (1900–2100) for tests and reproducible shared links. A visitor far from UTC can therefore see biorhythms and tarot one day off.
 
-Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet; planets unavailable outside 1800–2100; biorhythms, scores, name affinity and tarot are entertainment.
+Limits: Ascendant flagged approximate at extreme latitudes; no houses yet; planets unavailable outside 1800–2100; biorhythms, scores, name affinity and tarot are entertainment. Documentation never describes how values are computed (CLAUDE.md rule).
 
 ## 5. Security & privacy
 
 - All user input validated in `Request::parse` (date/time regex + `checkdate`, lat/lon ranges, `tz` checked against `DateTimeZone::listIdentifiers()`); output escaped with `e()`.
 - Outbound requests go only to the fixed Open-Meteo host; the query is URL-encoded.
 - Only the **city text** is sent to a third party (Open-Meteo).
-- **Audit trail (ADR 0003): personal data IS stored.** For every Self or Love result the app writes to MySQL: the functionality, a UTC timestamp, the reading date, the names, birth date, birth time and place (label, lat, lon, time zone) of the user and, in Love mode, of the loved person (only what was entered), and a YAML summary of the result (signs, name affinity, synchrony, tarot, biorhythm values). **Not stored:** IP address, user agent, referrer, cookies, session ids, the URL or query string. Nothing is written for the mode chooser, validation errors or notes-only pages.
-- **Notice:** every page shows a static notice (footer of `templates/home.php`) saying that the entered details and a result summary are recorded, that no IP address and no cookies are stored, and that the data can be removed on request. The loved person never consented; only what is entered is stored.
+- **Audit trail (ADR 0003): personal data IS stored.** For every Self or Love result the app writes to MySQL: the functionality, a UTC timestamp, the reading date, the names, birth date, birth time and place (label, lat, lon, time zone) of the user and, in Love mode, of the loved person (only what was entered), and a YAML summary of the result (signs, name affinity, synchrony, tarot, biorhythm values). **Not stored:** IP address, user agent, referrer, session ids, the URL or query string. Nothing is written for the mode chooser, validation errors or notes-only pages.
+- **Terms and Conditions consent (ADR 0003, update):** the page is unusable until the visitor accepts the T&Cs. Without the cookie `magic_terms` a blocking popup is shown; the request is not processed (the query is ignored) and **no audit record is written**. Accepting is a POST to `public/consent.php`, which sets the cookie and redirects back (carrying the original query through `Consent::safeQuery`); a withdraw button in the T&Cs section clears it. The text is `templates/partials/terms.php`, shown in the popup and as an expandable "Terms and Conditions" section at the end of the page. The loved person never consented; only what is entered is stored.
+- **Cookies:** no tracking cookies. The only cookie is the **functional consent cookie** `magic_terms` (value `1`, 1 year, `HttpOnly`, `SameSite=Lax`, `Secure` over HTTPS, no identifier).
 - **Retention and erasure:** there is **no automatic retention or deletion**. The owner is the data controller and must operate the process by hand: `scripts/db-purge.sh --days N` deletes audit rows older than N days (person rows follow through `ON DELETE CASCADE`; run it manually or from a cron job on a trusted machine); remove-on-request is a delete by name query, e.g. `DELETE FROM magic_audit WHERE id IN (SELECT audit_id FROM magic_audit_person WHERE name = ?)` with a bound parameter (examples in [code.md](code.md)). Host backups age out on the host's schedule. Lawful basis, privacy policy and contact address are the owner's decision; this is not legal advice.
 - **Who can read:** whoever has the database credentials (hosting panel, MySQL client, host backups). No page, API or log of the app outputs audit rows. The app logs only an error class and code on a failed write (`audit: write failed <Class> <code>`), never request data, host or user names.
 - **Names now travel in the GET URL** (Love mode also carries the loved person's birth data). They can appear in web-server access logs, browser history and shared links; the Love form warns "share the link only with people you trust". Result pages send `X-Robots-Tag: noindex`, `<meta name="robots" content="noindex">` and `Cache-Control: private, no-store`. POST was rejected because it breaks shareable URLs (D8); a "private mode" would need its own ADR. Mention this in any privacy policy.
@@ -119,7 +105,7 @@ Limits: Ascendant flagged approximate beyond ±66° latitude; no houses yet; pla
  commit ──► deployer ──► scripts/deploy.sh (tests, then SFTP upload of changed files)
 ```
 
-Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes, 0003 the MySQL audit trail).
+Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rules: `CLAUDE.md`. `docs/` is the shared memory. ADRs: `docs/decisions/` (0001 records the move to PHP, 0002 the two modes, 0003 the MySQL audit trail and the consent update).
 
 ## 7. Extension points
 
@@ -127,7 +113,7 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 |---|---|
 | A body in Self mode | planets are data-driven: add a row to `Planets::ELEMENTS`/`BODIES`, copy in `Content\Bodies::INFO`, and the planet grid in `templates/self-result.php` picks it up from `Chart::full` |
 | Houses | new `src/Astro/Houses.php` reusing `Angles`/`Ascendant::gmst`; expose it in `Chart::full` |
-| Planets before 1800 | extend `Planets` with Standish Table 2 (b, c, s, f terms); `supports()` is the single gate |
+| Planets before 1800 | extend `Planets`; `supports()` is the single gate |
 | A third mode | `Request::MODES`, a `Request::parseX`, a pure `XReading::build`, `templates/x-result.php`, a chooser card in `templates/home.php` |
 | Tarot cards / copy / languages | `Content\TarotDeck`, `Content\Traits`, `Content\Bodies`, `Content\Signs` only |
 | Scoring weights | constants at the top of `Love\SignAffinity`, `Love\Common`, `Bio\Synchrony::THRESHOLD` |
@@ -137,7 +123,7 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 
 ## 8. Testing
 
-`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`, `audit`), required by the runner. Astronomy is checked against published values (Meeus examples, equinox, a known natal chart, planets at J2000 and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `audit` pins the YAML emitter (golden strings, injection), the record builders and the failure isolation of the DB layer (no database needed); `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` and curl/browser.
+`php tests/run.php` — dependency-free runner (exit code ≠ 0 on failure); core checks live in `tests/run.php`, ADR 0002 checks in `tests/cases/*.php` (`planets`, `bio`, `love`, `tarot`, `request`, `layering`, `audit`), required by the runner. Astronomy is checked against published reference values (equinox, a known natal chart, planets at a fixed epoch and sign ingresses); the zone converter against known offsets including DST gap/overlap; `Request` against bad/tampered input; `audit` pins the YAML emitter (golden strings, injection), the record builders and the failure isolation of the DB layer (no database needed); `layering` greps the pure code for I/O and the templates for unescaped output or inline script/style. The web layer is verified with `php -S localhost:8081 -t public` or the Docker setup (§10) and curl/browser. The optional DB integration test runs only with `MAGIC_DB_TEST=1` and a `config.php`.
 
 ## 9. Deployment (Apache shared hosting)
 
@@ -162,3 +148,12 @@ Agents: `.claude/agents/`; orchestration: `.claude/commands/new-feature.md`; rul
 - Uploads only committed files changed since the last deployed commit (recorded in the gitignored `.deploy-state`); `--all` uploads every tracked file.
 - Cannot delete remote files: removed files are listed as warnings and must be deleted manually.
 - Run by the `deployer` agent as the last step of `/new-feature`. Host, domain and provider names never appear in the repo. `config.php` is uploaded separately from the tracked files; its last uploaded hash lives in the gitignored `.deploy-config-hash`.
+
+## 10. Local run with Docker
+
+`docker compose up --build` starts the page at http://localhost:8081 without installing PHP or MySQL. `docker-compose.yml` defines two services:
+
+- `web`: built from `docker/Dockerfile` (`php:8.3-apache` + `pdo_mysql`, `mod_rewrite`/`headers`/`expires`); the project is bind-mounted, and, as on shared hosting, the web directory is the project root with the root `.htaccess` serving `public/`. `MAGIC_CONFIG` points to `docker/config.php`, which reads the DB settings from the container environment. Published on `127.0.0.1:8081` only.
+- `db`: MySQL 8.4, data in the named volume `dbdata`, **not published to the host**; `migrations/` is mounted into `/docker-entrypoint-initdb.d`, so the schema is applied automatically the first time the volume is created. The DB password is a throwaway local default, overridable with `MAGIC_DB_PASSWORD`.
+
+`scripts/docker-db.sh` works on that database (`migrate`, `shell`, `query "SQL"`, `audit [N]`, `reset`); the password never leaves the containers. Steps and commands are in the README. This setup is for development only and is not part of deployment.

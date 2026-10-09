@@ -9,29 +9,31 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 /config.php.example          Tracked template for the gitignored config.php (MySQL host, port, name, user, password)
 /config.php                  (gitignored) real DB settings, project root, outside public/; made by scripts/make-config.sh
 public/                      ← web root (the server's "web directory")
-  index.php                  Front controller: mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sets noindex + no-store on results; after rendering a result, flushes and writes the audit record (errors swallowed)
+  consent.php                POST accept/withdraw the Terms and Conditions: sets/clears cookie magic_terms, always 303 to ./ (accept carries the sanitised original query)
+  index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sets noindex + no-store on results; after rendering a result, flushes and writes the audit record (errors swallowed)
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
   assets/styles.css          All styling (dark/starry theme, element colours, bio chart classes, @media print)
   assets/autocomplete.js     Progressive enhancement: suggestions + fills hidden lat/lon/tz, one instance per [data-place] container
   assets/print.js            Un-hides the Print button and calls window.print()
   .htaccess                  Apache hardening + CSP + caching
 src/
-  autoload.php               PSR-4 style autoloader for namespace Arcana\ (no Composer)
-  bootstrap.php              Loads autoloader, defines ARCANA_ROOT and the e() escape helper
+  autoload.php               PSR-4 style autoloader for namespace Magic\ (no Composer)
+  bootstrap.php              Loads autoloader, defines MAGIC_ROOT and the e() escape helper
   Chart.php                  ★ Chart::compute (big three), Chart::full (+ planets, node), Chart::partial (optional time/place)
+  Consent.php                Consent::COOKIE/VALUE/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
   Request.php                mode(), parseToday(), parse() (Self), parseLove(), parsePerson(): validated input / errors / notes
   SelfReading.php            Pure: SelfReading::build($input, $today) → Self view-model
   LoveReading.php            Pure: LoveReading::build($a, $b, $today) → Love view-model
   Astro/Angles.php           rad, norm360, julianDay, centuries, nutationLongitude, obliquity
   Astro/Sun.php              Sun::longitude($jd)
-  Astro/Moon.php             Moon::longitude($jd) — periodic-term table
+  Astro/Moon.php             Moon::longitude($jd)
   Astro/Ascendant.php        Ascendant::gmst($jd), Ascendant::longitude($jd, $lat, $lon)
   Astro/Zodiac.php           Zodiac::SIGNS, Zodiac::fromLongitude($lon)
-  Astro/Planets.php          Mercury–Pluto from JPL Keplerian elements: supports($jd), longitude($id,$jd), all($jd), kepler()
-  Astro/MeanNode.php         MeanNode::longitude($jd) — mean North node (Meeus 47.7)
+  Astro/Planets.php          Mercury–Pluto (1800–2100, approximate): supports($jd), longitude($id,$jd), all($jd)
+  Astro/MeanNode.php         MeanNode::longitude($jd) — mean North Node
   Bio/Biorhythm.php          dayNumber/date/dayOf, value, forPerson (3 cycles, peaks, 30-day curve)
   Bio/Synchrony.php          Synchrony::pair — per-cycle delta/sync/amplitude/combined peaks, overall, band
-  Love/NameAffinity.php      AMORE name affinity: compute, fromCounts, step, normalize
+  Love/NameAffinity.php      Name affinity percentage: compute($nameA, $nameB)
   Love/SignAffinity.php      Sign-vs-sign scoring: rank($refs) → ranking, mostAffine (3), soulmate
   Love/Common.php            Common::between($chartA, $chartB) — shared Sun/Moon/Ascendant values
   Tarot/Reading.php          Reading::draw($seed, $today, 3) — deterministic, stateless
@@ -50,11 +52,15 @@ src/
 templates/home.php           Page shell: hero, mode chooser, form for the mode, includes the result template; escapes via e()
 templates/self-result.php    Self result: big three, planets, affinities, biorhythms, print button
 templates/love-result.php    Love result: name %, synchrony, common values, tarot, print button
-templates/partials/          person-fields.php (date/time/city fields per prefix), icons.php (static SVG), bio.php (curve chart)
+templates/partials/          person-fields.php (date/time/city fields per prefix), icons.php (static SVG), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section)
+docker-compose.yml           Local run: web (PHP + Apache, bind mount, 127.0.0.1:8081) and db (MySQL 8.4, volume dbdata, migrations/ as initdb, not published)
+docker/Dockerfile            php:8.3-apache + pdo_mysql + rewrite/headers/expires; Apache config allowing the root .htaccess
+docker/config.php            DB settings for the Docker setup, read from the container environment (MAGIC_DB_*)
 migrations/001_create_magic_audit.sql   Idempotent schema for magic_audit and magic_audit_person (CREATE TABLE IF NOT EXISTS)
 cache/                       Geocoding cache (writable, denied from web; not in web root)
 tests/run.php                Dependency-free test runner (core checks), requires tests/cases/*.php
 tests/cases/                 planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation)
+scripts/docker-db.sh         Docker DB helper: migrate | shell | query "SQL" | audit [N] | reset (password stays in the container)
 scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill
 scripts/make-config.sh       Writes config.php (mode 600) from the database section of ~/.password; prints only "config.php written"
 scripts/db-migrate.sh        Applies migrations/*.sql in order with the mysql client (password via a temp option file, never on the command line)
@@ -62,7 +68,7 @@ scripts/db-purge.sh          Manual retention: `--days N` deletes audit rows old
 scripts/lib/dbcred.sh        Sourced helper: load_db_credentials, write_mysql_defaults, run_mysql (stderr hidden, only `mysql error <code> (<SQLSTATE>)`)
 .deploy.local.example        Template for the gitignored .deploy.local (host, remote dir, DB_PASSWORD_SECTION); credentials in ~/.password
 .deploy-state                (gitignored) last deployed commit SHA
-.deploy-config-hash          (gitignored) sha256 of the last uploaded config.php
+.deploy-config-hash          (gitignored) content hash of the last uploaded config.php
 docs/                        architecture.md, code.md, roadmap.md, decisions/ (ADRs)
 .claude/agents/              architect, implementer, reviewer, documenter, deployer
 .claude/commands/            new-feature.md (workflow entry point)
@@ -93,7 +99,7 @@ $person = ['name' => string, 'date' => ?['year','month','day'], 'time' => ?['hou
 //   'affinity' => SignAffinity::rank, 'bio' => Biorhythm::forPerson, 'today', 'notes']
 // LoveReading::build → ['names','affinity' => NameAffinity::compute, 'charts' => ['a','b' => partial|null],
 //   'common' => Common::between|null, 'bio' => Synchrony::pair|null, 'tarot' => Reading::draw, 'today', 'notes']
-// NameAffinity::compute → ['counts' (A,M,O,R,E), 'slots', 'start', 'chain', 'percent', 'noLetters']
+// NameAffinity::compute → ['percent', 'noLetters', plus supporting values shown by the template]
 // Synchrony::pair → ['cycles' => [physical|emotional|intellectual => delta, sync, amplitude, flat, peaksTogether,
 //   nextCombinedPeak/Trough, nextBothHigh/Low, curveA/B], 'overall' => float, 'band' => tune|complementary|apart]
 // Reading::draw → list of ['date','card','reversed','meaning']
@@ -118,7 +124,7 @@ magic_audit_person  id BIGINT UNSIGNED PK AI · audit_id → magic_audit.id ON D
                     · tz VARCHAR(64) NULL                                                   (unique: audit_id+role; idx: name)
 ```
 
-YAML summary (`format_version` 1; keys are code constants). Self: `functionality`, `on_date`, `chart` (`utc`, `polar`, `sun`/`ascendant`/`moon` as `{sign, degree, minute}`, `planets_supported`, `planets.<body>` with `retrograde`, `north_node`), `affinity` (`most_affine`, `soulmate`), `biorhythm` (`physical`, `emotional`, `intellectual`), `notes`. Love: `functionality`, `on_date`, `name_affinity` (`percent`, `counts` a/m/o/r/e, `chain`), `charts.a|b` (`sun`, `moon`, `ascendant`, `sun_approx`, `moon_approx`; null when no chart), `common.score`, `synchrony` (`overall`, `band`), `tarot` (list of `date`, `card`, `reversed`), `notes`.
+YAML summary (`format_version` 1; keys are code constants). Self: `functionality`, `on_date`, `chart` (`utc`, `polar`, `sun`/`ascendant`/`moon` as `{sign, degree, minute}`, `planets_supported`, `planets.<body>` with `retrograde`, `north_node`), `affinity` (`most_affine`, `soulmate`), `biorhythm` (`physical`, `emotional`, `intellectual`), `notes`. Love: `functionality`, `on_date`, `name_affinity` (`percent` and supporting values), `charts.a|b` (`sun`, `moon`, `ascendant`, `sun_approx`, `moon_approx`; null when no chart), `common.score`, `synchrony` (`overall`, `band`), `tarot` (list of `date`, `card`, `reversed`), `notes`.
 
 ## Request flow
 
@@ -128,7 +134,9 @@ Self: `GET /?mode=self&date=1990-07-15&time=08:30&city=Rome&lat=41.9&lon=12.5&tz
 Love: `GET /?mode=love&a_name=…&a_date=…&a_time=…&a_city=…&b_name=…[&b_date&b_time&b_city]` (prefixes `a_` = you, `b_` = loved person; each also accepts `_lat/_lon/_tz`)
 → `Request::parseLove` → `LoveReading::build` → `Chart::partial` ×2, `NameAffinity`, `Synchrony`, `Common`, `Tarot\Reading` → `love-result.php`.
 
-Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result), `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('ARCANA_CONFIG') ?: ARCANA_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `ARCANA_CONFIG` exists so tests can point to another file.
+Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie `magic_terms` the query is ignored, no result is built and the terms popup is shown (the sanitised original query travels in a hidden field). The popup/section form posts to `public/consent.php`, which sets (accept) or clears (withdraw) the cookie and redirects with 303 to `./`. No consent means no result and no audit record.
+
+Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result), `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `MAGIC_CONFIG` exists so tests can point to another file.
 
 `on=YYYY-MM-DD` overrides "today" (default: server UTC date). No `mode` and no input shows the mode chooser.
 
@@ -136,13 +144,15 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 
 ## Recipes
 
-- **Run locally:** `php -S localhost:8081 -t public` · **Test:** `php tests/run.php` (also loads `tests/cases/*.php`; no per-file runner, all checks run every time)
+- **Run locally:** `docker compose up --build` (page at http://localhost:8081, accept the T&Cs in the popup) or `php -S localhost:8081 -t public` · **Test:** `php tests/run.php` (also loads `tests/cases/*.php`; no per-file runner, all checks run every time)
 - **Reproducible readings:** add `&on=2026-10-09` to a URL to fix "today" (biorhythms, tarot).
 - **Add a planet-like body:** compute it in `Chart::full` → copy in `Content\Bodies::INFO` → show in `templates/self-result.php` → reference-value test in `tests/cases/planets.php`.
 - **Add a tarot card or change its text:** `Content\TarotDeck::CARDS` (the draw uses `count()`; update the golden values in `tests/cases/tarot.php`).
-- **Tune affinity scoring:** constants in `Love\SignAffinity`; hand-computed expectations in `tests/cases/love.php`.
+- **Tune affinity scoring:** constants in `Love\SignAffinity`; expectations in `tests/cases/love.php`.
 - **Add a field to the audit:** put it in `AuditRecord` (a YAML key in the `$doc` of `fromSelf`/`fromLove`, or a person field), bump `FORMAT_VERSION` if the YAML layout changes; for a new column add an idempotent `migrations/NNN_*.sql` (guarded `ALTER`) and extend the INSERT in `Db\AuditLog`; update `tests/cases/audit.php`.
 - **Set up / migrate the database:** `scripts/make-config.sh` (or copy `config.php.example` to `config.php` and edit), then `scripts/db-migrate.sh`. If the database server refuses your machine, paste `migrations/001_create_magic_audit.sql` into the hosting panel's SQL tool.
+- **Docker database:** `scripts/docker-db.sh migrate` (re-apply migrations), `audit [N]` (latest results), `query "SELECT ..."`, `shell`, `reset` (wipes the volume and starts again). The schema is applied automatically on the first start.
+- **Change the T&Cs text:** `templates/partials/terms.php` (one place, used by the popup and the end-of-page section).
 - **Purge old audit rows (manual):** `scripts/db-purge.sh --days 90`.
 - **Query the audit (mysql client, parameters are examples):**
   - latest results: `SELECT id, created_at, functionality FROM magic_audit ORDER BY id DESC LIMIT 20;`
@@ -156,4 +166,4 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 
 ## Conventions
 
-PHP 8.1+, `declare(strict_types=1)`, namespace `Arcana\`, one class per file named after the file. Degrees at API boundaries, longitudes east-positive. No Composer/dependencies. No inline `<script>`/`style` (CSP). Escape every template output with `e()`.
+PHP 8.1+, `declare(strict_types=1)`, namespace `Magic\`, one class per file named after the file. Degrees at API boundaries, longitudes east-positive. No Composer/dependencies. No inline `<script>`/`style` (CSP). Escape every template output with `e()`.

@@ -1,8 +1,8 @@
 ---
-description: Run the Arcana agentic workflow to design, build, review and document a feature
+description: Run the Magic agentic workflow to design, build, review and document a feature
 argument-hint: <feature idea>
 ---
-Implement this feature for Arcana: $ARGUMENTS
+Implement this feature for Magic: $ARGUMENTS
 
 Run this pipeline using the project subagents, passing outputs between steps. Do not skip steps.
 

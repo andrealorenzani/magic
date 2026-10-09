@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Content;
+namespace Magic\Content;
 
 /** Keywords and short phrases used to describe signs and how two signs relate. */
 final class Traits

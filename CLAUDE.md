@@ -1,4 +1,4 @@
-# Arcana — agent rules
+# Magic — agent rules
 
 PHP 8.1+ page (Sun, Ascendant, Moon) for Apache shared hosting. MySQL is the only allowed database, and only via an ADR. Read `docs/architecture.md` and `docs/code.md` before changing anything.
 
@@ -11,3 +11,6 @@ PHP 8.1+ page (Sun, Ascendant, Moon) for Apache shared hosting. MySQL is the onl
 - **Every change must end up on the server**: after committing, run `scripts/deploy.sh` (or the `deployer` agent). It uses the `sftp-upload` skill; target and options are in the gitignored `.deploy.local` (template: `.deploy.local.example`), credentials in `~/.password`.
 - **Confidentiality**: never write the server host, domain name, hosting-provider name or credentials into any tracked file, doc, commit message or agent output. Use "the server"/"shared hosting". Such data may only live in gitignored files (`.deploy.local`).
 - **Database**: MySQL only (PDO, prepared statements). **All tables of this project are prefixed `magic_`** (e.g. `magic_audit`). Schema changes are SQL files in `migrations/`, applied with the `mysql` command. DB host, user, password and database name live only in the gitignored `config.php` and in `~/.password` (never print that file, never put its values in tracked files, commits or agent output). A DB failure must never break a page.
+- **No algorithms in docs**: never write about any algorithm (names, formulas, rules, steps, sources) in any doc, README, ADR, UI text or code comment. Describe what a feature does, not how it computes it.
+- **Terms and Conditions**: the page is unusable until the visitor accepts the T&Cs (popup on first visit, cookie `magic_terms`, text in `templates/partials/terms.php`, expandable section at the end of the page). No audit record and no result without that consent.
+- **Local run**: `docker compose up --build` (PHP + Apache + MySQL, page at http://localhost:8081); database helper: `scripts/docker-db.sh`.

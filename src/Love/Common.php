@@ -1,9 +1,9 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Love;
+namespace Magic\Love;
 
-use Arcana\Content\Traits;
+use Magic\Content\Traits;
 
 /** What two people's Sun, Moon and Ascendant have in common. */
 final class Common

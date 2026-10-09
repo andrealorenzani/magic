@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Content\TarotDeck;
-use Arcana\Tarot\Reading;
+use Magic\Content\TarotDeck;
+use Magic\Tarot\Reading;
 
 $cardIds = fn (array $draw): array => array_map(fn (array $d): string => $d['card']['id'] . ($d['reversed'] ? '*' : ''), $draw);
 

@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Astro\Zodiac;
-use Arcana\Content\Traits;
-use Arcana\Love\Common;
-use Arcana\Love\NameAffinity;
-use Arcana\Love\SignAffinity;
+use Magic\Astro\Zodiac;
+use Magic\Content\Traits;
+use Magic\Love\Common;
+use Magic\Love\NameAffinity;
+use Magic\Love\SignAffinity;
 
 check('name affinity: owner example from counts', function () {
     $r = NameAffinity::fromCounts(['A' => 4, 'M' => 0, 'O' => 2, 'R' => 2, 'E' => 3]);

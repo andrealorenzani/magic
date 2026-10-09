@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana;
+namespace Magic;
 
-use Arcana\Bio\Biorhythm;
-use Arcana\Bio\Synchrony;
-use Arcana\Love\Common;
-use Arcana\Love\NameAffinity;
-use Arcana\Tarot\Reading;
+use Magic\Bio\Biorhythm;
+use Magic\Bio\Synchrony;
+use Magic\Love\Common;
+use Magic\Love\NameAffinity;
+use Magic\Tarot\Reading;
 
 /** Pure builder of the Love view-model. */
 final class LoveReading

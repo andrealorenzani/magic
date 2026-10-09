@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Time;
+namespace Magic\Time;
 
 use DateTimeImmutable;
 use DateTimeZone;

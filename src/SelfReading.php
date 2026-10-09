@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana;
+namespace Magic;
 
-use Arcana\Bio\Biorhythm;
-use Arcana\Love\SignAffinity;
+use Magic\Bio\Biorhythm;
+use Magic\Love\SignAffinity;
 
 /** Pure builder of the Self-discovery view-model. */
 final class SelfReading

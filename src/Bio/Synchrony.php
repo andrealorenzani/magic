@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Bio;
+namespace Magic\Bio;
 
 /**
  * How two people's biorhythms relate. Two curves of the same period are one sinusoid shifted

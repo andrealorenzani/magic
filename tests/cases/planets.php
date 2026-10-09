@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Astro\Angles;
-use Arcana\Astro\MeanNode;
-use Arcana\Astro\Moon;
-use Arcana\Astro\Planets;
-use Arcana\Astro\Sun;
-use Arcana\Astro\Zodiac;
-use Arcana\Chart;
+use Magic\Astro\Angles;
+use Magic\Astro\MeanNode;
+use Magic\Astro\Moon;
+use Magic\Astro\Planets;
+use Magic\Astro\Sun;
+use Magic\Astro\Zodiac;
+use Magic\Chart;
 
 /** Circular difference in degrees. */
 $circ = fn (float $a, float $b): float => abs(fmod($a - $b + 540, 360) - 180);

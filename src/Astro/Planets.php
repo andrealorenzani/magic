@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Astro;
+namespace Magic\Astro;
 
 use InvalidArgumentException;
 

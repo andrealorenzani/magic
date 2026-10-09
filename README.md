@@ -1,4 +1,4 @@
-# ✦ Arcana
+# ✦ Magic
 
 A page for magic lovers with two modes (choose on the home page):
 
@@ -9,24 +9,43 @@ A page for magic lovers with two modes (choose on the home page):
 - your three **biorhythms** (physical, emotional, intellectual) for today, with next peaks and troughs
 
 **Love** — your name and birth data plus a loved person (their name is enough; date, time and city are optional):
-- **name affinity** in percent (formula below)
+- **name affinity** in percent
 - **biorhythm synchrony** of the two of you (needs both birth dates)
 - **common values** in Sun, Moon and Ascendant
 - a **3-day tarot reading** (same input and day give the same cards)
 
 Both results have a **Print** button (and a print layout without forms), so you can keep a paper copy.
 
-**Name affinity.** Join both names and count the letters A, M, O, R, E, in that order. A count of 10 or more keeps its last digit and adds its first digit to the previous slot (for A, to the next one); the five slots form a number. While the number is above 100, replace it by the sums of each pair of adjacent digits (6,6,9 gives 12 and 15, so 135) until it is 100 or less. Example: Andrea Lorenzani and Silvia Pellico have A=4, M=0, O=2, R=2, E=3, so 40223, 4245, 669, 135, and the answer is **48%**. Name affinity, biorhythms, scores and tarot are for wonder, not science.
+Name affinity, biorhythms, scores and tarot are for wonder, not science.
 
-PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac, computed with Meeus astronomical algorithms (Sun/Moon ≈ 0.01°). Planets use JPL Keplerian elements (1800-2100, about 0.01-0.05°). Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
+PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac. Sun and Moon are very accurate; planets (1800-2100) are approximate. Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
 
-**Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address, user agent or cookies are stored, and every page shows a notice. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
+**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
+
+**Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address or user agent is stored and nothing is used to track you. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
 
 ## Run it
 
+### With Docker (PHP, Apache and MySQL included)
+
 ```bash
-php -S localhost:8081 -t public     # http://localhost:8081
-php tests/run.php                   # tests (astronomy, time zones, input validation, both modes)
+docker compose up --build     # page at http://localhost:8081
+```
+
+Open the page and accept the Terms and Conditions in the popup (results are recorded in the local database only after that).
+
+- **Database content:** the `migrations/` folder is applied automatically the first time the data volume is created. Apply it again later with `scripts/docker-db.sh migrate`; `scripts/docker-db.sh reset` wipes the volume and starts from scratch.
+- **Query it:** `scripts/docker-db.sh audit [N]` (latest N results, default 10), `scripts/docker-db.sh query "SELECT ..."`, `scripts/docker-db.sh shell` (interactive mysql). The database is not published to the host; to use your own client add `ports: ["127.0.0.1:3307:3306"]` to the `db` service in `docker-compose.yml`.
+- **Stop:** `docker compose down` (keeps the data); `docker compose down -v` also deletes the data.
+- The local database password is a throwaway default; override it with the `MAGIC_DB_PASSWORD` environment variable.
+
+### Without Docker
+
+PHP 8.1+ is needed only if you prefer the built-in server or want to run the tests:
+
+```bash
+php -S localhost:8081 -t public     # http://localhost:8081 (no database unless config.php exists)
+php tests/run.php                   # tests (astronomy, time zones, input validation, both modes, audit)
 ```
 
 ## Deploy (Apache shared hosting)
@@ -47,7 +66,7 @@ Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in
 
 ## How it works
 
-Wall-clock birth time → UTC (PHP tz database, historical DST) → Julian Day → Sun/Moon/planet longitudes and Ascendant (sidereal time + latitude) → zodiac sign. The Ascendant moves ~1° every 4 minutes, so birth-time precision matters; beyond ±66° latitude it is approximate.
+The wall-clock birth time is converted to UTC with the PHP time zone database (historical DST), then the signs are determined for that instant and place. The Ascendant changes quickly, so birth-time precision matters; at extreme latitudes it is approximate.
 
 Docs: [architecture](docs/architecture.md) · [code map](docs/code.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/).
 

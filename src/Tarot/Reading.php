@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Tarot;
+namespace Magic\Tarot;
 
-use Arcana\Bio\Biorhythm;
-use Arcana\Content\TarotDeck;
+use Magic\Bio\Biorhythm;
+use Magic\Content\TarotDeck;
 
 /** Deterministic multi-day tarot draw: stateless, same input and day give the same cards. */
 final class Reading

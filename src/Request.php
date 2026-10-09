@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana;
+namespace Magic;
 
-use Arcana\Geo\Geocoder;
-use Arcana\Time\Zone;
+use Magic\Geo\Geocoder;
+use Magic\Time\Zone;
 
 /** Validates the query string of the main page and turns it into chart inputs. */
 final class Request

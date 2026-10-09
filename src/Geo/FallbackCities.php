@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Geo;
+namespace Magic\Geo;
 
 /** Bundled major cities, used when the geocoding API is unreachable. */
 final class FallbackCities

@@ -1,0 +1,40 @@
+# Local run without installing PHP or MySQL:  docker compose up --build   ->  http://localhost:8081
+# The database password is a throwaway for this local setup; override it with MAGIC_DB_PASSWORD if you like.
+services:
+  web:
+    build: ./docker
+    ports:
+      - "127.0.0.1:8081:80"
+    environment:
+      MAGIC_CONFIG: /var/www/html/docker/config.php
+      MAGIC_DB_HOST: db
+      MAGIC_DB_NAME: magic
+      MAGIC_DB_USER: magic
+      MAGIC_DB_PASSWORD: ${MAGIC_DB_PASSWORD:-magic-local}
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    # The cache directory is shared with the host; make it writable for the web server user.
+    command: ["sh", "-c", "chmod -R a+rwX /var/www/html/cache; exec apache2-foreground"]
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: magic
+      MYSQL_USER: magic
+      MYSQL_PASSWORD: ${MAGIC_DB_PASSWORD:-magic-local}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    # Not published to the host: use scripts/docker-db.sh. To connect with your own client add:
+    #   ports: ["127.0.0.1:3307:3306"]
+    volumes:
+      - dbdata:/var/lib/mysql
+      # Applied automatically the first time the data volume is created (see scripts/docker-db.sh for later ones).
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+volumes:
+  dbdata:

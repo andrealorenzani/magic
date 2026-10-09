@@ -1,10 +1,10 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Love;
+namespace Magic\Love;
 
-use Arcana\Astro\Zodiac;
-use Arcana\Content\Traits;
+use Magic\Astro\Zodiac;
+use Magic\Content\Traits;
 
 /**
  * Transparent sign-vs-sign scoring from tradition: aspect between signs (60%),

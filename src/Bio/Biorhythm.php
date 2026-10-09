@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Bio;
+namespace Magic\Bio;
 
 /** Classic 23/28/33-day biorhythms. Popular but not scientifically validated: entertainment. */
 final class Biorhythm

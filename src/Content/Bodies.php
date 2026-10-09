@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Content;
+namespace Magic\Content;
 
 /** Copy for the planets (sign-independent). */
 final class Bodies

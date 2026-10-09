@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana;
+namespace Magic;
 
-use Arcana\Astro\Angles;
-use Arcana\Astro\Ascendant;
-use Arcana\Astro\MeanNode;
-use Arcana\Astro\Moon;
-use Arcana\Astro\Planets;
-use Arcana\Astro\Sun;
-use Arcana\Astro\Zodiac;
-use Arcana\Time\Zone;
+use Magic\Astro\Angles;
+use Magic\Astro\Ascendant;
+use Magic\Astro\MeanNode;
+use Magic\Astro\Moon;
+use Magic\Astro\Planets;
+use Magic\Astro\Sun;
+use Magic\Astro\Zodiac;
+use Magic\Time\Zone;
 
 /** Computes the "big three" for a birth. This is the single public entry point of the core. */
 final class Chart

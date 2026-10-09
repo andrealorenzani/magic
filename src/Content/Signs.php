@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Content;
+namespace Magic\Content;
 
 /** Interpretive copy, kept apart from the maths so text can change without touching astronomy. */
 final class Signs

@@ -1,8 +1,8 @@
 <?php
 /** @var array $view @var string $today */
 
-use Arcana\Content\Bodies;
-use Arcana\Content\Signs;
+use Magic\Content\Bodies;
+use Magic\Content\Signs;
 
 require_once __DIR__ . '/partials/icons.php';
 require_once __DIR__ . '/partials/bio.php';
@@ -28,7 +28,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
 <?php };
 ?>
 <div class="print-only print-head">
-  <h2>Arcana · Self discovery</h2>
+  <h2>Magic · Self discovery</h2>
   <p>Reading of <?= e($today) ?></p>
 </div>
 <div class="toolbar no-print">

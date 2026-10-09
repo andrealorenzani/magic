@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-use Arcana\Audit\AuditRecord;
-use Arcana\Audit\Yaml;
-use Arcana\Db\AuditLog;
-use Arcana\Db\Config;
-use Arcana\LoveReading;
-use Arcana\Request;
-use Arcana\SelfReading;
+use Magic\Audit\AuditRecord;
+use Magic\Audit\Yaml;
+use Magic\Db\AuditLog;
+use Magic\Db\Config;
+use Magic\LoveReading;
+use Magic\Request;
+use Magic\SelfReading;
 
 $root = dirname(__DIR__, 2);
-$tmp = sys_get_temp_dir() . '/arcana-audit-' . bin2hex(random_bytes(4));
+$tmp = sys_get_temp_dir() . '/magic-audit-' . bin2hex(random_bytes(4));
 mkdir($tmp);
 
 // ---- Yaml (golden) ----
@@ -78,7 +78,7 @@ check('yaml: structure is nested, indented, deterministic', function () {
 $einstein = ['name' => 'Albert Einstein', 'year' => 1879, 'month' => 3, 'day' => 14, 'hour' => 11, 'minute' => 30,
     'lat' => 48.4, 'lon' => 10.0, 'tz' => 'Europe/Berlin', 'city' => 'Ulm, Baden-Württemberg, Germany'];
 $selfRec = fn () => AuditRecord::fromSelf($einstein, SelfReading::build($einstein, '2026-10-09'), '2026-10-09');
-$geoOffline = new Arcana\Geo\Geocoder(sys_get_temp_dir());
+$geoOffline = new Magic\Geo\Geocoder(sys_get_temp_dir());
 $loveRec = function (array $q, ?array $self = null) use ($geoOffline) {
     $r = Request::parseLove($q, $geoOffline);
     if ($r['a'] === null || $r['b'] === null) {
@@ -211,21 +211,40 @@ check('audit log: connection failure is fast, logged without request data or cre
 });
 
 // Run public/index.php in a subprocess and return [exit code, output].
-$runPage = function (array $get, string $config, string $errorLog) use ($root): array {
-    $code = '$_GET = json_decode($argv[1], true); $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
-    $cmd = 'ARCANA_CONFIG=' . escapeshellarg($config) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($errorLog)
+$runPage = function (array $get, string $config, string $errorLog, bool $consent = true) use ($root): array {
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "1"]' : '[]') . '; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
+    $cmd = 'MAGIC_CONFIG=' . escapeshellarg($config) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($errorLog)
         . ' -r ' . escapeshellarg($code) . ' ' . escapeshellarg((string) json_encode($get)) . ' ' . escapeshellarg($root . '/public/index.php') . ' 2>&1';
     exec($cmd, $out, $rc);
     return [$rc, implode("\n", $out)];
 };
-check('page renders without a database (self and love), with the notice', function () use ($runPage, $tmp) {
+check('page renders without a database (self and love), with the Terms and Conditions section', function () use ($runPage, $tmp) {
     [$rc, $out] = $runPage(['mode' => 'self', 'date' => '1879-03-14', 'time' => '11:30', 'city' => 'Ulm', 'lat' => '48.4', 'lon' => '10', 'tz' => 'Europe/Berlin'], '/nonexistent', "$tmp/p1.log");
     same($rc, 0);
     same(str_contains($out, 'Pisces'), true);
-    same(str_contains($out, 'No IP address and no cookies are stored'), true);
+    same(str_contains($out, 'It does not hold your IP address'), true);
+    same(str_contains($out, 'id="terms"'), true);
+    same(str_contains($out, 'class="gate"'), false);
     [$rc, $out] = $runPage(['mode' => 'love', 'a_name' => 'Andrea Lorenzani', 'a_date' => '1990-07-15', 'a_time' => '08:30', 'a_city' => 'Rome', 'a_lat' => '41.9', 'a_lon' => '12.5', 'a_tz' => 'Europe/Rome', 'b_name' => 'Silvia Pellico'], '/nonexistent', "$tmp/p1.log");
     same($rc, 0);
     same(str_contains($out, 'Silvia Pellico'), true);
+});
+check('without accepted terms: popup only, no result, no audit attempt', function () use ($runPage, $tmp, $closedPortConfig) {
+    $log = "$tmp/p-gate.log";
+    [$rc, $out] = $runPage(['mode' => 'self', 'date' => '1879-03-14', 'time' => '11:30', 'city' => 'Ulm', 'lat' => '48.4', 'lon' => '10', 'tz' => 'Europe/Berlin'], $closedPortConfig(), $log, false);
+    same($rc, 0);
+    same(str_contains($out, 'class="gate"'), true);
+    same(str_contains($out, 'I accept the Terms and Conditions'), true);
+    same(str_contains($out, 'Pisces'), false);
+    same(is_file($log) && str_contains((string) file_get_contents($log), 'audit:'), false);
+});
+check('consent: cookie check and safe redirect query', function () {
+    same(\Magic\Consent::given(['magic_terms' => '1']), true);
+    same(\Magic\Consent::given(['magic_terms' => '0']), false);
+    same(\Magic\Consent::given([]), false);
+    same(\Magic\Consent::safeQuery('?mode=self&date=1990-01-01'), 'mode=self&date=1990-01-01');
+    same(\Magic\Consent::safeQuery("a=1\r\nSet-Cookie: x"), '');
+    same(\Magic\Consent::safeQuery('//evil.example'), '//evil.example'); // stays a query after './?', never a host
 });
 check('audit is attempted for results only (closed-port config)', function () use ($runPage, $tmp, $closedPortConfig) {
     $cfg = $closedPortConfig();
@@ -286,10 +305,10 @@ check('scripts: no set -x, no echo/printf of credential variables to stdout, no 
         }
     }
 });
-check('notice makes no retention promise', function () use ($root) {
-    $t = (string) file_get_contents($root . '/templates/home.php');
+check('terms make no retention promise', function () use ($root) {
+    $t = (string) file_get_contents($root . '/templates/partials/terms.php');
     same(preg_match('/\\b90\\s*days\\b/i', $t), 0);
-    same(str_contains($t, 'can be removed on request'), true);
+    same(str_contains((string) file_get_contents($root . '/templates/partials/terms.php'), 'can be removed on request'), true);
 });
 check('scripts: sanitized errors, safe python, purge validation, gitignore', function () use ($root) {
     $lib = (string) file_get_contents($root . '/scripts/lib/dbcred.sh');
@@ -332,11 +351,11 @@ check('hygiene: the private database section name is in no tracked file', functi
     }
 });
 
-// ---- optional integration (real database; needs ARCANA_DB_TEST=1 and config.php) ----
-if (getenv('ARCANA_DB_TEST') === '1' && is_file($root . '/config.php')) {
+// ---- optional integration (real database; needs MAGIC_DB_TEST=1 and config.php) ----
+if (getenv('MAGIC_DB_TEST') === '1' && is_file($root . '/config.php')) {
     check('integration: audit rows round-trip, cascade, strict column limit', function () use ($root, $einstein, $andrea, $loveRec) {
         $cfg = Config::load($root . '/config.php') ?? throw new RuntimeException('config unusable');
-        $pdo = Arcana\Db\Connection::open($cfg);
+        $pdo = Magic\Db\Connection::open($cfg);
         $marker = 'ZZTEST-' . bin2hex(random_bytes(4));
         $ids = [];
         try {
@@ -369,7 +388,7 @@ if (getenv('ARCANA_DB_TEST') === '1' && is_file($root . '/config.php')) {
             if (str_contains($mode, 'STRICT')) {
                 $long = $rec;
                 $long['persons'][0]['name'] = $marker . str_repeat('x', 41);
-                $log = sys_get_temp_dir() . '/arcana-int-' . bin2hex(random_bytes(3)) . '.log';
+                $log = sys_get_temp_dir() . '/magic-int-' . bin2hex(random_bytes(3)) . '.log';
                 $old = ini_set('error_log', $log);
                 $ok = AuditLog::tryWrite($root . '/config.php', $long);
                 ini_set('error_log', (string) $old);

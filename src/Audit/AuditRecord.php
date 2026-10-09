@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Arcana\Audit;
+namespace Magic\Audit;
 
 /** Pure builder of the audit record (persons + YAML summary of the response). No I/O. */
 final class AuditRecord
