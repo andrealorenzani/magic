@@ -6,6 +6,7 @@ PHP 8.1+ page (Sun, Ascendant, Moon) for Apache shared hosting. MySQL is the onl
 - No Composer/dependencies, no build step. `src/Astro`, `src/Time`, `src/Chart.php` stay pure (no I/O).
 - Escape every template output with `e()`; no inline scripts/styles (CSP in `public/.htaccess`).
 - New features go through `/new-feature <idea>` (architect → implementer → reviewer → documenter → commit → deployer).
+- **Changelog**: `docs/changelog.md` must be updated (by the `documenter`) for every user- or developer-visible change; a change is not finished without its entry.
 - Only the `documenter` agent edits `docs/` and `README.md`; if you change code directly, invoke it afterwards.
 - Astronomical output needs a reference-value test.
 - **Every change must end up on the server**: after committing, run `scripts/deploy.sh` (or the `deployer` agent). It uses the `sftp-upload` skill; target and options are in the gitignored `.deploy.local` (template: `.deploy.local.example`), credentials in `~/.password`.
