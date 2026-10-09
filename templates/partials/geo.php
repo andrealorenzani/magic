@@ -5,12 +5,14 @@
  */
 use Magic\Earth\Geography;
 
+require_once __DIR__ . '/help.php';
+
 if (empty($geo['pairs'])) {
     return;
 }
 ?>
 <section class="block geo" aria-labelledby="geo-h">
-  <h2 id="geo-h"><?= icon('bolt') ?> Distance and geography</h2>
+  <div class="head"><h2 id="geo-h"><?= icon('bolt') ?> Distance and geography</h2><?php help_button('self.geo'); ?></div>
   <p class="hint">Approximate, in a straight line.</p>
   <ul class="geo__list">
     <?php foreach ($geo['pairs'] as $pair): ?>

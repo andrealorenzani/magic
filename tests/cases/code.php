@@ -353,7 +353,7 @@ check('code: share section markup, small QR rule, no inline script or style', fu
     [$out] = $sharePage($selfGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     $d = strpos($out, '<details class="share__more">');
     $e = strpos($out, '</details>', (int) $d);
-    $qr = strpos($out, '<div class="share__qr">');
+    $qr = strpos($out, '<div class="share__qr" data-qr-copy="share-link">');
     same($d !== false && $e !== false && $qr !== false && ($qr < $d || $qr > $e), true);
     $box = substr($out, (int) $d, $e - (int) $d);
     same(str_contains($box, 'id="share-link"') && str_contains($box, 'Link to a live reading') && !str_contains($box, '<svg'), true);

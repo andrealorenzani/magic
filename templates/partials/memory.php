@@ -2,11 +2,12 @@
 /**
  * Browser memory controls, shown by assets/memory.js when the browser allows storage.
  * @var string $memoryKind 'self' | 'love'
+ * @var bool $memorySaved show the saved-people list (false while hidden details are loaded)
  */
 ?>
 <div class="memory no-print" data-memory-bar hidden>
   <p class="hint">Your details are remembered in this browser only.</p>
-  <?php if ($memoryKind === 'love'): ?>
+  <?php if ($memoryKind === 'love' && ($memorySaved ?? true)): ?>
   <div class="saved" data-saved hidden>
     <label>Saved people
       <select data-saved-select>

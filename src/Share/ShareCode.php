@@ -9,19 +9,25 @@ use Magic\Time\Zone;
 /**
  * Compact share code (`c=`): base64url of a fixed bit layout. Pure: no I/O.
  *
- * Layout (version 1), most significant bit first, zero padded to a whole byte:
+ * Layout (versions 1 and 2), most significant bit first, zero padded to a whole byte. Version 2 is a Self
+ * code that also carries a name; Self codes without a name stay version 1:
  *   header 8   version(4) mode(1) noaudit(1) hasOn(1) hasTarot(1)
  *   on 17      days since 1900-01-01, when hasOn
  *   tarot 24   3 x [card(7) reversed(1)], when hasTarot
  *   person     Love only: nameBytes(8) 1..160 + UTF-8 bytes
+ *              Self (version 2 only) and Love: the name comes first
  *              Self and Love A: date(19) time(11) PLACE; Love B: hasDate(1) [date(19) hasBirth(1) [time(11) PLACE]]
  *              hasNow(1) [PLACE]
  *   place      lat(25) lon(26) tz(10) [tzBytes(6) + ASCII when tz is 1023] labelBytes(6) 1..32 + UTF-8 bytes
+ * Version 3 (hidden details, `h=`): header 8 with version 3 and the four flag bits zero, then one person like a
+ * Self person with a name of 0..160 bytes. Versions 1-2 and 3 are not interchangeable.
  * lat = (latitude + 90) * 100000, lon = (longitude + 180) * 100000, date = days since 1000-01-01.
  */
 final class ShareCode
 {
     public const VERSION = 1;
+    public const VERSION_SELF_NAME = 2;
+    public const VERSION_HIDDEN = 3;
     public const MAX_CHARS = 400;
     public const MAX_LABEL_BYTES = 32;
     public const TZ_LITERAL = 1023;
@@ -35,7 +41,8 @@ final class ShareCode
     /** @param array<string,mixed> $input Request::parse()['input'] */
     public static function encodeSelf(array $input, string $today, bool $frozen, bool $noAudit = true): string
     {
-        $flat = ['mode' => 'self'] + self::placeFlat('', $input) + [
+        $name = trim((string) ($input['name'] ?? ''));
+        $flat = ['mode' => 'self'] + ($name !== '' ? ['name' => $name] : []) + self::placeFlat('', $input) + [
             'date' => sprintf('%04d-%02d-%02d', $input['year'], $input['month'], $input['day']),
             'time' => sprintf('%02d:%02d', $input['hour'], $input['minute']),
         ] + self::nowFlat('', $input['now'] ?? null);
@@ -70,6 +77,61 @@ final class ShareCode
     /** The long-query array for a valid canonical code, else null. Never throws. @return ?array<string,string> */
     public static function decode(string $code): ?array
     {
+        return self::decodeWith($code, static fn (string $bits, int &$pos): array => self::read($bits, $pos), static fn (array $f): string => self::pack($f));
+    }
+
+    /**
+     * One hidden person (version 3): keys name (may be empty), date, time, city, lat, lon, tz and optional
+     * pos_city, pos_lat, pos_lon, pos_tz. Null for anything else. Never throws.
+     * @return ?array<string,string>
+     */
+    public static function decodeHidden(string $code): ?array
+    {
+        return self::decodeWith($code, static fn (string $bits, int &$pos): array => self::readHidden($bits, $pos), static fn (array $f): string => self::packHidden($f));
+    }
+
+    /** @param array<string,mixed> $person keys as returned by decodeHidden (lat and lon numeric) */
+    public static function encodeHidden(array $person): string
+    {
+        $name = trim((string) ($person['name'] ?? ''));
+        foreach (['tz', 'pos_tz'] as $k) {
+            if (isset($person[$k]) && ($person[$k] !== '' || $k === 'tz') && !Zone::isValid((string) $person[$k])) {
+                throw new InvalidArgumentException('tz');
+            }
+        }
+        $flat = ['name' => $name] + self::placeFlat('', $person) + [
+            'date' => (string) $person['date'],
+            'time' => (string) $person['time'],
+        ];
+        if (($person['pos_city'] ?? '') !== '') {
+            $flat += self::nowFlat('', ['city' => $person['pos_city'], 'lat' => $person['pos_lat'], 'lon' => $person['pos_lon'], 'tz' => $person['pos_tz']]);
+        }
+        return self::packHidden($flat);
+    }
+
+    /** The hidden code inside pasted text: a bare code, or the `h=` value of a pasted link. Null when none is there. */
+    public static function extractHidden(string $text): ?string
+    {
+        $text = trim($text);
+        if ($text === '' || strlen($text) > 2000) {
+            return null;
+        }
+        if (preg_match('/^[A-Za-z0-9_-]+$/', $text) === 1) {
+            return strlen($text) <= self::MAX_CHARS ? $text : null;
+        }
+        if (preg_match('/(?:^|[?&])h=([A-Za-z0-9_-]+)(?![A-Za-z0-9_-])/', $text, $m) === 1 && strlen($m[1]) <= self::MAX_CHARS) {
+            return $m[1];
+        }
+        return null;
+    }
+
+    /**
+     * @param callable(string,int&):array<string,string> $reader
+     * @param callable(array<string,string>):string $packer
+     * @return ?array<string,string>
+     */
+    private static function decodeWith(string $code, callable $reader, callable $packer): ?array
+    {
         try {
             if ($code === '' || strlen($code) > self::MAX_CHARS || preg_match('/^[A-Za-z0-9_-]+$/', $code) !== 1 || strlen($code) % 4 === 1) {
                 return null;
@@ -83,12 +145,12 @@ final class ShareCode
                 $bits .= str_pad(decbin(ord($bytes[$i])), 8, '0', STR_PAD_LEFT);
             }
             $pos = 0;
-            $flat = self::read($bits, $pos);
+            $flat = $reader($bits, $pos);
             $rest = substr($bits, $pos);
             if (strlen($rest) >= 8 || strpos($rest, '1') !== false) {
                 return null;
             }
-            return self::pack($flat) === $code ? $flat : null;
+            return $packer($flat) === $code ? $flat : null;
         } catch (\Throwable) {
             return null;
         }
@@ -99,10 +161,14 @@ final class ShareCode
     /** @return array<string,string> */
     private static function read(string $bits, int &$pos): array
     {
-        if (self::take($bits, $pos, 4) !== self::VERSION) {
+        $version = self::take($bits, $pos, 4);
+        if ($version !== self::VERSION && $version !== self::VERSION_SELF_NAME) {
             throw new InvalidArgumentException('version');
         }
         $love = self::take($bits, $pos, 1) === 1;
+        if ($love && $version !== self::VERSION) {
+            throw new InvalidArgumentException('version');
+        }
         $noAudit = self::take($bits, $pos, 1) === 1;
         $hasOn = self::take($bits, $pos, 1) === 1;
         $hasTarot = self::take($bits, $pos, 1) === 1;
@@ -137,7 +203,7 @@ final class ShareCode
             $flat += self::readPerson($bits, $pos, 'a_', true, true);
             $flat += self::readPerson($bits, $pos, 'b_', true, false);
         } else {
-            $flat += self::readPerson($bits, $pos, '', false, true);
+            $flat += self::readPerson($bits, $pos, '', $version === self::VERSION_SELF_NAME, true);
         }
         if ($on !== null) {
             $flat['on'] = $on;
@@ -152,13 +218,22 @@ final class ShareCode
     }
 
     /** @return array<string,string> */
-    private static function readPerson(string $bits, int &$pos, string $p, bool $named, bool $complete): array
+    private static function readHidden(string $bits, int &$pos): array
+    {
+        if (self::take($bits, $pos, 4) !== self::VERSION_HIDDEN || self::take($bits, $pos, 4) !== 0) {
+            throw new InvalidArgumentException('version');
+        }
+        return self::readPerson($bits, $pos, '', true, true, true);
+    }
+
+    /** @return array<string,string> */
+    private static function readPerson(string $bits, int &$pos, string $p, bool $named, bool $complete, bool $emptyName = false): array
     {
         $out = [];
         if ($named) {
             $len = self::take($bits, $pos, 8);
             $name = self::takeBytes($bits, $pos, $len);
-            if ($len < 1 || $len > 160 || !self::validName($name)) {
+            if ($len > 160 || ($len === 0 ? !$emptyName : !self::validName($name))) {
                 throw new InvalidArgumentException('name');
             }
             $out[$p . 'name'] = $name;
@@ -250,8 +325,9 @@ final class ShareCode
         if ($hasTarot && !$love) {
             throw new InvalidArgumentException('tarot');
         }
+        $named = !$love && ($f['name'] ?? '') !== '';
         $bits = '';
-        self::put($bits, self::VERSION, 4);
+        self::put($bits, $named ? self::VERSION_SELF_NAME : self::VERSION, 4);
         self::put($bits, $love ? 1 : 0, 1);
         self::put($bits, isset($f['noaudit']) ? 1 : 0, 1);
         self::put($bits, $hasOn ? 1 : 0, 1);
@@ -285,8 +361,23 @@ final class ShareCode
             self::packPerson($bits, $f, 'a_', true, true);
             self::packPerson($bits, $f, 'b_', true, false);
         } else {
-            self::packPerson($bits, $f, '', false, true);
+            self::packPerson($bits, $f, '', $named, true);
         }
+        return self::finish($bits);
+    }
+
+    /** @param array<string,string> $f flat hidden person */
+    private static function packHidden(array $f): string
+    {
+        $bits = '';
+        self::put($bits, self::VERSION_HIDDEN, 4);
+        self::put($bits, 0, 4);
+        self::packPerson($bits, $f, '', true, true, true);
+        return self::finish($bits);
+    }
+
+    private static function finish(string $bits): string
+    {
         $bits .= str_repeat('0', (8 - strlen($bits) % 8) % 8);
         $bytes = '';
         for ($i = 0, $n = strlen($bits); $i < $n; $i += 8) {
@@ -296,11 +387,11 @@ final class ShareCode
     }
 
     /** @param array<string,string> $f */
-    private static function packPerson(string &$bits, array $f, string $p, bool $named, bool $complete): void
+    private static function packPerson(string &$bits, array $f, string $p, bool $named, bool $complete, bool $emptyName = false): void
     {
         if ($named) {
             $name = $f[$p . 'name'] ?? '';
-            if (!self::validName($name) || strlen($name) > 160) {
+            if (strlen($name) > 160 || ($name === '' ? !$emptyName : !self::validName($name))) {
                 throw new InvalidArgumentException('name');
             }
             self::put($bits, strlen($name), 8);

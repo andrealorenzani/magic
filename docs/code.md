@@ -9,25 +9,28 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 /config.php.example          Tracked template for the gitignored config.php (MySQL host, port, name, user, password)
 /config.php                  (gitignored) real DB settings, project root, outside public/; made by scripts/make-config.sh
 public/                      ← web root (the server's "web directory")
-  consent.php                POST accept/withdraw the Terms and Conditions: sets/clears cookie magic_terms (Secure also behind a proxy), 303 to ./ (accept carries the sanitised original query; withdraw goes to ./?withdrawn=1)
-  index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sends no-store + `Vary: Cookie` on every response and noindex on results; reads `t=` and `noaudit`; reads the clock once (`time()`), decodes a `c=` short code and merges it over the query (the code wins), builds the Share model (frozen/live short links, QR); after rendering a result, flushes and writes the audit record (errors swallowed)
+  consent.php                POST accept/withdraw/clean the Terms and Conditions: sets/clears cookie magic_terms (Secure also behind a proxy), 303 to ./ (accept carries the sanitised original query; withdraw goes to ./?withdrawn=1; clean to ./?cleaned=1)
+  hidden.php                 POST only (needs the Terms cookie): validates the sender's details, returns JSON {ok, link, qr:{size,path}|null, tooLong} or {ok:false, error}; relative link and no QR if the origin is unknown; stores, logs and audits nothing
+  index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sends no-store + `Vary: Cookie` on every response and noindex on results; reads `t=` and `noaudit`; reads the clock once (`time()`), decodes a `c=` short code and merges it over the query (the code wins), resolves `h`/`import` (hidden person: merged for parsing only, no share section, audited with the hidden marker unless `noaudit`), builds the Share model (frozen/live short links, QR); after rendering a result, flushes and writes the audit record (errors swallowed)
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
   assets/styles.css          All styling (dark/starry theme, element colours, bio chart classes, @media print)
   assets/autocomplete.js     Progressive enhancement: suggestions + fills hidden lat/lon/tz, one instance per [data-place] container
-  assets/memory.js           Browser memory: remembers the visitor's own details (`localStorage`, keys `magic.me.v1`, `magic.loved.v1`), saved people in Love, "Remember these details", "Forget my data"; validates on read; no network, no HTML injection
+  assets/memory.js           Browser memory: remembers the visitor's own details incl. the Self name (`localStorage`, keys `magic.me.v1`, `magic.loved.v1`), saved people in Love, "Remember these details", "Forget my data"; the Menu (clean-data panel, grey/active state of the hidden-share link, dispatches `magic:share-hidden`); the only file that touches storage; validates on read; no network, no HTML injection
   assets/print.js            Un-hides the Print button and calls window.print()
-  assets/share.js            Un-hides the Copy link / Share buttons (clipboard, Web Share); the section works without it
+  assets/share.js            Un-hides the Copy link / Share buttons (clipboard, Web Share), one clipboard routine with fallbacks, click/keyboard copy on QR blocks ("Link copied"), the hidden-link flow (listens for `magic:share-hidden`, POSTs to `hidden.php`, builds the QR with DOM methods); never touches storage
+  assets/import.js           Love form: un-hides "Scan a QR code" when `BarcodeDetector` and the camera exist, fills the `import` input, stops the camera on success/Esc/Stop/page hide; no network, no storage
+  assets/help.js             Un-hides the "?" buttons; toggles popovers (click/Enter/Space, one open at a time, Esc, outside click); no network, no storage
   .htaccess                  Apache hardening + CSP (incl. frame-ancestors, form-action, base-uri) + caching
 src/
   autoload.php               PSR-4 style autoloader for namespace Magic\ (no Composer)
   bootstrap.php              Loads autoloader, defines MAGIC_ROOT and the e() escape helper
   Chart.php                  ★ Chart::compute (big three + midheaven), Chart::full (+ planets, node, houses), Chart::partial (optional time/place), Chart::longitudes (bodies a person has, for synastry)
   ChartWheel.php             Pure: ChartWheel::layout($chart) → drawing data for the wheel (SIZE, radii, MIN_SEPARATION), spread(), point()
-  Consent.php                Consent::COOKIE/VALUE ('2')/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
+  Consent.php                Consent::COOKIE/VALUE ('3')/ACTIONS (accept, withdraw, clean)/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
   Http.php                   Pure helpers on a passed-in server array: isSecure (HTTPS or forwarded proto), basePath, origin (validated Host)
-  Request.php                mode(), parseToday(), resolveToday() (reading day), dayBasis(), noAudit(), parseTarot() (validates `t`), parse() (Self), parseLove(), parsePerson() (incl. optional `pos_*` current position): validated input / errors / notes; lat/lon rounded to 5 dp
+  Request.php                mode(), parseToday(), resolveToday() (reading day), dayBasis(), noAudit(), hiddenCode($q) → {code, person, invalid} (`h` wins over `import`), parseTarot() (validates `t`), parse() (Self, optional `name` → `input.name`), parseLove(), parsePerson() (incl. optional `pos_*` current position): validated input / errors / notes; lat/lon rounded to 5 dp
   SelfReading.php            Pure: SelfReading::build($input, $today, $dayBasis) → Self view-model
-  LoveReading.php            Pure: LoveReading::build($a, $b, $today, ?$tarotSlots = null, $dayBasis = 'utc') → Love view-model
+  LoveReading.php            Pure: LoveReading::build($a, $b, $today, ?$tarotSlots = null, $dayBasis = 'utc') → Love view-model; person B may carry `label` (shown instead of the name) and `anonymous` (no name shared) → `view['hidden']`
   Astro/Angles.php           rad, norm360, julianDay, centuries, nutationLongitude, obliquity
   Astro/Sun.php              Sun::longitude($jd)
   Astro/Moon.php             Moon::longitude($jd)
@@ -48,12 +51,12 @@ src/
   Love/Common.php            Common::between($chartA, $chartB) — shared Sun/Moon/Ascendant values
   Love/Synastry.php          Synastry::between($lonsA, $lonsB, $limit) → rows, counts, approx; ORDER, PERSONAL, MAX_ROWS (12)
   Tarot/Reading.php          Reading::spread($seed, $today) — deterministic Past/Present/Future, 3 distinct cards from 78; fromSlots() for a validated shared spread
-  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings), codeQuery(), tarotCode/parseTarot (0-77), MAX_URL_FOR_QR (520), trimCity
-  Share/ShareCode.php        Pure: VERSION 1, MAX_CHARS 400, MAX_LABEL_BYTES 32; encodeSelf/encodeLove → code string, decode($code) → long-query array or null (strict, canonical only), cutLabel()
+  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings; Self adds `name` when given), codeQuery(), tarotCode/parseTarot (0-77), MAX_URL_FOR_QR (520), trimCity
+  Share/ShareCode.php        Pure: VERSION 1, MAX_CHARS 400, MAX_LABEL_BYTES 32; VERSION_SELF_NAME 2, VERSION_HIDDEN 3; encodeSelf (version 2 only when a name is present, else 1)/encodeLove → code string, decode($code) → long-query array or null (strict, canonical only; rejects version 3), encodeHidden($person), decodeHidden($code) → person or null (version 3 only), extractHidden($text) → code from a pasted link or bare code, cutLabel()
   Share/TimeZoneTable.php    Append-only list of time zones used by short codes (never reorder or remove)
   Share/Qr.php               Pure QR code generator: encode($data): ?modules (null if over 520 bytes), path($modules) for SVG, capacity(); generated in pure PHP
   Audit/Yaml.php             Pure: Yaml::dump(array): string — small deterministic block-style emitter, strict quoting, fixed [a-z][a-z0-9_]* keys
-  Audit/AuditRecord.php      Pure: fromSelf / fromLove → record (persons + response_yaml), FORMAT_VERSION (3), MAX_YAML_BYTES (64 KiB, else a `truncated: true` document)
+  Audit/AuditRecord.php      Pure: fromSelf / fromLove → record (persons + response_yaml), FORMAT_VERSION (3), FORMAT_VERSION_HIDDEN (4: Love via a hidden link, YAML marker `loved_person_source: hidden_link`), MAX_YAML_BYTES (64 KiB, else a `truncated: true` document)
   Db/Config.php              I/O: Config::load($path): ?array — reads config.php, null if missing/invalid, silent
   Db/Connection.php          I/O: Connection::open($cfg): PDO — utf8mb4, exceptions, 2 s connect timeout, no emulated prepares
   Db/AuditLog.php            I/O: AuditLog::tryWrite(?$configPath, $record): bool — one transaction, prepared statements, never throws
@@ -69,20 +72,21 @@ src/
   Content/Daily.php          Moon phase names/symbols and the "Today's sky" sentences (MOOD, RELATION, INVITATION)
   Content/Houses.php         THEMES: title and one line for each of the 12 houses
   Content/Aspects.php        NAMES, MEANING, TONE, TONE_LABELS for synastry
+  Content/Help.php           Help::TEXT (about 50 keys → title + text for the "?" popovers), DYNAMIC, keys(), get(), dynamicKeys()
   Content/TarotPast.php      TEXT: 22 cards x up/rev, Past position
   Content/TarotPresent.php   same, Present position
   Content/TarotFuture.php    same, Future position
 templates/home.php           Page shell: hero, mode chooser, form for the mode, includes the result template; escapes via e()
 templates/self-result.php    Self result: big three, Midheaven, planets with houses, wheel, affinities, biorhythms, born under, Today's sky, distance, share, print button
 templates/love-result.php    Love result: name %, compact synchrony, common values, synastry, Today's sky, distance, Past/Present/Future spread, share, print button
-templates/partials/          person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), geo.php (distance card), memory.php (browser-memory bar and saved-people select)
+templates/partials/          help.php (help_button($key)), menu.php (Menu: clean panel, hidden-share link and panel), import.php (Import fieldset), hidden-person.php ("details loaded and hidden" block), person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), geo.php (distance card), memory.php (browser-memory bar and saved-people select)
 docker-compose.yml           Local run: web (PHP + Apache, bind mount, 127.0.0.1:8081) and db (MySQL 8.4, volume dbdata, migrations/ as initdb, not published)
 docker/Dockerfile            php:8.3-apache + pdo_mysql + rewrite/headers/expires; Apache config allowing the root .htaccess
 docker/config.php            DB settings for the Docker setup, read from the container environment (MAGIC_DB_*)
 migrations/001_create_magic_audit.sql   Idempotent schema for magic_audit and magic_audit_person (CREATE TABLE IF NOT EXISTS)
 cache/                       Geocoding cache (writable, denied from web; not in web root)
 tests/run.php                Dependency-free test runner (core checks), requires tests/cases/*.php
-tests/cases/                 planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit), position.php (ADR 0005: reading day, current position, distances), sky.php (houses, moon phase, aspects, synastry, wheel, daily copy), code.php (short codes, time-zone table, gate), memory.php (memory.js static checks, hooks in templates)
+tests/cases/                 hidden.php (hidden code, import flow, hidden.php, consent clean, no-leak), ui.php (menu, required marks, help coverage and wording, CSS regressions, script static checks), planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit), position.php (ADR 0005: reading day, current position, distances), sky.php (houses, moon phase, aspects, synastry, wheel, daily copy), code.php (short codes, time-zone table, gate), memory.php (memory.js static checks, hooks in templates)
 scripts/docker-db.sh         Docker DB helper: migrate | shell | query "SQL" | audit [N] | reset (password stays in the container)
 scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill
 scripts/make-config.sh       Writes config.php (mode 600) from the database section of ~/.password; prints only "config.php written"
@@ -139,7 +143,8 @@ $person = ['name' => string, 'date' => ?['year','month','day'], 'time' => ?['hou
  'persons' => list of ['role' => 'self'|'user'|'loved', 'name', 'birth_date' => ?'Y-m-d', 'birth_time' => ?'HH:MM:SS',
                        'place_label' => ?string(<=255), 'lat' => ?float(5 dp), 'lon' => ?float, 'tz' => ?string],
  'response_yaml' => string]
-// Self: one person, role self (name '' : the Self form has no name field; time defaults to 12:00 when not given).
+// Self: one person, role self (name = the optional Self name, '' when empty; time defaults to 12:00 when not given).
+// Love via a hidden link: both people stored in full, YAML starts with `loved_person_source: hidden_link`, format_version 4.
 // Love: user = A, loved = B (B's null fields when not entered; time stored only if date+place are present); `self` only if passed.
 // Yaml::dump(array): string — nulls/bools/ints/floats (4 dp), strings plain only if simple else double-quoted, empty arrays as [].
 ```
@@ -159,8 +164,11 @@ YAML summary (`format_version` 3; versions 1 and 2 stay readable; keys are code 
 ## View keys and DOM hooks
 
 - Share model built in `public/index.php`: `frozen`, `live`, `qr` (modules or null), `tooLong` for `templates/partials/share.php`.
-- `memory.js` reads these `data-` attributes (rendered by `templates/home.php`, `partials/person-fields.php`, `partials/memory.php`): `data-memory="self|love"` on the form; `data-person="me|loved"` on a person fieldset; `data-memory-bar`, `data-memory-save`, `data-memory-forget`, `data-memory-status`, `data-saved`, `data-saved-select`, `data-saved-remove`; `data-memory-forget-on-submit` on the withdraw form; `data-forget-memory` on `#page` after a withdrawal. Place blocks carry `data-place` with `data-kind="birth|pos"` (`autocomplete.js` works per `[data-place]`).
-- `share.js` hooks: `[data-copy]`, and the link input `#share-link` inside `details.share__more`.
+- `memory.js` reads these `data-` attributes (rendered by `templates/home.php`, `partials/person-fields.php`, `partials/memory.php`): `data-memory="self|love"` on the form; `data-person="me|loved"` on a person fieldset; `data-memory-bar`, `data-memory-save`, `data-memory-forget`, `data-memory-status`, `data-saved`, `data-saved-select`, `data-saved-remove`; `data-memory-forget-on-submit` on the withdraw form; `data-forget-memory` on `#page` after a withdrawal or a clean. Menu: `data-menu`, `data-menu-clean`, `data-menu-clean-panel`, `data-menu-clean-yes`, `data-menu-clean-no`, `data-menu-share-hidden` (class `is-empty` + `aria-disabled` when the stored entry is incomplete), `data-hidden-panel`, `data-hidden-qr`, `data-hidden-status`. Share: `data-qr-copy` (id of the link input), `data-copy-status`. Import: `data-import-scan`, `data-import-video`, `data-import-status`. Help: `.help__btn` (with `aria-controls`) and `data-help` on the popover. `memory.js` dispatches `magic:share-hidden` on `document` with the stored entry as `detail`. Place blocks carry `data-place` with `data-kind="birth|pos"` (`autocomplete.js` works per `[data-place]`).
+- `share.js` hooks: `[data-copy]`, the link input `#share-link` inside `details.share__more`, QR blocks `details.share__qrbox` with `[data-qr-copy]`.
+- Help keys: `field.*`, `menu.*`, `share.*`, `self.*`, `bio.*`, `love.*` in `Content\Help::TEXT`.
+- Parameters: `h=<code>` (hidden person, version 3; implies Love), `import=<pasted link or code>` (converted to `h`; works without JavaScript), `name=` in Self, `cleaned=1` (after the menu clean).
+- Love hidden result: view key `hidden` (true) and person B label "Your match"; templates never receive the real details.
 
 ## Request flow
 
@@ -170,9 +178,11 @@ Self: `GET /?mode=self&date=1990-07-15&time=08:30&city=Rome&lat=41.9&lon=12.5&tz
 Love: `GET /?mode=love&a_name=…&a_date=…&a_time=…&a_city=…&b_name=…[&b_date&b_time&b_city]` (prefixes `a_` = you, `b_` = loved person; each also accepts `_lat/_lon/_tz`)
 → `Request::parseLove` (+ `Request::parseTarot` for `t`) → `LoveReading::build` → `Chart::partial` ×2, `NameAffinity`, `Synchrony`, `Common`, `Tarot\Reading::spread` → `love-result.php`. Both result pages then include `partials/share.php`.
 
-Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie `magic_terms` the query is ignored, no result is built and the terms popup is shown (the sanitised original query travels in a hidden field). The popup/section form posts to `public/consent.php`, which sets (accept) or clears (withdraw) the cookie and redirects with 303 to `./`. No consent means no result and no audit record. Every response carries `Cache-Control: private, no-store` and `Vary: Cookie`.
+Hidden: `GET /?h=<code>` (or `?import=<pasted link>`) → consent check → `Request::hiddenCode` → person merged into the query for parsing, `$hidden = true`, form shows `partials/hidden-person.php` and a hidden input `h` → `LoveReading::build` with B labelled → result without share section → audit with the hidden marker (unless `noaudit`). Creating the link: browser (`share.js`) → `POST hidden.php` → JSON.
 
-Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result) and the request has no `noaudit` parameter, `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `MAGIC_CONFIG` exists so tests can point to another file.
+Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie `magic_terms` the query is ignored, no result is built and the terms popup is shown (the sanitised original query travels in a hidden field). The popup/section form posts to `public/consent.php`, which sets (accept) or clears (withdraw, clean) the cookie and redirects with 303 to `./` (`./?withdrawn=1`, `./?cleaned=1`). No consent means no result and no audit record. Every response carries `Cache-Control: private, no-store` and `Vary: Cookie`.
+
+Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result) and the request has no `noaudit` parameter (hidden-link requests are audited, with format 4), `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `MAGIC_CONFIG` exists so tests can point to another file.
 
 `on=YYYY-MM-DD` overrides "today" (default: the day at the user's current position, else the server UTC date). `?c=<code>` is decoded first and merged over the query. Gate and `noaudit` rules are unchanged. No `mode` and no input shows the mode chooser.
 
@@ -189,6 +199,8 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 - **Add a field to the audit:** put it in `AuditRecord` (a YAML key in the `$doc` of `fromSelf`/`fromLove`, or a person field), bump `FORMAT_VERSION` if the YAML layout changes; for a new column add an idempotent `migrations/NNN_*.sql` (guarded `ALTER`) and extend the INSERT in `Db\AuditLog`; update `tests/cases/audit.php`.
 - **Set up / migrate the database:** `scripts/make-config.sh` (or copy `config.php.example` to `config.php` and edit), then `scripts/db-migrate.sh`. If the database server refuses your machine, paste `migrations/001_create_magic_audit.sql` into the hosting panel's SQL tool.
 - **Docker database:** `scripts/docker-db.sh migrate` (re-apply migrations), `audit [N]` (latest results), `query "SELECT ..."`, `shell`, `reset` (wipes the volume and starts again). The schema is applied automatically on the first start.
+- **Add or change a help text:** add the key to `Content\Help::TEXT` (20-240 characters, plain advice, no method talk), call `help_button('key')` where it belongs; `tests/cases/ui.php` fails if a key is unused, missing or too long.
+- **Check the Terms section is clickable (manual):** in the browser console run `document.elementFromPoint(x, y)` at the centre of `#terms summary`; it must return `SUMMARY`, not `FOOTER`. Repeat at 360 px and 1280 px.
 - **Change the T&Cs text:** `templates/partials/terms.php` (one place, used by the popup and the end-of-page section).
 - **Purge old audit rows (manual):** `scripts/db-purge.sh --days 90`.
 - **Query the audit (mysql client, parameters are examples):**
@@ -216,6 +228,9 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 | Change the short link format | `Share\ShareCode` (new format = new `VERSION`, keep old codes decodable), `tests/cases/code.php` |
 | Add a time zone to the code table | append to `Share\TimeZoneTable::ZONES` (never reorder), update the pinned checkpoint in `tests/cases/code.php` |
 | Change what the browser remembers | `public/assets/memory.js`, `templates/partials/memory.php`, the Terms (`partials/terms.php`), `tests/cases/memory.php` |
+| Add or change a help text | `Content\Help::TEXT`, `help_button()` in the template (`templates/partials/help.php`), `tests/cases/ui.php` |
+| Change the menu | `templates/partials/menu.php`, menu handlers in `public/assets/memory.js`, `consent.php` (clean), `tests/cases/ui.php` |
+| Change hidden sharing or import | `Share\ShareCode` (hidden code), `Request::hiddenCode`, `public/hidden.php`, `partials/import.php`, `partials/hidden-person.php`, `share.js`, `import.js`, `tests/cases/hidden.php` |
 | Force everyone to re-accept the Terms | bump `Consent::VALUE` |
 | Add an audit key | `Audit\AuditRecord`, bump `FORMAT_VERSION` if the layout changes, `tests/cases/audit.php` |
 | Document a release | `docs/changelog.md` (Unreleased) |

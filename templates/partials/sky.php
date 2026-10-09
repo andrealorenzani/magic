@@ -7,10 +7,12 @@
  */
 use Magic\Content\Daily;
 
+require_once __DIR__ . '/help.php';
+
 $moon = $sky['moon'];
 ?>
 <section class="block sky" aria-labelledby="sky-h">
-  <h2 id="sky-h"><?= icon('bulb') ?> Today's sky</h2>
+  <div class="head"><h2 id="sky-h"><?= icon('bulb') ?> Today's sky</h2><?php help_button('self.sky'); ?></div>
   <p class="sky__phase"><span class="sky__symbol" aria-hidden="true"><?= e($sky['symbol']) ?></span>
     <strong><?= e($sky['phaseName']) ?></strong>, <?= e($sky['illumination']) ?>% lit</p>
   <p><meter min="0" max="100" value="<?= e($sky['illumination']) ?>"><?= e($sky['illumination']) ?>%</meter></p>

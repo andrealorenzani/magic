@@ -3,10 +3,11 @@
  * @var ?string $mode @var array $self @var array $love @var list<string> $errors @var list<string> $notes
  * @var ?array $view @var bool $submitted @var string $today @var bool $consented @var string $returnQuery
  * @var ?string $onOverride @var bool $noAudit @var string $consentAction @var bool $withdrawn @var bool $queryDropped
- * @var ?array $share @var ?array $fixedDay
+ * @var ?array $share @var ?array $fixedDay @var bool $cleaned @var bool $hidden @var ?string $hiddenCode
  */
 
 require_once __DIR__ . '/partials/icons.php';
+require_once __DIR__ . '/partials/help.php';
 
 $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun, Ascendant & Moon');
 ?><!doctype html>
@@ -26,8 +27,9 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     <form class="gate__box" method="post" action="<?= e($consentAction) ?>">
       <h2 id="gate-h">Terms and Conditions</h2>
       <?php if ($withdrawn): ?><p class="note note--gate">You withdrew your acceptance.</p><?php endif; ?>
+      <?php if ($cleaned): ?><p class="note note--gate" role="status">Your browser data was cleaned and your acceptance withdrawn.</p><?php endif; ?>
       <?php if ($queryDropped): ?><p class="note note--gate">Your link could not be kept, please open it again after accepting.</p><?php endif; ?>
-      <div id="gate-terms"><?php include __DIR__ . '/partials/terms.php'; ?></div>
+      <div id="gate-terms" class="gate__terms" tabindex="0" role="region" aria-label="Terms and Conditions text"><?php include __DIR__ . '/partials/terms.php'; ?></div>
       <input type="hidden" name="next" value="<?= e($returnQuery) ?>">
       <div class="gate__actions">
         <button type="submit" name="action" value="accept" autofocus>I accept the Terms and Conditions</button>
@@ -36,13 +38,15 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
     </form>
   </div>
   <?php endif; ?>
-  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?><?= $withdrawn ? ' data-forget-memory' : '' ?>>
+  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?><?= ($withdrawn || $cleaned) ? ' data-forget-memory' : '' ?>>
   <main>
     <header class="hero no-print">
       <p class="hero__eyebrow">✦ Magic ✦</p>
       <h1>Read your sky</h1>
       <p class="hero__lead">Discover yourself, or find out how you and someone you love fit together.</p>
     </header>
+
+    <?php include __DIR__ . '/partials/menu.php'; ?>
 
     <nav class="chooser no-print" aria-label="Choose a mode">
       <a class="chooser__card<?= $mode === 'self' ? ' is-active' : '' ?>" href="?mode=self"<?= $mode === 'self' ? ' aria-current="page"' : '' ?>>
@@ -62,7 +66,8 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
         <input type="hidden" name="mode" value="self">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
-        <?php $pf = ['prefix' => '', 'required' => true, 'name' => false, 'values' => $self, 'legend' => 'Your birth', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
+        <p class="hint">* required</p>
+        <?php $pf = ['prefix' => '', 'required' => true, 'name' => true, 'nameRequired' => false, 'values' => $self, 'legend' => 'Your birth', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
         <?php $memoryKind = 'self'; include __DIR__ . '/partials/memory.php'; ?>
         <button type="submit">Reveal my sky</button>
       </form>
@@ -71,12 +76,19 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
         <input type="hidden" name="mode" value="love">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
+        <?php if ($hidden): ?><input type="hidden" name="h" value="<?= e($hiddenCode) ?>"><?php endif; ?>
+        <p class="hint">* required</p>
         <div class="people">
           <?php $pf = ['prefix' => 'a_', 'required' => true, 'name' => true, 'values' => $love['a'], 'legend' => 'You', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
-          <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'person' => 'loved', 'hint' => 'Only the name is required. Add the birth date for signs and biorhythms; add time and city too for the Ascendant.']; include __DIR__ . '/partials/person-fields.php'; ?>
+          <?php if ($hidden): ?>
+            <?php include __DIR__ . '/partials/hidden-person.php'; ?>
+          <?php else: ?>
+            <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'nameRequired' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'person' => 'loved']; include __DIR__ . '/partials/person-fields.php'; ?>
+          <?php endif; ?>
         </div>
+        <?php if (!$hidden): include __DIR__ . '/partials/import.php'; endif; ?>
         <p class="hint">Names and dates appear in the address bar; share the link only with people you trust.</p>
-        <?php $memoryKind = 'love'; include __DIR__ . '/partials/memory.php'; ?>
+        <?php $memoryKind = 'love'; $memorySaved = !$hidden; include __DIR__ . '/partials/memory.php'; ?>
         <button type="submit">Explore our connection</button>
       </form>
     <?php endif; ?>
@@ -86,7 +98,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
         <p class="note note--error" aria-live="polite"><?= e($err) ?></p>
       <?php endforeach; ?>
       <?php if ($fixedDay !== null): ?>
-        <p class="note">This reading is fixed to <?= e($fixedDay['date']) ?>. <a href="<?= e($fixedDay['live']) ?>">Open the live version</a>.</p>
+        <p class="note">This reading is fixed to <?= e($fixedDay['date']) ?>.<?php if ($fixedDay['live'] !== null): ?> <a href="<?= e($fixedDay['live']) ?>">Open the live version</a>.<?php endif; ?></p>
       <?php endif; ?>
       <?php if ($view && $mode === 'self'): include __DIR__ . '/self-result.php'; endif; ?>
       <?php if ($view && $mode === 'love'): include __DIR__ . '/love-result.php'; endif; ?>
@@ -110,5 +122,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
   <script src="assets/memory.js" defer></script>
   <script src="assets/print.js" defer></script>
   <script src="assets/share.js" defer></script>
+  <script src="assets/help.js" defer></script>
+  <script src="assets/import.js" defer></script>
 </body>
 </html>

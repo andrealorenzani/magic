@@ -352,3 +352,7 @@ The notice section above is superseded: a footer notice alone is no longer enoug
 - The text lives in `templates/partials/terms.php` and is shown both in the popup and as an expandable "Terms and Conditions" section at the end of the page. It states that results are recorded (what is entered, including the loved person's details, and a result summary), that the IP address is not recorded, that nothing is used to track the visitor, and that the data can be removed on request.
 - Logic is in `Magic\Consent` (cookie name, `given()`, `safeQuery()`), so the stored data stays limited to the audit and the cookie carries no personal data.
 - "No cookies" statements elsewhere now read: no tracking cookies; one functional consent cookie.
+
+## Update (ADR 0006, v0.8)
+
+Opening a hidden-details link (`?h=`) is audited like any Love result, with both people's full data, the YAML marker `loved_person_source: hidden_link` and `format_version` 4 (`AuditRecord::FORMAT_VERSION_HIDDEN`). The receiver's `noaudit` still skips the write. Creating the link (`public/hidden.php`) writes nothing.

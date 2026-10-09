@@ -7,9 +7,11 @@
 use Magic\Content\Aspects as AspectText;
 use Magic\Content\Bodies;
 
+require_once __DIR__ . '/help.php';
+
 ?>
 <section class="block synastry" aria-labelledby="syn-h">
-  <h2 id="syn-h"><?= icon('heart') ?> Synastry</h2>
+  <div class="head"><h2 id="syn-h"><?= icon('heart') ?> Synastry</h2><?php help_button('love.synastry'); ?></div>
   <?php if (!$synastry['available']): ?>
     <article class="card card--empty">
       <p class="card__text">Add <?= e($names['b']) ?>'s birth date to compare your two skies planet by planet.</p>
@@ -17,9 +19,9 @@ use Magic\Content\Bodies;
   <?php elseif ($synastry['rows'] === []): ?>
     <p>No close aspects were found between your two charts.</p>
   <?php else: ?>
-    <p><?= e($synastry['total']) ?> aspect<?= $synastry['total'] === 1 ? '' : 's' ?> between your charts:
+    <div class="head"><p><?= e($synastry['total']) ?> aspect<?= $synastry['total'] === 1 ? '' : 's' ?> between your charts:
       <?= e($synastry['counts']['harmonious']) ?> harmonious, <?= e($synastry['counts']['tense']) ?> tense, <?= e($synastry['counts']['neutral']) ?> blending.
-      The <?= e(count($synastry['rows'])) ?> closest <?= count($synastry['rows']) === 1 ? 'is' : 'are' ?> listed.</p>
+      The <?= e(count($synastry['rows'])) ?> closest <?= count($synastry['rows']) === 1 ? 'is' : 'are' ?> listed.</p><?php help_button('love.aspect'); ?></div>
     <div class="table-wrap">
       <table class="synastry__table">
         <caption class="sr-only">Closest aspects between <?= e($names['a']) ?> and <?= e($names['b']) ?></caption>

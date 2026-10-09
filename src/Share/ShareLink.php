@@ -92,7 +92,8 @@ final class ShareLink
     /** @param array<string,mixed> $in @return array<string,string> */
     private static function selfFields(array $in): array
     {
-        return [
+        $name = trim((string) ($in['name'] ?? ''));
+        return ($name !== '' ? ['name' => $name] : []) + [
             'date' => sprintf('%04d-%02d-%02d', $in['year'], $in['month'], $in['day']),
             'time' => sprintf('%02d:%02d', $in['hour'], $in['minute']),
             'city' => self::trimCity((string) $in['city']),

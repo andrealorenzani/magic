@@ -18,9 +18,9 @@ final class ChartWheel
     public const R_BODY = 132.0;
     public const R_TICK_INNER = 150.0;
     public const R_HOUSE_INNER = 92.0;
-    public const R_HOUSE_LABEL = 108.0;
+    public const R_HOUSE_LABEL = 106.0;
     /** Smallest angular distance, in degrees, between two glyphs on the drawing. */
-    public const MIN_SEPARATION = 7.0;
+    public const MIN_SEPARATION = 10.5;
 
     /**
      * @param array<string,mixed> $chart Chart::full() result

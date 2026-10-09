@@ -17,13 +17,17 @@ final class LoveReading
 {
     /**
      * @param array<string,mixed> $a person shape (see Request::parseLove)
-     * @param array<string,mixed> $b person shape; date/time/place may be null
+     * @param array<string,mixed> $b person shape; date/time/place may be null. Optional keys: `label` (shown instead of
+     *        the name, used for details that are not displayed) and `anonymous` (no name was shared)
      * @param ?list<array{number:int, reversed:bool}> $tarotSlots a validated shared spread, used instead of the deterministic one
      * @param string $dayBasis where the reading day came from: 'utc' | 'current_position' | 'on'
      * @return array<string,mixed>
      */
     public static function build(array $a, array $b, string $today, ?array $tarotSlots = null, string $dayBasis = 'utc'): array
     {
+        $hidden = isset($b['label']);
+        $shownB = $hidden ? (string) $b['label'] : (string) $b['name'];
+        $anonymous = $hidden && !empty($b['anonymous']);
         $chartA = self::chart($a);
         $chartB = self::chart($b);
         $notes = [];
@@ -37,8 +41,9 @@ final class LoveReading
         $common = ($chartA !== null && $chartB !== null) ? Common::between($chartA, $chartB) : null;
         $seed = strtolower(trim($a['name'])) . '|' . strtolower(trim($b['name'])) . '|' . self::ymd($a['date']) . '|' . self::ymd($b['date']);
         return [
-            'names' => ['a' => $a['name'], 'b' => $b['name']],
-            'affinity' => NameAffinity::compute($a['name'], $b['name']),
+            'names' => ['a' => $a['name'], 'b' => $shownB],
+            'hidden' => $hidden,
+            'affinity' => $anonymous ? NameAffinity::fromCounts([]) : NameAffinity::compute($a['name'], $b['name']),
             'charts' => ['a' => $chartA, 'b' => $chartB],
             'common' => $common,
             'bio' => $bio,
@@ -49,7 +54,7 @@ final class LoveReading
             'dayZone' => $dayBasis === 'current_position' ? ($a['now']['tz'] ?? null) : null,
             'sky' => Today::for($today, array_filter(['a' => $chartA['sun'] ?? null, 'b' => $chartB['sun'] ?? null])),
             'synastry' => self::synastry($a, $b),
-            'geo' => Geography::forLove($a, $b, $today),
+            'geo' => Geography::forLove($a, ['name' => $shownB] + $b, $today),
             'notes' => $notes,
         ];
     }

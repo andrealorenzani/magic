@@ -13,6 +13,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Sharing and polish ([ADR 0004](decisions/0004-sharing-tarot-spread-and-polish.md)) — Share section (frozen and live links, QR in pure PHP, tarot in `t`, share links carry `noaudit`), `?noaudit`, Past/Present/Future tarot spread (replaces the 3-day tarot), compact biorhythm synchrony, richer "In common", Terms gate fixes (no-store, `Vary: Cookie`, query kept, CSP additions), audit `format_version` 2
 - Project renamed from Arcana to Magic (namespace `Magic\`)
 - Current position, short links, browser memory and derived features ([ADR 0005](decisions/0005-profile-compact-share-and-roadmap.md), v0.7): optional current city and reading-day rule, distance and geography, short `?c=` share links with a smaller QR, browser memory with "Forget my data", Midheaven, houses and chart wheel, moon phase and Today's sky, synastry, 78-card tarot, geocoding cache cap, Terms version 2 (audit `format_version` 3)
+- Menu, hidden sharing and import, help popovers, Self name, v0.8 ([ADR 0006](decisions/0006-menu-hidden-import-hints-and-fixes.md)): Menu (clean browser data, share hidden data), hidden-details link/QR and import by paste or scan, optional Self name, "?" popovers, click-to-copy and collapsible QR, required marks, smaller wheel, Terms section and gate fixes, Terms version 3 (audit `format_version` 4 for hidden-link opens)
 - Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)
@@ -27,10 +28,10 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Automatic retention job for the audit (today `scripts/db-purge.sh --days N` is manual)
 - Write rate limit / de-duplication of audit rows
 - Admin view of the audit, behind authentication
-- Name field in the Self form (today the audit stores '')
 - Mode 600 for the uploaded `config.php` (the uploader keeps the server default)
 - Italian and other languages
 - Sidereal zodiac toggle
 - PWA / offline support
+- Hidden links without the data inside them (needs server-side storage and its own ADR)
 - Optional "private mode" (POST) so names stay out of URLs and logs
 - Longer place labels in short codes (today cut at 32 bytes)

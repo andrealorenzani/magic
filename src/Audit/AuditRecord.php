@@ -7,10 +7,12 @@ namespace Magic\Audit;
 final class AuditRecord
 {
     public const FORMAT_VERSION = 3;
+    /** Love records whose second person came from a hidden-details link carry a marker key. */
+    public const FORMAT_VERSION_HIDDEN = 4;
     public const MAX_YAML_BYTES = 65536;
 
     /**
-     * @param array<string,mixed> $input Request::parse()['input'] (an optional 'name' is stored; the Self form has none)
+     * @param array<string,mixed> $input Request::parse()['input'] (an optional 'name' is stored)
      * @param array<string,mixed> $view SelfReading::build()
      * @return array<string,mixed>
      */
@@ -114,17 +116,21 @@ final class AuditRecord
             ],
             'notes' => array_values($view['notes']),
         ];
+        $viaHidden = !empty($view['hidden']);
+        if ($viaHidden) {
+            $doc = ['functionality' => $doc['functionality'], 'on_date' => $doc['on_date'], 'loved_person_source' => 'hidden_link'] + $doc;
+        }
         $persons = [];
         if ($self !== null) {
             $persons[] = self::fromInput('self', $self);
         }
         $persons[] = self::fromPerson('user', $a);
         $persons[] = self::fromPerson('loved', $b);
-        return self::record('love', $today, $persons, $doc);
+        return self::record('love', $today, $persons, $doc, $viaHidden ? self::FORMAT_VERSION_HIDDEN : self::FORMAT_VERSION);
     }
 
     /** @param list<array<string,mixed>> $persons @param array<string,mixed> $doc @return array<string,mixed> */
-    private static function record(string $functionality, string $today, array $persons, array $doc): array
+    private static function record(string $functionality, string $today, array $persons, array $doc, int $format = self::FORMAT_VERSION): array
     {
         $yaml = Yaml::dump($doc);
         if (strlen($yaml) > self::MAX_YAML_BYTES) {
@@ -133,7 +139,7 @@ final class AuditRecord
         return [
             'functionality' => $functionality,
             'on_date' => $today,
-            'format_version' => self::FORMAT_VERSION,
+            'format_version' => $format,
             'persons' => $persons,
             'response_yaml' => $yaml,
         ];

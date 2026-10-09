@@ -15,6 +15,7 @@ use Magic\Geo\Geocoder;
 use Magic\Request;
 use Magic\Time\Zone;
 
+define('MAGIC_TESTING', true);
 $failures = 0;
 $count = 0;
 
@@ -125,7 +126,7 @@ check('request: rejects tampered time zone (falls back to geocoding path)', func
 });
 
 // ADR 0002 test cases (use check/same/near/utc defined above).
-foreach (['planets', 'bio', 'love', 'tarot', 'request', 'layering', 'audit', 'share', 'position', 'code', 'memory', 'sky'] as $case) {
+foreach (['planets', 'bio', 'love', 'tarot', 'request', 'layering', 'audit', 'share', 'position', 'code', 'memory', 'sky', 'ui', 'hidden'] as $case) {
     require __DIR__ . "/cases/$case.php";
 }
 

@@ -42,6 +42,7 @@ final class SelfReading
             $notes[] = 'Planets are available for births between 1800 and 2100 only.';
         }
         return [
+            'name' => (string) ($input['name'] ?? ''),
             'chart' => $chart,
             'refs' => $refs,
             'affinity' => SignAffinity::rank($refs),

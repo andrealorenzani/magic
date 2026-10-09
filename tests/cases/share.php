@@ -284,7 +284,7 @@ $shareClosed = function () use ($shareTmp): string {
 };
 $sharePage = function (array $get, array $server = [], bool $consent = true, ?string $log = null) use ($shareRoot, $shareClosed, $shareTmp): array {
     $log ??= "$shareTmp/sp-" . bin2hex(random_bytes(3)) . '.log';
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "2"]' : '[]')
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "3"]' : '[]')
         . '; $_SERVER = array_merge($_SERVER, ["REQUEST_METHOD" => "GET"], json_decode($argv[3], true)); ob_start(); require $argv[2];'
         . ' $o = ob_get_clean(); echo json_encode(["out" => $o, "headers" => headers_list()]);';
     $cmd = 'MAGIC_CONFIG=' . escapeshellarg($shareClosed()) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($log)
@@ -353,7 +353,7 @@ $shareHttp = (function () use ($shareRoot, $shareClosed, $shareTmp): callable {
 })();
 check('pages send no-store and Vary: Cookie on the chooser, the gate and results', function () use ($shareHttp, $selfGet) {
     $qs = http_build_query($selfGet);
-    foreach ([['/', []], ['/', ['Cookie: magic_terms=2']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=2']]] as [$path, $hdr]) {
+    foreach ([['/', []], ['/', ['Cookie: magic_terms=3']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=3']]] as [$path, $hdr]) {
         [$code, $h, $body] = $shareHttp('GET', $path, '', $hdr);
         $hs = strtolower(implode("\n", $h));
         same($code, 200);
@@ -389,7 +389,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same($code, 303);
     same(str_contains($hs, 'Location: ./?' . $qs . '#results'), true);
-    same(preg_match('/Set-Cookie: magic_terms=2;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
+    same(preg_match('/Set-Cookie: magic_terms=3;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
     same(stripos($hs, '; secure') === false, true);
     same(str_contains($hs, 'Cache-Control: private, no-store') && preg_match('/^Vary:.*Cookie/mi', $hs) === 1, true);
     [, $h] = $post(['action' => 'accept', 'next' => $qs], ['X-Forwarded-Proto: https']);
@@ -403,7 +403,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same([$code, str_contains($hs, 'Location: ./'), str_contains($hs, 'Set-Cookie')], [303, true, false]);
     // Following the redirect with the cookie shows the result and no gate.
-    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=2']);
+    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=3']);
     same(str_contains($body, 'class="gate"'), false);
     same(str_contains($body, 'Share this reading'), true);
     [, , $body] = $shareHttp('GET', '/?' . $qs);

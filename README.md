@@ -16,6 +16,10 @@ A page for magic lovers with two modes (choose on the home page):
 - **common values** in Sun, Moon and Ascendant, and a **synastry** table
 - a **Past / Present / Future tarot spread** (78 cards) for the two of you (same input and day give the same cards)
 
+A **Menu** above the mode chooser has "Clean browser data" and "Share my Self Discovery hidden data". Self discovery has an optional **name**. A small **?** next to fields and results explains them.
+
+**Hidden sharing.** The menu makes a link and QR code with your details that another person can paste or scan in Love ("Import hidden details"); their screen does not show your name, birth data or place and the result has no share section. "Hidden" only means not shown: the link contains the details, so share it only with someone you trust. Opening such a link is recorded in the audit like any Love result.
+
 Both modes have an optional **current city**: it sets your local "today" and shows the **distance** between places. Details in [docs/features.md](docs/features.md).
 
 Both results have a **Share** section and a **Print** button (and a print layout without forms), so you can keep a paper copy.
@@ -30,7 +34,7 @@ PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (belo
 
 **Browser memory.** If your browser allows it, your own details (and a short list of people you looked up in Love) are remembered in your browser only, never stored by the server; "Forget my data" erases them, and so does withdrawing your acceptance.
 
-**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.7, so everybody accepts once again. The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
+**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.8, so everybody accepts once again (the menu's "Clean browser data" also brings the popup back). The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
 
 **Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address or user agent is stored and nothing is used to track you. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
 
@@ -55,7 +59,7 @@ PHP 8.1+ is needed only if you prefer the built-in server or want to run the tes
 
 ```bash
 php -S localhost:8081 -t public     # http://localhost:8081 (no database unless config.php exists)
-php tests/run.php                   # 200 tests (astronomy, time zones, input validation, both modes, audit, short links, browser memory)
+php tests/run.php                   # 232 tests (astronomy, time zones, input validation, both modes, audit, short links, browser memory)
 ```
 
 ## Deploy (Apache shared hosting)

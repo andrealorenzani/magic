@@ -6,6 +6,7 @@ use Magic\Content\TarotSpread;
 use Magic\Content\Traits;
 
 require_once __DIR__ . '/partials/icons.php';
+require_once __DIR__ . '/partials/help.php';
 require_once __DIR__ . '/partials/bio.php';
 
 $names = $view['names'];
@@ -27,7 +28,7 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 </div>
 
 <section class="block heart-card" aria-labelledby="name-h">
-  <h2 id="name-h"><?= icon('heart') ?> <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
+  <div class="head head--center"><h2 id="name-h"><?= icon('heart') ?> <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2><?php help_button('love.name_affinity'); ?></div>
   <?php if ($aff['noLetters']): ?>
     <p>There is nothing to compare in these names, so no name reading is shown.</p>
   <?php else: ?>
@@ -39,12 +40,12 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 
 <?php if ($bio): ?>
 <section class="block" aria-labelledby="sync-h">
-  <h2 id="sync-h"><?= icon('bolt') ?> Biorhythm synchrony</h2>
-  <p><strong><?= e(round($bio['overall'])) ?>%</strong> overall. <?= e(Traits::VERDICTS[$bio['band']]) ?></p>
+  <div class="head"><h2 id="sync-h"><?= icon('bolt') ?> Biorhythm synchrony</h2><?php help_button('love.sync'); ?></div>
+  <div class="head"><p><strong><?= e(round($bio['overall'])) ?>%</strong> overall. <?= e(Traits::VERDICTS[$bio['band']]) ?></p><?php help_button('love.sync_overall'); ?></div>
   <div class="sync-grid">
     <?php foreach ($bio['cycles'] as $name => $c): ?>
       <article class="sync-card">
-        <h3><?= e(ucfirst($name)) ?> <small>(<?= e($c['period']) ?> days)</small></h3>
+        <div class="head"><h3><?= e(ucfirst($name)) ?> <small>(<?= e($c['period']) ?> days)</small></h3><?php help_button('bio.' . $name); ?></div>
         <p class="sync-card__pct"><meter min="0" max="100" value="<?= e(round($c['sync'])) ?>"><?= e(round($c['sync'])) ?>%</meter>
           <strong><?= e(round($c['sync'])) ?>%</strong> affinity</p>
         <dl class="sync-card__dates">
@@ -92,7 +93,7 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 <?php endif; ?>
 
 <section class="block" aria-labelledby="common-h">
-  <h2 id="common-h"><?= icon('heart') ?> What you have in common</h2>
+  <div class="head"><h2 id="common-h"><?= icon('heart') ?> What you have in common</h2><?php help_button('love.common'); ?></div>
   <?php if ($common === null): ?>
     <article class="card card--empty">
       <p class="card__text">Add <?= e($names['b']) ?>'s birth date to see what you share.</p>
@@ -114,7 +115,7 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
             <p class="chip chip--<?= e(strtolower($it['a']['element'])) ?>"><span class="chip__who"><?= e($names['a']) ?></span><span class="chip__sign"><?= e($pos($it['a'])) ?></span></p>
             <p class="chip chip--<?= e(strtolower($it['b']['element'])) ?>"><span class="chip__who"><?= e($names['b']) ?></span><span class="chip__sign"><?= e($pos($it['b'])) ?></span></p>
           </div>
-          <p><span class="pill pill--level"><?= e(Traits::LEVEL_LABELS[$it['level']]) ?></span></p>
+          <div class="head head--center"><span class="pill pill--level"><?= e(Traits::LEVEL_LABELS[$it['level']]) ?></span><?php help_button('love.common_level'); ?></div>
           <p class="card__text"><?= e(Traits::LEVELS[$it['level']]) ?></p>
           <p class="card__meaning"><?= e(Traits::COMMON_MEANING[$it['body']][$it['level']]) ?></p>
           <?php if (in_array($it['level'], ['sign', 'element', 'modality'], true)): ?>
@@ -153,7 +154,7 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
   <div class="tarot">
     <?php foreach ($view['tarot'] as $t): $c = $t['card']; $pp = TarotSpread::POSITIONS[$t['position']]; ?>
       <article class="tarot__card tarot__card--<?= e($t['position']) ?>">
-        <h3 class="card__role"><?= e($pp['title']) ?></h3>
+        <div class="head head--center"><h3 class="card__role"><?= e($pp['title']) ?></h3><?php help_button('love.tarot.' . $t['position']); ?></div>
         <p class="hint"><?= e($pp['question']) ?></p>
         <div class="tarot__face">
           <div class="tarot__art<?= $c['suit'] !== null ? ' tarot__art--' . e($c['suit']) : '' ?><?= $t['reversed'] ? ' tarot__art--reversed' : '' ?>" aria-hidden="true">
@@ -162,7 +163,7 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
           </div>
         </div>
         <p class="card__sign"><?= e($c['name']) ?></p>
-        <p class="card__pos"><?= $t['reversed'] ? 'Reversed' : 'Upright' ?></p>
+        <div class="head head--center"><p class="card__pos"><?= $t['reversed'] ? 'Reversed' : 'Upright' ?></p><?php if ($t['reversed']) { help_button('love.tarot_reversed'); } ?></div>
         <p class="card__essence"><?= e($t['reversed'] ? $c['reversed'] : $c['upright']) ?></p>
         <p class="card__text"><?= e($t['text']) ?></p>
       </article>
@@ -171,4 +172,9 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
   <p class="note"><?= $view['tarotShared'] ? 'These cards come from the link you opened. ' : 'The cards depend on your names, birth dates and the day: the same reading appears on every reload. ' ?>For entertainment.</p>
 </section>
 
-<?php if ($share !== null) { include __DIR__ . '/partials/share.php'; } ?>
+<?php if ($share !== null): include __DIR__ . '/partials/share.php'; elseif (!empty($view['hidden'])): ?>
+<section class="block share" aria-labelledby="share-h">
+  <h2 id="share-h"><?= icon('bolt') ?> Sharing</h2>
+  <p class="note">This reading includes details shared privately with you, so it has no share link.</p>
+</section>
+<?php endif; ?>

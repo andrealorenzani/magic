@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Magic;
 
 use Magic\Geo\Geocoder;
+use Magic\Share\ShareCode;
 use Magic\Share\ShareLink;
 use Magic\Time\Zone;
 
@@ -14,7 +15,8 @@ final class Request
 
     /**
      * Which mode the query asks for: 'self' | 'love' | null (chooser). A missing mode with
-     * date/city present is Self, so old shared links keep working; an unknown mode is null.
+     * date/city present is Self, so old shared links keep working; hidden details (`h`, `import`) without a
+     * mode mean Love; an unknown mode is null.
      * @param array<string,mixed> $q
      */
     public static function mode(array $q): ?string
@@ -23,7 +25,36 @@ final class Request
             $m = $q['mode'];
             return is_string($m) && in_array($m, self::MODES, true) ? $m : null;
         }
+        if (isset($q['h']) || (isset($q['import']) && is_string($q['import']) && trim($q['import']) !== '')) {
+            return 'love';
+        }
         return (isset($q['date']) || isset($q['city'])) ? 'self' : null;
+    }
+
+    /**
+     * The hidden person of a request: `h` (a version 3 code) wins over `import` (a pasted link or code).
+     * An empty `import` is ignored. `invalid` is true when something was given but is not usable.
+     * @param array<string,mixed> $q already filtered to plain strings
+     * @return array{code: ?string, person: ?array<string,string>, invalid: bool}
+     */
+    public static function hiddenCode(array $q): array
+    {
+        $raw = null;
+        if (isset($q['h']) && is_string($q['h'])) {
+            $raw = $q['h'];
+        } elseif (isset($q['import']) && is_string($q['import']) && trim($q['import']) !== '') {
+            $raw = ShareCode::extractHidden($q['import']);
+            if ($raw === null) {
+                return ['code' => null, 'person' => null, 'invalid' => true];
+            }
+        }
+        if ($raw === null) {
+            return ['code' => null, 'person' => null, 'invalid' => false];
+        }
+        $person = ShareCode::decodeHidden($raw);
+        return $person === null
+            ? ['code' => null, 'person' => null, 'invalid' => true]
+            : ['code' => $raw, 'person' => $person, 'invalid' => false];
     }
 
     /**
@@ -103,21 +134,30 @@ final class Request
      */
     public static function parse(array $q, Geocoder $geocoder): array
     {
+        $errors = [];
+        $name = '';
+        if (is_string($q['name'] ?? null) && trim($q['name']) !== '') {
+            $nameErr = null;
+            $name = self::parseName($q['name'], $nameErr);
+            if ($nameErr !== null) {
+                $errors[] = $nameErr;
+            }
+        }
         $r = self::parsePerson($q, '', $geocoder, true, '');
         $p = $r['person'];
-        if ($p === null) {
-            return ['input' => null, 'errors' => $r['errors'], 'notes' => $r['notes']];
+        if ($p === null || $errors) {
+            return ['input' => null, 'errors' => array_merge($errors, $r['errors']), 'notes' => $r['notes']];
         }
-        return [
-            'input' => [
-                'year' => $p['date']['year'], 'month' => $p['date']['month'], 'day' => $p['date']['day'],
-                'hour' => $p['time']['hour'], 'minute' => $p['time']['minute'],
-                'lat' => $p['place']['lat'], 'lon' => $p['place']['lon'], 'tz' => $p['place']['tz'], 'city' => $p['place']['city'],
-                'now' => $p['now'],
-            ],
-            'errors' => [],
-            'notes' => $r['notes'],
+        $input = [
+            'year' => $p['date']['year'], 'month' => $p['date']['month'], 'day' => $p['date']['day'],
+            'hour' => $p['time']['hour'], 'minute' => $p['time']['minute'],
+            'lat' => $p['place']['lat'], 'lon' => $p['place']['lon'], 'tz' => $p['place']['tz'], 'city' => $p['place']['city'],
+            'now' => $p['now'],
         ];
+        if ($name !== '') {
+            $input['name'] = $name;
+        }
+        return ['input' => $input, 'errors' => [], 'notes' => $r['notes']];
     }
 
     /**

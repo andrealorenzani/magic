@@ -6,6 +6,38 @@ Newest first. Maintained by the `documenter` agent: every change to `src/`, `pub
 
 Nothing yet.
 
+## v0.8 - 2026-10-10 - Menu, hidden details, help popovers, Self name
+
+ADR: [0006](decisions/0006-menu-hidden-import-hints-and-fixes.md).
+
+**Added**
+- Menu above the mode chooser: "Clean browser data" (in-page confirmation) and "Share my Self Discovery hidden data" (grey until the stored own entry is complete).
+- Hidden-details link and QR (`?h=<code>`, share-code version 3) created by `public/hidden.php` (POST); import by pasted link or code (`import`, works without JavaScript) or by QR scan (`public/assets/import.js`, where `BarcodeDetector` exists).
+- Hidden result: the shared person is not displayed and is labelled "Your match"; no share section.
+- Optional Self name (share-code version 2 only when a name is given; `name=` in links).
+- "?" help popovers (`Content\Help`, `partials/help.php`, `public/assets/help.js`).
+- Click-to-copy and collapsible QR blocks with "Link copied"; "* required" marks.
+- `consent.php` action `clean`; `Request::hiddenCode`; `ShareCode::encodeHidden`, `decodeHidden`, `extractHidden`; tests `hidden.php` and `ui.php` (232 tests).
+
+**Changed**
+- The chart wheel is smaller, brighter and collapsible (`ChartWheel::MIN_SEPARATION` raised).
+- The hint under the loved person in Love is removed.
+- The Terms popup text scrolls and the Accept button no longer overlaps it.
+- `Consent::VALUE` is `3`; the Terms describe hidden links.
+- One clipboard routine with fallbacks for copy buttons and QR.
+- Audit `format_version` 4 is used for Love results opened from a hidden link (`AuditRecord::FORMAT_VERSION_HIDDEN`); other records stay at 3.
+
+**Fixed**
+- The Terms and Conditions section at the end of the page did not open because the footer overlapped it.
+- The gate's Accept bar could cover the Terms text on small screens.
+
+**Privacy**
+- Creating a hidden link sends the sender's details once to the site; nothing is stored, logged or recorded there.
+- "Hidden" means only not shown on screen: the link and the receiver's address bar contain the data.
+- Opening a hidden link IS audited with both people's full data and the marker `loved_person_source: hidden_link` (format 4); `noaudit` skips it. Such results have no share links.
+
+**Migration:** visitors re-accept the Terms (cookie value `3`). No database migration.
+
 ## v0.7 - 2026-10-09 - Current position, short links, browser memory, derived features
 
 ADR: [0005](decisions/0005-profile-compact-share-and-roadmap.md).

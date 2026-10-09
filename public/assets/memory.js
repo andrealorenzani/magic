@@ -1,5 +1,6 @@
 // Remembers, in this browser only, the details the visitor typed for themselves and a short
-// list of people they looked up. Nothing leaves the browser through this file. Without
+// list of people they looked up. Nothing leaves the browser through this file (the menu hands the
+// remembered details to share.js only when the visitor asks for a hidden link). Without
 // JavaScript or storage the page works exactly the same.
 (() => {
   const KEY_ME = "magic.me.v1";
@@ -43,6 +44,11 @@
   };
   const forgetAll = () => {
     try {
+      window.sessionStorage.removeItem(FLAG);
+    } catch (e) {
+      /* ignore */
+    }
+    try {
       if (!store) return;
       const keys = [];
       for (let i = 0; i < store.length; i++) {
@@ -54,15 +60,6 @@
       /* ignore */
     }
   };
-
-  if (document.querySelector("[data-forget-memory]")) {
-    forgetAll();
-    return;
-  }
-  document.querySelectorAll("[data-memory-forget-on-submit]").forEach((form) => {
-    form.addEventListener("submit", forgetAll);
-  });
-  if (!store) return;
 
   // ---- validation ----
   const noControl = (s) => !/[\u0000-\u001f\u007f-\u009f]/.test(s);
@@ -189,6 +186,61 @@
   };
   const hasContent = (e) => e.date !== "" || e.city !== "" || e.name !== "";
 
+  // ---- menu: clean browser data, share hidden data ----
+  const initMenu = () => {
+    const cleanBtn = document.querySelector("[data-menu-clean]");
+    const row = document.querySelector("[data-menu-clean-row]");
+    const panel = document.querySelector("[data-menu-clean-panel]");
+    const yes = document.querySelector("[data-menu-clean-yes]");
+    const no = document.querySelector("[data-menu-clean-no]");
+    const form = document.querySelector("[data-menu-clean-form]");
+    if (cleanBtn && panel && yes && no && form) {
+      if (row) row.hidden = false;
+      const heading = panel.querySelector("h3");
+      const closePanel = () => {
+        panel.hidden = true;
+        cleanBtn.focus();
+      };
+      cleanBtn.addEventListener("click", () => {
+        panel.hidden = false;
+        if (heading) heading.focus();
+      });
+      no.addEventListener("click", closePanel);
+      yes.addEventListener("click", () => {
+        forgetAll();
+        form.submit();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !panel.hidden) closePanel();
+      });
+    }
+    const shareLink = document.querySelector("[data-menu-share-hidden]");
+    if (shareLink) {
+      const entry = store ? readMe() : null;
+      const ready = !!entry && ["date", "time", "city", "lat", "lon", "tz"].every((f) => entry[f] !== "");
+      if (!ready) {
+        shareLink.setAttribute("aria-disabled", "true");
+        shareLink.classList.add("is-empty");
+      } else {
+        shareLink.addEventListener("click", (e) => {
+          e.preventDefault();
+          const fresh = readMe();
+          if (fresh) document.dispatchEvent(new CustomEvent("magic:share-hidden", { detail: fresh }));
+        });
+      }
+    }
+  };
+  initMenu();
+
+  if (document.querySelector("[data-forget-memory]")) {
+    forgetAll();
+    return;
+  }
+  document.querySelectorAll("[data-memory-forget-on-submit]").forEach((form) => {
+    form.addEventListener("submit", forgetAll);
+  });
+  if (!store) return;
+
   // ---- per form ----
   const setText = (el, msg) => {
     if (el) el.textContent = msg;
@@ -202,7 +254,8 @@
     const savedBox = form.querySelector("[data-saved]");
     const select = form.querySelector("[data-saved-select]");
     const removeBtn = form.querySelector("[data-saved-remove]");
-    const people = Array.from(form.querySelectorAll("fieldset[data-person]")).map((fs) => ({
+    const hiddenMode = !!form.querySelector("[data-hidden-person]");
+    const people = Array.from(form.querySelectorAll("fieldset[data-person]")).filter((fs) => !(hiddenMode && fs.dataset.person === "loved")).map((fs) => ({
       fs,
       kind: fs.dataset.person,
       auto: true,
@@ -211,8 +264,6 @@
 
     const saveMe = (p) => {
       const entry = cleanEntry(readFields(p.fs));
-      const old = readMe();
-      if (!fieldMap(p.fs).name && old) entry.name = old.name;
       if (hasContent(entry)) writeMe(entry);
     };
     const saveLoved = (p) => {

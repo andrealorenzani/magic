@@ -34,17 +34,40 @@ if (isset($q['c'])) {
         $q = $decoded + $q;
     }
 }
+$hiddenState = Request::hiddenCode($q);
 $rawQuery = ltrim((string) ($_SERVER['QUERY_STRING'] ?? ''), '?');
 $returnQuery = $consented ? '' : Consent::safeQuery($rawQuery);
 $withdrawn = !$consented && ($_GET['withdrawn'] ?? null) === '1';
-if ($withdrawn && $returnQuery === 'withdrawn=1') {
+$cleaned = !$consented && ($_GET['cleaned'] ?? null) === '1';
+if (($withdrawn && $returnQuery === 'withdrawn=1') || ($cleaned && $returnQuery === 'cleaned=1')) {
     $returnQuery = '';
 }
-$queryDropped = !$consented && !$withdrawn && $rawQuery !== '' && $returnQuery === '';
+$queryDropped = !$consented && !$withdrawn && !$cleaned && $rawQuery !== '' && $returnQuery === '';
 $noAudit = Request::noAudit($q);
 $base = Http::basePath($_SERVER);
 $consentAction = ($base === null ? '' : $base . '/') . 'consent.php';
 $mode = Request::mode($q);
+// Hidden details (a person shared with the visitor): loaded for the matching only, never shown.
+$hidden = false;
+$hiddenCode = null;
+$hiddenAnonymous = false;
+if ($mode === 'love' && $hiddenState['person'] !== null) {
+    foreach (array_keys($q) as $key) {
+        if (str_starts_with($key, 'b_')) {
+            unset($q[$key]);
+        }
+    }
+    foreach ($hiddenState['person'] as $key => $value) {
+        $q['b_' . $key] = $value;
+    }
+    $hidden = true;
+    $hiddenCode = $hiddenState['code'];
+    $hiddenAnonymous = ($hiddenState['person']['name'] ?? '') === '';
+    if ($hiddenAnonymous) {
+        $q['b_name'] = 'Match';
+    }
+}
+unset($q['h'], $q['import']);
 $nowUnix = time(); // the clock is read here, nowhere else
 $userTz = null;
 $today = Request::resolveToday($q, $nowUnix, null);
@@ -59,9 +82,12 @@ $nowFields = static fn (?array $now): array => $now === null ? [] : [
     'pos_city' => $now['city'], 'pos_lat' => (string) $now['lat'], 'pos_lon' => (string) $now['lon'], 'pos_tz' => $now['tz'],
 ];
 $self = $person('', '12:00');
-$love = ['a' => $person('a_', '12:00'), 'b' => $person('b_', '')];
+$love = ['a' => $person('a_', '12:00'), 'b' => $hidden ? array_map(static fn (string $v): string => '', $person('b_', '')) : $person('b_', '')];
 $errors = [];
 $notes = [];
+if ($mode === 'love' && $hiddenState['invalid']) {
+    $notes[] = 'The hidden details in this link are not valid, so they were ignored.';
+}
 $view = null;
 $share = null;
 $fixedDay = null;
@@ -82,7 +108,7 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
     }
 } elseif ($mode === 'love') {
     foreach (array_keys($q) as $key) {
-        if (str_starts_with($key, 'a_') || str_starts_with($key, 'b_')) {
+        if (str_starts_with($key, 'a_') || (!$hidden && str_starts_with($key, 'b_'))) {
             $submitted = true;
             break;
         }
@@ -90,7 +116,19 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
     if ($submitted) {
         $parsed = Request::parseLove($q, new Geocoder(MAGIC_ROOT . '/cache'));
         $errors = $parsed['errors'];
-        $notes = $parsed['notes'];
+        $notes = array_merge($notes, $parsed['notes']);
+        if ($hidden) {
+            // Nothing about the shared person may reach the page, not even inside a message.
+            $mask = static fn (string $m): string => str_starts_with($m, 'Loved person: ') ? 'Some of the shared details could not be used.' : $m;
+            $errors = array_values(array_unique(array_map($mask, $errors)));
+            $notes = array_values(array_unique(array_map($mask, $notes)));
+            if ($parsed['b'] !== null) {
+                $parsed['b'] = ['label' => 'Your match', 'anonymous' => $hiddenAnonymous] + $parsed['b'];
+                if ($hiddenAnonymous) {
+                    $parsed['b']['name'] = '';
+                }
+            }
+        }
         if ($parsed['a'] !== null && $parsed['b'] !== null) {
             $tarotParam = Request::parseTarot($q);
             $userTz = $parsed['a']['now']['tz'] ?? null;
@@ -101,6 +139,9 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
             }
             $notes = array_merge($notes, $view['notes']);
             foreach (['a' => 'a_', 'b' => 'b_'] as $k => $p) {
+                if ($hidden && $k === 'b') {
+                    continue;
+                }
                 $love[$k] = array_merge($love[$k], $nowFields($parsed[$k]['now']));
                 if ($parsed[$k]['place'] !== null) {
                     $pl = $parsed[$k]['place'];
@@ -113,7 +154,7 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
 
 $onOverride = isset($q['on']) && $q['on'] === $today ? $today : null;
 
-if ($view !== null) {
+if ($view !== null && !$hidden) {
     // Share section: frozen link (also the QR) and a live link, built from the validated model only.
     $longFrozen = $mode === 'self'
         ? ShareLink::self($in, $today)
@@ -138,6 +179,9 @@ if ($view !== null) {
     }
     $realToday = Zone::dateAt($nowUnix, $userTz ?? 'UTC');
     $fixedDay = $today !== $realToday ? ['date' => $today, 'live' => './?' . $liveQuery] : null;
+} elseif ($view !== null) {
+    // A result with hidden details has no share section and no live link.
+    $fixedDay = $today !== Zone::dateAt($nowUnix, $userTz ?? 'UTC') ? ['date' => $today, 'live' => null] : null;
 }
 
 if ($codeNote !== null) {
