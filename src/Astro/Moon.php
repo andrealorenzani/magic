@@ -5,7 +5,7 @@ namespace Magic\Astro;
 
 final class Moon
 {
-    /** Longitude terms (Meeus ch. 47, table 47.A): [D, M, M', F, coefficient in 1e-6 degrees]. */
+    /** Longitude terms. */
     private const TERMS = [
         [0, 0, 1, 0, 6288774], [2, 0, -1, 0, 1274027], [2, 0, 0, 0, 658314],
         [0, 0, 2, 0, 213618], [0, 1, 0, 0, -185116], [0, 0, 0, 2, -114332],

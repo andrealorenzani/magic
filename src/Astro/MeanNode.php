@@ -5,7 +5,7 @@ namespace Magic\Astro;
 
 final class MeanNode
 {
-    /** Mean longitude of the Moon's ascending (north) node, degrees (Meeus 47.7). South node = +180. */
+    /** Mean longitude of the Moon's ascending (north) node, degrees. South node = +180. */
     public static function longitude(float $jd): float
     {
         $T = Angles::centuries($jd);

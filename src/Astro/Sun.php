@@ -5,7 +5,7 @@ namespace Magic\Astro;
 
 final class Sun
 {
-    /** Apparent geocentric ecliptic longitude in degrees (Meeus ch. 25, low precision). */
+    /** Apparent geocentric ecliptic longitude in degrees. */
     public static function longitude(float $jd): float
     {
         $T = Angles::centuries($jd);

@@ -5,14 +5,7 @@ namespace Magic\Astro;
 
 use InvalidArgumentException;
 
-/**
- * Geocentric ecliptic longitudes of Mercury..Pluto from the JPL "Keplerian Elements for
- * Approximate Positions of the Major Planets" (E. M. Standish), Table 1, valid 1800-2050
- * (extrapolated to 2100 here with slowly growing error).
- *
- * Ignored on purpose: light-time (<= 0.01 deg), annual aberration (~0.006 deg),
- * Earth-vs-barycentre offset (<= 0.005 deg) and ecliptic latitude. Plenty for sign placement.
- */
+/** Geocentric ecliptic longitudes of Mercury..Pluto (1800-2100), accurate enough for sign placement. */
 final class Planets
 {
     public const BODIES = ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
