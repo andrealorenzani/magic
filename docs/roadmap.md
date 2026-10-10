@@ -15,6 +15,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Current position, short links, browser memory and derived features ([ADR 0005](decisions/0005-profile-compact-share-and-roadmap.md), v0.7): optional current city and reading-day rule, distance and geography, short `?c=` share links with a smaller QR, browser memory with "Forget my data", Midheaven, houses and chart wheel, moon phase and Today's sky, synastry, 78-card tarot, geocoding cache cap, Terms version 2 (audit `format_version` 3)
 - Menu, hidden sharing and import, help popovers, Self name, v0.8 ([ADR 0006](decisions/0006-menu-hidden-import-hints-and-fixes.md)): Menu (clean browser data, share hidden data), hidden-details link/QR and import by paste or scan, optional Self name, "?" popovers, click-to-copy and collapsible QR, required marks, smaller wheel, Terms section and gate fixes, Terms version 3 (audit `format_version` 4 for hidden-link opens)
 - Self Discovery first, Soul Affinity, Friends hidden codes, v0.9 ([ADR 0007](decisions/0007-self-first-soul-affinity-and-friends-codes.md)): Menu removed, Self buttons (Generate hidden data code, Clear data, Reveal my sky, Save the data), Soul Affinity (Love renamed in the UI) unlocked by stored Self data with no "You" part, Import from a user, Friends hidden codes in the browser with nicknames, shared confirm dialog, newcomer hidden-link path, Terms version 4 (no audit format change)
+- Business README, badges, quiet buttons, v0.10 ([ADR 0008](decisions/0008-readme-badges-quiet-ui-help-terms-no-self-share.md)): README as a business specification, `DEVELOPER.md`, `VERSION` and badges (`scripts/update-badges.sh`), quiet buttons with `.btn--primary`, WhatsApp button for hidden codes, honest hidden-code wording, help terms replacing the "?" buttons (33 keys), Self Discovery without a share section, no "Sharing" stub for hidden-derived Soul Affinity, compact Friends list with icon buttons, Terms version 5
 - Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)
@@ -33,6 +34,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (link th
 - Italian and other languages
 - Sidereal zodiac toggle
 - PWA / offline support
+- Real encryption of hidden codes, so only the chosen recipient can read them (today a hidden code is only an encoding; needs its own ADR)
 - Hidden links without the data inside them (needs server-side storage and its own ADR)
 - Optional "private mode" (POST) so names stay out of URLs and logs
 - Longer place labels in short codes (today cut at 32 bytes)

@@ -6,7 +6,7 @@
 require_once __DIR__ . '/help.php';
 ?>
 <div class="hiddenperson" data-hidden-person>
-  <div class="head"><p><strong><?= e($nick ?? 'Your match') ?></strong></p><?php help_button('love.match_hidden'); ?></div>
+  <p><strong><?= e($nick ?? 'Your match') ?></strong></p>
   <p>Details shared with you are loaded and hidden. You will only see the match results.</p>
   <p><a href="./?mode=love">Remove them</a></p>
 </div>

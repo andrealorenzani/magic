@@ -28,13 +28,14 @@ $flOrder = function (string $html, array $needles): bool {
 };
 
 // ---- request ----
-check('flow: friends is a mode, Consent version is 4, the old value asks again', function () {
+check('flow: friends is a mode, Consent version is 5, the old value asks again', function () {
     same(in_array('friends', Request::MODES, true), true);
     same(Request::mode(['mode' => 'friends']), 'friends');
     same(Request::mode(['mode' => 'nope']), null);
-    same(Consent::VALUE, '4');
+    same(Consent::VALUE, '5');
     same(Consent::given(['magic_terms' => '3']), false);
-    same(Consent::given(['magic_terms' => '4']), true);
+    same(Consent::given(['magic_terms' => '5']), true);
+    same(Consent::given(['magic_terms' => '4']), false);
 });
 check('flow: nickname rules', function () {
     same(Request::nickname([]), ['nick' => null, 'invalid' => false]);
@@ -75,13 +76,13 @@ check('flow: Self form has half-width fields and the four buttons in order with 
     [$out] = $sharePage(['mode' => 'self']);
     same($flOrder($out, ['class="split__main"', 'data-self-actions', 'data-self-hidden-code', 'data-self-clear', 'data-self-reveal', 'data-self-save']), true);
     same($flOrder($out, ['>Generate hidden data code<', '>Clear data<', '>Reveal my sky<', '>Save the data<']), true);
-    same(preg_match('/<button type="button" class="is-empty" aria-disabled="true" data-self-hidden-code>/', $out), 1);
-    same(preg_match('/<button type="button" class="is-empty" aria-disabled="true" data-self-clear>/', $out), 1);
-    same(preg_match('/<button type="submit" data-self-reveal>/', $out), 1);
-    same(preg_match('/<button type="button" data-self-save hidden>/', $out), 1);
+    same(preg_match('/<button type="button" class="is-empty" aria-disabled="true" data-self-hidden-code title="[^"]+">/', $out), 1);
+    same(preg_match('/<button type="button" class="is-empty" aria-disabled="true" data-self-clear title="[^"]+">/', $out), 1);
+    same(preg_match('/<button type="submit" class="btn--primary" data-self-reveal title="[^"]+">/', $out), 1);
+    same(preg_match('/<button type="button" data-self-save hidden title="[^"]+">/', $out), 1);
     same(str_contains($out, 'Your details are remembered in this browser only.'), true);
     same(substr_count($out, '<dialog class="confirm no-print" data-confirm'), 1);
-    same(str_contains($out, 'data-confirm-yes>Yes, continue') && str_contains($out, 'data-confirm-no>Cancel'), true);
+    same(str_contains($out, 'class="btn--primary" data-confirm-yes>Yes, continue') && str_contains($out, 'data-confirm-no>Cancel'), true);
     same(preg_match('/\sstyle=|<script(?![^>]*\ssrc=)|\son[a-z]+=/i', $out), 0);
 });
 check('flow: a Self result unlocks the other sections and links Soul Affinity with the validated details', function () use ($sharePage, $flSelf) {
@@ -171,7 +172,7 @@ check('flow: Self with a pending hidden code: banner, hidden h, nickname field; 
     same(str_contains($out, '<input type="hidden" name="h" value="' . $flCode . '">'), true);
     same(preg_match('/name="nick" type="text" maxlength="40" autocomplete="off" value="Bea"/', $out), 1);
     [$res] = $sharePage($flSelf + ['mode' => 'self', 'h' => $flCode, 'nick' => 'Bea', 'on' => '2026-10-09', 'noaudit' => ''], $flSrv);
-    same(str_contains($res, 'Share this reading'), true);
+    same(str_contains($res, 'Share this reading'), false);
     preg_match_all('/(?:value|href)="([^"]*(?:\?|&amp;)(?:c|mode)=[^"]*)"/', $res, $links);
     same(count($links[1]) > 0, true);
     foreach ($links[1] as $l) {
@@ -226,8 +227,9 @@ check('flow: friends page builds no result and no audit; list structure, search,
 
 // ---- help, CSS, scripts ----
 check('flow: help keys of this feature exist, old menu keys are gone', function () {
-    foreach (['self.hidden_code', 'self.clear', 'self.save', 'self.reveal', 'field.nick', 'friends.list', 'friends.search', 'love.import'] as $k) {
-        same(isset(Help::TEXT[$k]), true);
+    same(isset(Help::TEXT['field.nick']), true);
+    foreach (['self.hidden_code', 'self.clear', 'self.save', 'self.reveal', 'friends.list', 'friends.search', 'love.import'] as $k) {
+        same(isset(Help::TEXT[$k]), false);
     }
     same(isset(Help::TEXT['menu.clean']) || isset(Help::TEXT['menu.share_hidden']), false);
 });

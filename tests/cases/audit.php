@@ -227,7 +227,7 @@ check('audit log: connection failure is fast, logged without request data or cre
 
 // Run public/index.php in a subprocess and return [exit code, output].
 $runPage = function (array $get, string $config, string $errorLog, bool $consent = true) use ($root): array {
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "4"]' : '[]') . '; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "5"]' : '[]') . '; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
     $cmd = 'MAGIC_CONFIG=' . escapeshellarg($config) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($errorLog)
         . ' -r ' . escapeshellarg($code) . ' ' . escapeshellarg((string) json_encode($get)) . ' ' . escapeshellarg($root . '/public/index.php') . ' 2>&1';
     exec($cmd, $out, $rc);
@@ -254,7 +254,8 @@ check('without accepted terms: popup only, no result, no audit attempt', functio
     same(is_file($log) && str_contains((string) file_get_contents($log), 'audit:'), false);
 });
 check('consent: cookie check and safe redirect query', function () {
-    same(\Magic\Consent::given(['magic_terms' => '4']), true);
+    same(\Magic\Consent::given(['magic_terms' => '5']), true);
+    same(\Magic\Consent::given(['magic_terms' => '4']), false);
     same(\Magic\Consent::given(['magic_terms' => '2']), false);
     same(\Magic\Consent::given(['magic_terms' => '3']), false);
     same(\Magic\Consent::given(['magic_terms' => '0']), false);

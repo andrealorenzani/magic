@@ -109,7 +109,7 @@ check('help: every key used in a template exists; every key exists on a rendered
         if (str_ends_with($f, 'partials/help.php')) {
             continue;
         }
-        preg_match_all("/help_button\('([a-z_.]+)'(\s*\.)?/", (string) file_get_contents($f), $m, PREG_SET_ORDER);
+        preg_match_all("/help_term\('([a-z_.]+)'(\s*\.)?/", (string) file_get_contents($f), $m, PREG_SET_ORDER);
         foreach ($m as $x) {
             if (isset($x[2])) {
                 same(isset(Help::DYNAMIC[rtrim($x[1], '.')]) || count(array_filter(Help::keys(), fn ($k) => str_starts_with($k, $x[1]))) > 0, true);
@@ -127,11 +127,13 @@ check('help: every key used in a template exists; every key exists on a rendered
         }
         preg_match_all('/<(?:span|button|div|p|h2|input)[^>]* id="([^"]+)"/', $html, $ids);
         same(count($ids[1]), count(array_unique($ids[1])));
-        preg_match_all('/aria-controls="(help-\d+)"/', $html, $c);
+        preg_match_all('/data-help-for="(help-\d+)"/', $html, $c);
         foreach ($c[1] as $id) {
-            same(str_contains($html, 'id="' . $id . '"'), true);
+            same(substr_count($html, 'id="' . $id . '"'), 1);
         }
-        same(substr_count($html, 'aria-expanded="false" aria-controls="help-'), count($c[1]));
+        same(substr_count($html, 'class="help__pop" hidden data-help="'), count($c[1]));
+        same(str_contains($html, 'help__btn'), false);
+        same(preg_match('/<label[^>]*>(?:(?!<\/label>).)*class="help"/s', $html), 0);
     }
     foreach (Help::keys() as $k) {
         if (!isset($seen[$k])) {
@@ -151,7 +153,7 @@ check('help: texts are 20-240 characters, unique, plain words only; unknown key 
         }
     }
     same(count(array_unique($texts)), count($texts));
-    same(count(Help::TEXT) >= 40, true);
+    same(count(Help::TEXT), 33);
     if (!function_exists('e')) {
         require_once dirname(__DIR__, 2) . '/src/bootstrap.php';
     }
@@ -159,7 +161,7 @@ check('help: texts are 20-240 characters, unique, plain words only; unknown key 
     $thrown = false;
     try {
         ob_start();
-        help_button('no.such.key');
+        help_term('no.such.key', 'x');
     } catch (InvalidArgumentException) {
         $thrown = true;
     } finally {
@@ -184,7 +186,7 @@ check('help.js: Escape, outside click, no storage, network or HTML injection; no
 
 // ---- QR blocks and share.js ----
 check('qr: collapsible open block, copy target exists, status line, hint hidden until the script runs', function () use ($sharePage) {
-    [$out] = $sharePage(['mode' => 'self', 'date' => '1990-07-15', 'time' => '08:30', 'city' => 'Rome', 'lat' => '41.9', 'lon' => '12.5', 'tz' => 'Europe/Rome', 'on' => '2026-10-09', 'noaudit' => ''],
+    [$out] = $sharePage(['mode' => 'love', 'a_name' => 'Ann', 'a_date' => '1990-07-15', 'a_time' => '08:30', 'a_city' => 'Rome', 'a_lat' => '41.9', 'a_lon' => '12.5', 'a_tz' => 'Europe/Rome', 'b_name' => 'Silvia', 'on' => '2026-10-09', 'noaudit' => ''],
         ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     same(preg_match('/<details class="share__qrbox" open>\s*<summary>QR code<\/summary>.*?data-qr-copy="share-link".*?<svg class="qr".*?<\/details>/s', $out), 1);
     same(str_contains($out, 'id="share-link"'), true);
@@ -248,4 +250,133 @@ check('css: wheel is small, lighter than the panel, with bright strokes, readabl
 });
 check('wheel: drawn glyphs keep the larger minimum separation', function () {
     same(Magic\ChartWheel::MIN_SEPARATION >= 10.0, true);
+});
+
+// ---- ADR 0008: quiet buttons, help terms, Friends, WhatsApp ----
+$uiRemovedHelp = ['field.name', 'field.date', 'field.time', 'field.import', 'self.hidden_code', 'self.clear', 'self.save', 'self.reveal', 'friends.list', 'friends.search',
+    'share.link', 'share.qr', 'share.live', 'self.midheaven', 'self.houses', 'self.retrograde', 'self.geo', 'love.sync_overall', 'love.import', 'love.match_hidden'];
+check('help: the 20 removed keys are gone, 33 remain, none left in templates', function () use ($uiRoot, $uiRemovedHelp) {
+    foreach ($uiRemovedHelp as $k) {
+        same([$k, isset(Help::TEXT[$k])], [$k, false]);
+    }
+    same(count(Help::TEXT), 33);
+    $files = array_merge(glob($uiRoot . '/templates/*.php'), glob($uiRoot . '/templates/partials/*.php'));
+    foreach ($files as $f) {
+        $src = (string) file_get_contents($f);
+        same([$f, str_contains($src, 'help_button')], [$f, false]);
+        foreach ($uiRemovedHelp as $k) {
+            same([$f, $k, str_contains($src, "'" . $k . "'")], [$f, $k, false]);
+        }
+    }
+});
+check('help: an unknown key prints the plain label outside tests; term markup is escaped', function () {
+    require_once dirname(__DIR__, 2) . '/templates/partials/help.php';
+    ob_start();
+    help_term('self.sun', 'A<b>');
+    $html = ob_get_clean();
+    same(str_contains($html, '<span class="help__term" data-help-for="help-'), true);
+    same(str_contains($html, 'A&lt;b&gt;') && !str_contains($html, 'A<b>'), true);
+    same(preg_match('/<span id="help-\d+" class="help__pop" hidden data-help="self.sun">/', $html), 1);
+});
+check('buttons: only the listed buttons are primary; quiet default has no gradient; contrast of quiet and disabled text', function () use ($uiCss, $uiRatio, $sharePage, $uiRoot) {
+    preg_match('/\nbutton, \.btn \{([^}]*)\}/', $uiCss, $m);
+    same(str_contains($m[1], 'gradient'), false);
+    same(str_contains($m[1], 'background: transparent'), true);
+    preg_match('/\n\.btn--primary \{([^}]*)\}/', $uiCss, $p);
+    same(str_contains($p[1], 'linear-gradient'), true);
+    same(preg_match('/--gold: (#[0-9a-f]{6}).*--panel: |--panel: (#[0-9a-f]{6})/s', $uiCss) === 1, true);
+    preg_match('/--panel: (#[0-9a-f]{6})/', $uiCss, $panel);
+    preg_match('/--gold: (#[0-9a-f]{6})/', $uiCss, $gold);
+    preg_match('/--muted: (#[0-9a-f]{6})/', $uiCss, $muted);
+    same($uiRatio($gold[1], $panel[1]) >= 4.5, true);
+    same($uiRatio($muted[1], $panel[1]) >= 3, true);
+    $primary = [];
+    foreach ([['mode' => 'self'], ['mode' => 'love']] as $get) {
+        [$out] = $sharePage($get);
+        preg_match_all('/<button[^>]*class="[^"]*btn--primary[^"]*"[^>]*>([^<]*)</', $out, $b);
+        $primary = array_merge($primary, $b[1]);
+    }
+    sort($primary);
+    same($primary, ['Explore our connection', 'Reveal my sky', 'Yes, continue', 'Yes, continue']);
+    [$gate] = $sharePage([], [], false);
+    same(preg_match('/<button type="submit" class="btn--primary" name="action" value="accept" autofocus>I accept the Terms and Conditions</', $gate), 1);
+    foreach (['Generate hidden data code', 'Clear data', 'Save the data', 'Copy link', 'Scan a QR code', 'Explore with these details'] as $quiet) {
+        [$out] = $sharePage(['mode' => 'self']);
+        $quietHtml = $out;
+        same(preg_match('/<button[^>]*btn--primary[^>]*>' . preg_quote($quiet, '/') . '</', $quietHtml), 0);
+    }
+    $src = (string) file_get_contents($uiRoot . '/templates/partials/confirm.php');
+    same(str_contains($src, 'btn--primary'), true);
+});
+check('css: help terms, popup, bottom sheet, print, icon buttons', function () use ($uiCss) {
+    same(preg_match('/\n\.help__term \{[^}]*border-bottom/', $uiCss), 0);
+    same(preg_match('/\.help--on \.help__term \{[^}]*border-bottom: 1px dotted/', $uiCss), 1);
+    preg_match('/\n\.help__pop \{([^}]*)\}/', $uiCss, $m);
+    same(str_contains($m[1], 'position: absolute') && str_contains($m[1], 'max-width'), true);
+    same(preg_match('/@media \(max-width: 720px\) \{\s*\.help__pop \{[^}]*position: fixed[^}]*bottom/', $uiCss), 1);
+    $print = substr($uiCss, (int) strpos($uiCss, '@media print'));
+    same(str_contains($print, '.help__pop') && str_contains($print, '.help--on .help__term { border-bottom: 0'), true);
+    preg_match('/\n\.iconbtn \{([^}]*)\}/', $uiCss, $i);
+    same(str_contains($i[1], 'min-width: 32px') && str_contains($i[1], 'min-height: 32px'), true);
+    same(str_contains($uiCss, '.help__btn'), false);
+});
+check('help.js: keyboard, ARIA, placement through the CSSOM; share.js: single messaging address, no window.open', function () use ($uiRoot) {
+    $js = (string) file_get_contents($uiRoot . '/public/assets/help.js');
+    foreach (['role', 'tabindex', 'aria-expanded', 'aria-controls', 'keydown', 'getBoundingClientRect', 'style.left', 'Escape', 'closest(".help")'] as $n) {
+        same([$n, str_contains($js, $n)], [$n, true]);
+    }
+    $share = (string) file_get_contents($uiRoot . '/public/assets/share.js');
+    same(substr_count($share, 'https://wa.me/'), 1);
+    foreach (['encodeURIComponent', 'data-hidden-whatsapp'] as $n) {
+        same([$n, str_contains($share, $n)], [$n, true]);
+    }
+    foreach (['window.open', 'innerHTML', 'localStorage', 'sessionStorage'] as $bad) {
+        same([$bad, str_contains($share, $bad)], [$bad, false]);
+    }
+});
+check('csp: unchanged, no third-party host, no external script in any template', function () use ($uiRoot) {
+    $ht = (string) file_get_contents($uiRoot . '/public/.htaccess');
+    same(str_contains($ht, "script-src 'self'") && str_contains($ht, "form-action 'self'"), true);
+    same(preg_match('/wa\.me|whatsapp/i', $ht), 0);
+    foreach (array_merge(glob($uiRoot . '/templates/*.php'), glob($uiRoot . '/templates/partials/*.php')) as $f) {
+        same([$f, str_contains((string) file_get_contents($f), '<script src="http')], [$f, false]);
+    }
+});
+check('friends: compact panel with icon buttons, accessible names, selected count hook, no visible button labels', function () use ($sharePage, $uiRoot) {
+    [$out] = $sharePage(['mode' => 'friends']);
+    same(preg_match('/<button type="button" class="iconbtn" data-friends-selectall aria-label="Select all shown" title="Select all shown"><svg[^>]*aria-hidden="true"/', $out), 1);
+    same(preg_match('/<button type="button" class="iconbtn" data-friends-remove-selected disabled aria-label="Remove selected \(0\)" title="Remove selected \(0\)"><svg/', $out), 1);
+    same(str_contains($out, 'data-friends-selected'), true);
+    same(preg_match('/<a class="iconbtn" data-friend-compare href="[^"]*" aria-label="Compare with this friend" title="Compare"><svg/', $out), 1);
+    same(preg_match('/<button type="button" class="iconbtn" data-friend-remove aria-label="Remove this friend" title="Remove"><svg/', $out), 1);
+    same(preg_match('/<label for="friends-search" class="sr-only">Search by nickname<\/label>/', $out), 1);
+    same(str_contains($out, 'Select all shown</button>') || str_contains($out, 'Remove</button>'), false);
+    $mem = (string) file_get_contents($uiRoot . '/public/assets/memory.js');
+    same(str_contains($mem, 'setText(selected'), true);
+    $icons = (string) file_get_contents($uiRoot . '/templates/partials/icons.php');
+    foreach (['check-all', 'trash', 'compare', 'x'] as $name) {
+        same([$name, str_contains($icons, "'" . $name . "' =>")], [$name, true]);
+    }
+});
+check('self page: no share section; hidden-derived Love: no Sharing section, via h and via import', function () use ($sharePage) {
+    $self = ['mode' => 'self', 'date' => '1990-07-15', 'time' => '08:30', 'city' => 'Rome', 'lat' => '41.9', 'lon' => '12.5', 'tz' => 'Europe/Rome', 'on' => '2026-10-09', 'noaudit' => ''];
+    [$out] = $sharePage($self, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    same(preg_match('/Share this reading|id="share-h"|id="share-link"|data-copy="share-link"|data-qr-copy="share-link"/', $out), 0);
+    same(str_contains($out, 'id="results"') && str_contains($out, 'data-print'), true);
+    $hid = 'MApaZXJiaW5ldHRhsC6EBdZl4HiXGCUEqTK8tbUwuzS1gA';
+    $love = ['mode' => 'love', 'a_name' => 'Ann', 'a_date' => '1990-07-15', 'a_time' => '08:30', 'a_city' => 'Rome', 'a_lat' => '41.9', 'a_lon' => '12.5', 'a_tz' => 'Europe/Rome', 'on' => '2026-10-09', 'noaudit' => ''];
+    foreach ([['h' => $hid], ['import' => 'https://example.org/?h=' . $hid]] as $extra) {
+        [$out] = $sharePage($love + $extra, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+        same(str_contains($out, 'class="tarot__card '), true);
+        same(preg_match('/Share this reading|>Sharing<|has no share link|id="share-h"/', $out), 0);
+    }
+});
+check('love page with typed people: share links never carry h or nick', function () use ($sharePage) {
+    $love = ['mode' => 'love', 'a_name' => 'Ann', 'a_date' => '1990-07-15', 'a_time' => '08:30', 'a_city' => 'Rome', 'a_lat' => '41.9', 'a_lon' => '12.5', 'a_tz' => 'Europe/Rome',
+        'b_name' => 'Silvia', 'b_date' => '1991-03-02', 'on' => '2026-10-09', 'noaudit' => '', 'nick' => 'Bea'];
+    [$out] = $sharePage($love, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    same(str_contains($out, 'id="share-h"'), true);
+    preg_match('/id="share-link"[^>]*value="([^"]*)"/', $out, $m);
+    same(str_contains($m[1], 'nick') || str_contains($m[1], 'h='), false);
+    same(str_contains($out, 'is not encrypted. Share it only with people you trust.'), true);
 });

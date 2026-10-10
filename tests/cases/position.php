@@ -236,9 +236,10 @@ check('position: audit love record has positions a/b and distance keys', functio
 });
 
 // ---- Terms consent value ----
-check('position: consent cookie value is 4, the old value asks again', function () {
-    same(Consent::VALUE, '4');
-    same(Consent::given(['magic_terms' => '4']), true);
+check('position: consent cookie value is 5, the old value asks again', function () {
+    same(Consent::VALUE, '5');
+    same(Consent::given(['magic_terms' => '5']), true);
+    same(Consent::given(['magic_terms' => '4']), false);
     same(Consent::given(['magic_terms' => '2']), false);
     same(Consent::given(['magic_terms' => '3']), false);
     same(Consent::given(['magic_terms' => '1']), false);

@@ -123,8 +123,23 @@
     holder.appendChild(svg);
   };
 
+  const MESSAGE_URL = "https://wa.me/";
+  const MESSAGE_INTRO = "Compare yourself with me on Magic:";
+  const MESSAGE_MAX = 1500;
+
   const panel = document.querySelector("[data-hidden-panel]");
   if (panel) {
+    const messageBtn = panel.querySelector("[data-hidden-whatsapp]");
+    const setMessage = (link) => {
+      if (!messageBtn) return;
+      messageBtn.hidden = true;
+      messageBtn.setAttribute("href", "#");
+      if (typeof link !== "string" || !/^https?:\/\//i.test(link)) return;
+      const target = MESSAGE_URL + "?text=" + encodeURIComponent(MESSAGE_INTRO + " " + link);
+      if (target.length > MESSAGE_MAX) return;
+      messageBtn.setAttribute("href", target);
+      messageBtn.hidden = false;
+    };
     const input = panel.querySelector("[data-hidden-link]");
     const qrBox = panel.querySelector("[data-hidden-qrbox]");
     const qrHolder = panel.querySelector("[data-hidden-qr]");
@@ -149,6 +164,7 @@
       panel.hidden = false;
       qrBox.hidden = true;
       input.value = "";
+      setMessage(null);
       showStatus(panel, "Creating your link…");
 
       const request = fetch("hidden.php", {
@@ -174,6 +190,7 @@
             throw new Error(j && typeof j.error === "string" ? j.error : "server");
           }
           input.value = j.link;
+          setMessage(j.link);
           const lines = [];
           if (j.qr && typeof j.qr.path === "string" && Number.isInteger(j.qr.size)) {
             drawQr(qrHolder, j.qr.size, j.qr.path);

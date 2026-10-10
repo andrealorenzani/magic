@@ -1,95 +1,144 @@
-# ✦ Magic
+![version](docs/badges/version.svg) ![lines of code](docs/badges/loc.svg) [![deployed](docs/badges/deployed.svg)](https://magic.supermaestro.org)
 
-A page for magic lovers in three steps (choose on the home page): Self Discovery, Soul Affinity, Friends hidden codes.
+This project can be used on [magic.supermaestro.org](https://magic.supermaestro.org)
 
-**1. Self Discovery** — enter your **birth date**, **birth time** and **birth city**:
-- ☉ ↑ ☽ **Sun, Ascendant and Moon** signs
-- **Mercury to Pluto** and the mean North Node, with retrograde marks (births 1800-2100)
-- the **Midheaven**, the house of each body and a **chart wheel**
-- the **signs with most affinity** to you and the sign of the **love of your life**
-- **born under** (moon phase at birth) and **Today's sky**
-- your three **biorhythms** (physical, emotional, intellectual) for today, with next peaks and troughs
+# Magic
 
-**2. Soul Affinity** (locked until your Self Discovery data is stored; it uses that data, so you do not type yourself again) — you plus another soul (their name is enough; date, time and city are optional, or import their hidden code):
-- **name affinity** in percent
-- **biorhythm synchrony** of the two of you (needs both birth dates)
-- **common values** in Sun, Moon and Ascendant, and a **synastry** table
-- a **Past / Present / Future tarot spread** (78 cards) for the two of you (same input and day give the same cards)
+## What Magic is
 
-**3. Friends hidden codes** (locked until Self Discovery data is stored; needs JavaScript) — the hidden codes friends shared with you, kept in your browser with a nickname you choose: search, rename, remove, Compare.
+A page for magic lovers, in three steps:
 
-Self Discovery has an optional **name** and the buttons Generate hidden data code, Clear data, Reveal my sky and Save the data. A small **?** next to fields and results explains them.
+1. **Self Discovery**: your own sky.
+2. **Soul Affinity**: how you and another soul fit together.
+3. **Friends hidden codes**: the people who shared their details with you, kept in your browser.
 
-**Hidden sharing.** "Generate hidden data code" makes a link and QR code with your details that another person can paste or scan in Soul Affinity ("Import from a user"); their screen does not show your name, birth data or place and the result has no share section. "Hidden" only means not shown: the link contains the details, so share it only with someone you trust. Opening such a link is recorded in the audit like any Soul Affinity result.
+It is free and needs no account. Everything is for wonder, not science.
 
-Self Discovery and Soul Affinity have an optional **current city**: it sets your local "today" and shows the **distance** between places. Details in [docs/features.md](docs/features.md).
+## Self Discovery
 
-Both results have a **Share** section and a **Print** button (and a print layout without forms), so you can keep a paper copy.
+You enter your birth date, birth time and birth city. You can add a name and a current city.
 
-**Sharing.** Under a result, "Share this reading" shows a short link (`?c=...`) to the exact reading (same day, and in Love the same tarot cards) with a small QR code, a link to a live reading (same people, today's values), and a Copy button where the browser supports it. Old long links still work. The QR is generated on the server in pure PHP; if the link is too long for a QR only the link is shown. Links contain the names and birth details you entered: share them only with people you trust. Opening a shared link is not recorded in the audit again, because share links carry `noaudit`.
+You get:
 
-**Testing without recording.** Add `&noaudit` (or `?noaudit`) to any URL and that request is not written to the audit log.
+- Your Sun, Ascendant and Moon signs.
+- Mercury to Pluto and the North Node, with retrograde marks (births from 1800 to 2100).
+- The Midheaven and the house of each body.
+- The signs in tune with you and the sign of the love of your life.
+- Born under: the Moon phase on your birth day.
+- Today's sky: the Moon phase and a short reading for the day.
+- Three biorhythms (physical, emotional, intellectual) with their next peaks and low points.
+- A chart wheel (next section).
+- A print button and a print layout without forms.
 
-Name affinity, biorhythms, scores and tarot are for wonder, not science.
+Buttons:
 
-PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac. Sun and Moon are very accurate; planets (1800-2100) are approximate. Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the day at your current city if you enter one, else the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
+- **Reveal my sky** shows the report.
+- **Save the data** keeps your details in your browser without showing the report.
+- **Generate hidden data code** makes a link and a QR code for a friend (see "Hidden data codes").
+- **Clear data** erases what your browser remembers.
 
-**Browser memory.** If your browser allows it, your own details, a short list of people you looked up and your friends' hidden codes with nicknames are remembered in your browser only, never stored by the server; "Clear data" erases them (the Terms acceptance stays), and so does withdrawing your acceptance.
+## The chart wheel
 
-**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.9 (version 4), so everybody accepts once again. The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
+The wheel is a round picture of the sky at the moment and place of birth.
 
-**Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address or user agent is stored and nothing is used to track you. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
+- The outer ring holds the twelve signs.
+- Each planet is drawn with its symbol where it stood.
+- The numbers 1 to 12 mark the twelve houses, which stand for areas of life such as home, work and relationships.
+- The left edge marks the Ascendant and the top marks the Midheaven.
+- A table beside the picture lists the same positions in words. It is the exact version.
+- Symbols that would overlap are moved slightly apart so they stay readable.
+- The wheel can be collapsed and it prints with the report.
 
-## Run it
+## Soul Affinity
 
-### With Docker (PHP, Apache and MySQL included)
+It is locked until your Self Discovery data is stored. It then uses your data, so you never type yourself again.
 
-```bash
-docker compose up --build     # page at http://localhost:8081
-```
+For the other soul, the name is enough. Date, time and city are optional, and each detail unlocks more results.
 
-Open the page and accept the Terms and Conditions in the popup (results are recorded in the local database only after that).
+You get:
 
-- **Database content:** the `migrations/` folder is applied automatically the first time the data volume is created. Apply it again later with `scripts/docker-db.sh migrate`; `scripts/docker-db.sh reset` wipes the volume and starts from scratch.
-- **Query it:** `scripts/docker-db.sh audit [N]` (latest N results, default 10), `scripts/docker-db.sh query "SELECT ..."`, `scripts/docker-db.sh shell` (interactive mysql). The database is not published to the host; to use your own client add `ports: ["127.0.0.1:3307:3306"]` to the `db` service in `docker-compose.yml`.
-- **Stop:** `docker compose down` (keeps the data); `docker compose down -v` also deletes the data.
-- The local database password is a throwaway default; override it with the `MAGIC_DB_PASSWORD` environment variable.
+- Name affinity in percent.
+- Biorhythm synchrony of the two of you (needs both birth dates).
+- What you have in common in Sun, Moon and Ascendant.
+- Synastry: the closest links between the two charts, each with a short meaning.
+- Distance between the two places, when known.
+- A Past, Present and Future tarot spread from a deck of 78 cards. The same people on the same day draw the same cards.
 
-### Without Docker
+You can also fill the other soul from a friend's hidden code ("Import from a user", by pasting the link or scanning the QR code) and give them a nickname that stays on your device.
 
-PHP 8.1+ is needed only if you prefer the built-in server or want to run the tests:
+## Friends hidden codes
 
-```bash
-php -S localhost:8081 -t public     # http://localhost:8081 (no database unless config.php exists)
-php tests/run.php                   # 248 tests (astronomy, time zones, input validation, all modes, audit, short links, browser memory, page flow)
-```
+It is locked until your Self Discovery data is stored, and needs a browser that allows storage.
 
-## Deploy (Apache shared hosting)
+The hidden codes your friends sent you are listed with a nickname you choose. You can:
 
-1. Set the site's **web directory to `<project>/public`** (PHP ≥ 8.1, preferred). Alternatively keep the project root as web directory: the root `.htaccess` serves `public/` and blocks `src/`, `docs/`, etc.
-2. Upload the whole project (SFTP/git) so `src/`, `templates/`, `cache/` sit beside `public/`.
-3. `chmod 775 cache` so geocoding results can be cached.
+- Search by nickname.
+- Rename a friend.
+- Remove one friend, or select several and remove them together.
+- Press Compare to open the Soul Affinity result at once.
 
-### Database (optional, audit trail)
+The list lives only in your browser. The details inside a code are never shown in the list.
 
-1. Create a MySQL database in the hosting panel.
-2. Create `config.php` in the project root (gitignored): either copy `config.php.example` and edit it, or run `scripts/make-config.sh` (reads the database section of `~/.password`; its name is `DB_PASSWORD_SECTION` in `.deploy.local`).
-3. Run `scripts/db-migrate.sh` (needs the `mysql` client and a database server that accepts your machine; otherwise paste `migrations/001_create_magic_audit.sql` into the panel's SQL tool).
+## Hidden data codes
 
-If the tables or `config.php` are missing, pages still work and the audit write fails silently. Manual retention: `scripts/db-purge.sh --days N`. Status: the tables have not been created in the real database yet (the server refused the connection from the development machine).
+Generate hidden data code gives you:
 
-Automated: copy `.deploy.local.example` to `.deploy.local` (gitignored), fill in the target, keep credentials in `~/.password`, commit, then run `scripts/deploy.sh [--dry-run] [--all]`. It runs the tests, uploads only committed files changed since the last deployed commit (via the `sftp-upload` skill), and uploads `config.php` too when it changed (contents never shown), and cannot delete remote files. The `/new-feature` pipeline ends with the `deployer` agent running this.
+- A link and a QR code, which you can copy or scan.
+- A **Share on WhatsApp** button that opens WhatsApp with the link ready to send.
 
-## How it works
+The person who opens it compares themselves with you without typing your details, and their screen does not show your name, birth data or place. The result calls you by the nickname they chose, or "Your match".
 
-The wall-clock birth time is converted to UTC with the PHP time zone database (historical DST), then the signs are determined for that instant and place. The Ascendant changes quickly, so birth-time precision matters; at extreme latitudes it is approximate.
+Be honest with yourself about what it is: the code is an **encoding, not encryption**. It is not a secret. Anyone who holds the link or the QR code can unpack it and read your name, birth date, time and place. Send it only to someone you trust. If you use WhatsApp, the link also passes through that service.
 
-Docs: [features](docs/features.md) · [architecture](docs/architecture.md) · [code map](docs/code.md) · [changelog](docs/changelog.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/).
+## Sharing a Soul Affinity reading
 
-## Building new features with agents
+When the other soul was typed in, the result has a Share section:
 
-```
-/new-feature "add Mercury and Venus signs"
-```
+- A **frozen link** that opens exactly the reading you saw: same day and same tarot cards.
+- A **live link** with the same people and the viewer's own today.
+- A small QR code, a Copy link button and a Share button where the browser has them.
 
-runs **architect** (reads `docs/`, writes an ADR) → **implementer** (code + tests) → **reviewer** → **documenter** (updates `docs/` and this README). Agents live in `.claude/agents/`; project rules in `CLAUDE.md`.
+There is no share link in these cases:
+
+- Self Discovery results have none.
+- A Soul Affinity result built from a friend's hidden data has none.
+
+Share links contain the names and birth details that were typed. They are not encrypted, so share them only with people you trust. Old shared links keep working.
+
+## Where you are now
+
+A current city is optional. When you give one:
+
+- It decides which calendar day counts as today for biorhythms, tarot and Today's sky.
+- It enables the distance between places.
+
+Without it, today is the server's date.
+
+## Remembered in your browser
+
+If your browser allows it, Magic remembers on your device only:
+
+- Your own details.
+- A short list of people you looked up.
+- Your friends' hidden codes and nicknames.
+
+None of it is stored by the server. Clear data erases all of it, and so does withdrawing your acceptance of the Terms. If the browser blocks storage, the page says so and keeps working without memory.
+
+## Terms and privacy
+
+- On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing is processed or recorded. The same text is at the end of the page, where you can withdraw.
+- Each result is recorded in an audit log: names, birth details, places and a summary of the result. Not recorded: your address, your browser, the address you visited.
+- Only the city text is sent to a free geocoding service to find the place. Nothing is used for tracking.
+- One functional cookie remembers your acceptance.
+- Records are not deleted automatically. The owner removes them by hand or on request.
+- Result addresses contain the typed details, so they are not indexed by search engines.
+
+## Limits
+
+- Planets are approximate and available for births from 1800 to 2100. Sun and Moon are very accurate.
+- The Ascendant, houses and wheel are approximate at extreme latitudes and are marked so.
+- A person with only a birth date has an approximate chart.
+- One house system, tropical zodiac only, English only.
+- Name affinity, biorhythms, scores and tarot are for wonder, not science.
+
+For running, testing and deploying the project, read [DEVELOPER.md](DEVELOPER.md). More documents are in the [docs](docs/) folder.

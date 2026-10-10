@@ -16,7 +16,7 @@ require_once __DIR__ . '/help.php';
   <?php if ($share['qr'] !== null): ?>
     <details class="share__qrbox" open>
       <summary>QR code</summary>
-      <div class="head"><p class="hint" data-qr-hint hidden>Click the QR code to copy the link.</p><?php help_button('share.qr'); ?></div>
+      <p class="hint" data-qr-hint hidden>Click the QR code to copy the link.</p>
       <div class="share__qr" data-qr-copy="share-link"><?php qr_svg($share['qr'], 'QR code of the link'); ?></div>
     </details>
   <?php elseif ($share['tooLong']): ?>
@@ -26,10 +26,10 @@ require_once __DIR__ . '/help.php';
   <details class="share__more">
     <summary>Show the link</summary>
     <div class="field share__label">
-      <div class="field__head"><label for="share-link">Link to this exact reading</label><?php help_button('share.link'); ?></div>
+      <div class="field__head"><label for="share-link">Link to this exact reading</label></div>
       <input type="text" id="share-link" class="share__input" readonly value="<?= e($share['frozen']) ?>">
     </div>
-    <div class="head"><p class="share__live">Link to a live reading (today's values, same people): <a href="<?= e($share['live']) ?>"><?= e($share['live']) ?></a></p><?php help_button('share.live'); ?></div>
-    <p class="note">The link contains the names and birth details you entered. Share it only with people you trust.</p>
+    <p class="share__live">Link to a live reading (today's values, same people): <a href="<?= e($share['live']) ?>"><?= e($share['live']) ?></a></p>
+    <p class="note">The link contains the names and birth details you entered and is not encrypted. Share it only with people you trust.</p>
   </details>
 </section>

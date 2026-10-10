@@ -4,13 +4,13 @@ require_once __DIR__ . '/help.php';
 ?>
 <fieldset class="import" data-import>
   <legend>Import from a user</legend>
-  <div class="head"><p class="hint">Someone shared their hidden details with you? Scan their QR code or paste their link. Their details are not shown on your screen; you only see the match results.</p><?php help_button('love.import'); ?></div>
+  <p class="hint">Someone shared their hidden details with you? Scan their QR code or paste their link. Their details are not shown on your screen; you only see the match results.</p>
   <div class="field">
-    <div class="field__head"><label for="nick">Nickname <small>(optional)</small></label><?php help_button('field.nick'); ?></div>
+    <div class="field__head"><label for="nick">Nickname <small>(optional)</small></label> <?php help_term('field.nick', 'What is this?'); ?></div>
     <input id="nick" name="nick" type="text" maxlength="40" autocomplete="off" value="">
   </div>
   <div class="field">
-    <div class="field__head"><label for="import">Paste a link or code</label><?php help_button('field.import'); ?></div>
+    <div class="field__head"><label for="import">Paste a link or code</label></div>
     <input id="import" name="import" type="text" maxlength="600" autocomplete="off" spellcheck="false" value="">
   </div>
   <div class="import__scan">

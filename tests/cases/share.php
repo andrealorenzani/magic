@@ -284,7 +284,7 @@ $shareClosed = function () use ($shareTmp): string {
 };
 $sharePage = function (array $get, array $server = [], bool $consent = true, ?string $log = null) use ($shareRoot, $shareClosed, $shareTmp): array {
     $log ??= "$shareTmp/sp-" . bin2hex(random_bytes(3)) . '.log';
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "4"]' : '[]')
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ' . ($consent ? '["magic_terms" => "5"]' : '[]')
         . '; $_SERVER = array_merge($_SERVER, ["REQUEST_METHOD" => "GET"], json_decode($argv[3], true)); ob_start(); require $argv[2];'
         . ' $o = ob_get_clean(); echo json_encode(["out" => $o, "headers" => headers_list()]);';
     $cmd = 'MAGIC_CONFIG=' . escapeshellarg($shareClosed()) . ' php -d display_errors=0 -d log_errors=1 -d error_log=' . escapeshellarg($log)
@@ -303,7 +303,7 @@ $loveGet = ['mode' => 'love', 'a_name' => 'Ann', 'a_date' => '1990-07-15', 'a_ti
 check('noaudit: result is rendered, no audit attempt and nothing logged; control without it logs the failed write', function () use ($sharePage, $selfGet, $loveGet) {
     foreach ([$selfGet, $loveGet] as $get) {
         [$out, , $log] = $sharePage($get + ['noaudit' => '']);
-        same(str_contains($out, 'id="results"') && str_contains($out, 'Share this reading'), true);
+        same(str_contains($out, 'id="results"') && str_contains($out, 'Share this reading') === ($get === $loveGet), true);
         same($log, '');
         [, , $log] = $sharePage($get);
         same(str_contains($log, 'audit: write failed'), true);
@@ -353,7 +353,7 @@ $shareHttp = (function () use ($shareRoot, $shareClosed, $shareTmp): callable {
 })();
 check('pages send no-store and Vary: Cookie on the chooser, the gate and results', function () use ($shareHttp, $selfGet) {
     $qs = http_build_query($selfGet);
-    foreach ([['/', []], ['/', ['Cookie: magic_terms=4']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=4']]] as [$path, $hdr]) {
+    foreach ([['/', []], ['/', ['Cookie: magic_terms=5']], ["/?$qs", []], ["/?$qs", ['Cookie: magic_terms=5']]] as [$path, $hdr]) {
         [$code, $h, $body] = $shareHttp('GET', $path, '', $hdr);
         $hs = strtolower(implode("\n", $h));
         same($code, 200);
@@ -389,7 +389,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same($code, 303);
     same(str_contains($hs, 'Location: ./?' . $qs . '#results'), true);
-    same(preg_match('/Set-Cookie: magic_terms=4;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
+    same(preg_match('/Set-Cookie: magic_terms=5;.*HttpOnly.*SameSite=Lax/i', $hs), 1);
     same(stripos($hs, '; secure') === false, true);
     same(str_contains($hs, 'Cache-Control: private, no-store') && preg_match('/^Vary:.*Cookie/mi', $hs) === 1, true);
     [, $h] = $post(['action' => 'accept', 'next' => $qs], ['X-Forwarded-Proto: https']);
@@ -403,7 +403,7 @@ check('consent.php over HTTP: accept keeps the query, 303, cookie flags, Secure 
     $hs = implode("\n", $h);
     same([$code, str_contains($hs, 'Location: ./'), str_contains($hs, 'Set-Cookie')], [303, true, false]);
     // Following the redirect with the cookie shows the result and no gate.
-    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=4']);
+    [, , $body] = $shareHttp('GET', '/?' . $qs, '', ['Cookie: magic_terms=5']);
     same(str_contains($body, 'class="gate"'), false);
     same(str_contains($body, 'Share this reading'), true);
     [, , $body] = $shareHttp('GET', '/?' . $qs);
@@ -418,23 +418,41 @@ check('csp: frame-ancestors, form-action and base-uri are set', function () use 
 });
 
 // ---- Result pages ----
-check('self page: share section with link, QR and live link; fixed-day note', function () use ($sharePage, $selfGet) {
-    [$out] = $sharePage($selfGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/?x']);
+check('love page: share section with link, QR and live link; fixed-day note; Self has none but keeps the live link', function () use ($sharePage, $selfGet, $loveGet) {
+    [$out] = $sharePage($loveGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/?x']);
     same(preg_match('/id="share-link" class="share__input" readonly value="http:\/\/localhost:8081\/\?c=[A-Za-z0-9_-]+"/', $out), 1);
     preg_match('/id="share-link"[^>]*value="[^"]*\?c=([^"]*)"/', $out, $cm);
     $dec = \Magic\Share\ShareCode::decode($cm[1]);
-    same($dec['date'] . '|' . $dec['on'] . '|' . isset($dec['noaudit']), '1879-03-14|2026-10-09|1');
+    same($dec['mode'] . '|' . $dec['a_date'] . '|' . $dec['on'] . '|' . isset($dec['noaudit']), 'love|1990-07-15|2026-10-09|1');
     same(substr_count($out, '<svg class="qr"'), 1);
-    [$fixed] = $sharePage(array_merge($selfGet, ['on' => '2001-02-03']), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
-    same(str_contains($fixed, 'This reading is fixed to 2001-02-03.') && str_contains($fixed, 'Open the live version'), true);
+    foreach ([$selfGet, $loveGet] as $get) {
+        [$fixed] = $sharePage(array_merge($get, ['on' => '2001-02-03']), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+        same(str_contains($fixed, 'This reading is fixed to 2001-02-03.') && str_contains($fixed, 'Open the live version'), true);
+    }
+    [$selfOut] = $sharePage($selfGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    foreach (['share-h', 'Share this reading', 'data-copy="share-link"', 'data-qr-copy="share-link"', 'id="share-link"', '<svg class="qr"', 'Sharing'] as $gone) {
+        same(str_contains($selfOut, $gone), false);
+    }
     same(preg_match('/Link to a live reading[^<]*<a href="http:\/\/localhost:8081\/\?c=[A-Za-z0-9_-]+"/', $out) === 1, true);
     same(str_contains($out, 'src="assets/share.js"') && str_contains($out, 'data-copy="share-link" hidden'), true);
-    [$out] = $sharePage(array_diff_key($selfGet, ['on' => 1]), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    [$out] = $sharePage(array_diff_key($loveGet, ['on' => 1]), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     same(str_contains($out, 'This reading is fixed to'), false);
-    [$out] = $sharePage($selfGet, []); // no usable origin: relative link, no QR
+    [$out] = $sharePage($loveGet, []); // no usable origin: relative link, no QR
     same(str_contains($out, '<svg class="qr"'), false);
     same(str_contains($out, 'value="./?c='), true);
 });
+check('old Self links: long query and c= code still render a Self result without a share section', function () use ($sharePage, $selfGet, $shareGeo, $einstein) {
+    $server = ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/'];
+    $code = \Magic\Share\ShareCode::encodeSelf($einstein, '2026-10-09', true);
+    foreach ([$selfGet, ['c' => $code]] as $get) {
+        [$out] = $sharePage($get, $server);
+        same(str_contains($out, 'id="wheel-h"'), true);
+        foreach (['share-h', 'Share this reading', 'id="share-link"', '<svg class="qr"'] as $gone) {
+            same(str_contains($out, $gone), false);
+        }
+    }
+});
+
 check('love page: three sync cards, curves only in details, spread order, no tarot dates', function () use ($sharePage, $loveGet) {
     [$out] = $sharePage($loveGet, ['HTTP_HOST' => 'localhost', 'REQUEST_URI' => '/']);
     same(substr_count($out, '<article class="sync-card">'), 3);

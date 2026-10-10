@@ -41,7 +41,7 @@ $cards = [
       <div id="gate-terms" class="gate__terms" tabindex="0" role="region" aria-label="Terms and Conditions text"><?php include __DIR__ . '/partials/terms.php'; ?></div>
       <input type="hidden" name="next" value="<?= e($returnQuery) ?>">
       <div class="gate__actions">
-        <button type="submit" name="action" value="accept" autofocus>I accept the Terms and Conditions</button>
+        <button type="submit" class="btn--primary" name="action" value="accept" autofocus>I accept the Terms and Conditions</button>
       </div>
       <p class="hint">Without accepting you cannot use this page. Your browser must allow cookies to remember your choice.</p>
     </form>
@@ -82,7 +82,7 @@ $cards = [
           <input type="hidden" name="h" value="<?= e($pendingHidden['code']) ?>">
           <p class="note">A friend shared hidden data with you. Fill in Self Discovery and press Reveal my sky or Save the data: it will be added to Friends hidden codes.</p>
           <div class="field">
-            <div class="field__head"><label for="pending-nick">Nickname for this friend <small>(optional)</small></label><?php help_button('field.nick'); ?></div>
+            <div class="field__head"><label for="pending-nick">Nickname for this friend <small>(optional)</small></label> <?php help_term('field.nick', 'What is this?'); ?></div>
             <input id="pending-nick" name="nick" type="text" maxlength="40" autocomplete="off" value="<?= e($pendingHidden['nick'] ?? '') ?>">
           </div>
         </div>
@@ -122,7 +122,7 @@ $cards = [
           </div>
           <p class="hint">Names and dates appear in the address bar; share the link only with people you trust.</p>
           <?php $memoryKind = 'love'; $memorySaved = !$hidden; include __DIR__ . '/partials/memory.php'; ?>
-          <button type="submit">Explore our connection</button>
+          <button type="submit" class="btn--primary">Explore our connection</button>
         </div>
       </form>
     <?php elseif ($mode === 'friends'): ?>

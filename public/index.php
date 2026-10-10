@@ -179,27 +179,29 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
 $onOverride = isset($q['on']) && $q['on'] === $today ? $today : null;
 
 if ($view !== null && !$hidden) {
-    // Share section: frozen link (also the QR) and a live link, built from the validated model only.
-    $longFrozen = $mode === 'self'
-        ? ShareLink::self($in, $today)
-        : ShareLink::love($parsed['a'], $parsed['b'], $view['tarot'], $today);
+    // Live link (today's values, same people) for the fixed-day note; a Share section exists only for typed Soul Affinity.
     $longLive = $mode === 'self' ? ShareLink::liveSelf($in) : ShareLink::liveLove($parsed['a'], $parsed['b']);
     try {
-        $frozenQuery = ShareLink::codeQuery($mode === 'self'
-            ? ShareCode::encodeSelf($in, $today, true)
-            : ShareCode::encodeLove($parsed['a'], $parsed['b'], $view['tarot'], $today, true));
         $liveQuery = ShareLink::codeQuery($mode === 'self'
             ? ShareCode::encodeSelf($in, $today, false)
             : ShareCode::encodeLove($parsed['a'], $parsed['b'], null, $today, false));
     } catch (\Throwable $e) {
-        [$frozenQuery, $liveQuery] = [$longFrozen, $longLive];
+        $liveQuery = $longLive;
     }
-    $origin = Http::origin($_SERVER);
-    $prefix = ($origin !== null && $base !== null) ? $origin . $base . '/?' : './?';
-    $share = ['frozen' => $prefix . $frozenQuery, 'live' => $prefix . $liveQuery, 'qr' => null, 'tooLong' => false];
-    if ($origin !== null && $base !== null) {
-        $share['qr'] = Qr::encode($share['frozen']);
-        $share['tooLong'] = $share['qr'] === null;
+    if ($mode === 'love') {
+        $longFrozen = ShareLink::love($parsed['a'], $parsed['b'], $view['tarot'], $today);
+        try {
+            $frozenQuery = ShareLink::codeQuery(ShareCode::encodeLove($parsed['a'], $parsed['b'], $view['tarot'], $today, true));
+        } catch (\Throwable $e) {
+            $frozenQuery = $longFrozen;
+        }
+        $origin = Http::origin($_SERVER);
+        $prefix = ($origin !== null && $base !== null) ? $origin . $base . '/?' : './?';
+        $share = ['frozen' => $prefix . $frozenQuery, 'live' => $prefix . $liveQuery, 'qr' => null, 'tooLong' => false];
+        if ($origin !== null && $base !== null) {
+            $share['qr'] = Qr::encode($share['frozen']);
+            $share['tooLong'] = $share['qr'] === null;
+        }
     }
     $realToday = Zone::dateAt($nowUnix, $userTz ?? 'UTC');
     $fixedDay = $today !== $realToday ? ['date' => $today, 'live' => './?' . $liveQuery] : null;

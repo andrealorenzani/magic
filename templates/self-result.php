@@ -1,5 +1,5 @@
 <?php
-/** @var array $view @var string $today @var ?array $share */
+/** @var array $view @var string $today */
 
 use Magic\Content\Bodies;
 use Magic\Content\Houses;
@@ -48,7 +48,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
 <?php foreach (['sun', 'ascendant', 'moon'] as $role): $p = $chart[$role]; $r = Signs::ROLES[$role]; ?>
   <article class="card card--<?= e(strtolower($p['element'])) ?>">
     <div class="card__symbol" aria-hidden="true"><?= e($p['symbol']) ?></div>
-    <div class="head"><h3 class="card__role"><?= e($r['title']) ?></h3><?php help_button('self.' . $role); ?></div>
+    <h3 class="card__role"><?php help_term('self.' . $role, $r['title']); ?></h3>
     <p class="card__sign"><?= e($p['name']) ?></p>
     <p class="card__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?> · <?= e($p['modality']) ?></p>
     <p class="card__tag"><?= e($r['tagline']) ?></p>
@@ -58,7 +58,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
 <?php endforeach; ?>
 </div>
 <?php $born = $view['moonAtBirth']; ?>
-<div class="head head--center"><p class="born"><span aria-hidden="true"><?= e($born['symbol']) ?></span> Born under a <strong><?= e($born['phaseName']) ?></strong> (<?= e($born['illumination']) ?>% lit)</p><?php help_button('self.born_under'); ?></div>
+<p class="born"><span aria-hidden="true"><?= e($born['symbol']) ?></span> <?php help_term('self.born_under', 'Born under'); ?> a <strong><?= e($born['phaseName']) ?></strong> (<?= e($born['illumination']) ?>% lit)</p>
 
 <?php
 $wheelRows = [['id' => 'sun', 'p' => $chart['sun'], 'h' => $chart['houses']['sun']], ['id' => 'moon', 'p' => $chart['moon'], 'h' => $chart['houses']['moon']],
@@ -70,7 +70,7 @@ $wheelRows[] = ['id' => 'node', 'p' => $chart['node'], 'h' => $chart['houses']['
 $mc = $chart['midheaven'];
 ?>
 <section class="block chartwheel" aria-labelledby="wheel-h">
-  <div class="head"><h2 id="wheel-h"><?= icon('bolt') ?> Your chart wheel</h2><?php help_button('self.wheel'); ?></div>
+  <h2 id="wheel-h"><?= icon('bolt') ?> <?php help_term('self.wheel', 'Your chart wheel'); ?></h2>
   <div class="chartwheel__layout">
     <details class="chartwheel__more" open>
     <summary>Chart wheel</summary>
@@ -96,8 +96,8 @@ $mc = $chart['midheaven'];
       </table>
     </div>
   </div>
-  <div class="head"><p><strong><?= e(Bodies::INFO['midheaven']['title']) ?> in <?= e($mc['name']) ?>.</strong> <?= e(Bodies::INFO['midheaven']['meaning']) ?> <?= e(Signs::TEXT[$mc['id']]) ?></p><?php help_button('self.midheaven'); ?></div>
-  <div class="head"><p class="note">Whole-sign houses: the sign of the Ascendant is the first house, the next sign the second, and so on.<?= $chart['polar'] ? ' Beyond the polar circle the Ascendant, Midheaven and houses are only approximate.' : '' ?></p><?php help_button('self.houses'); ?></div>
+  <p><strong><?= e(Bodies::INFO['midheaven']['title']) ?> in <?= e($mc['name']) ?>.</strong> <?= e(Bodies::INFO['midheaven']['meaning']) ?> <?= e(Signs::TEXT[$mc['id']]) ?></p>
+  <p class="note">The twelve houses follow the signs, starting from your Ascendant sign.<?= $chart['polar'] ? ' Beyond the polar circle the Ascendant, Midheaven and houses are only approximate.' : '' ?></p>
 </section>
 
 <?php if ($chart['planetsSupported']): ?>
@@ -107,7 +107,7 @@ $mc = $chart['midheaven'];
     <?php foreach ($chart['planets'] as $id => $pl): $p = $pl['position']; $b = Bodies::INFO[$id]; ?>
       <article class="planet card--<?= e(strtolower($p['element'])) ?>">
         <span class="planet__glyph" aria-hidden="true"><?= e($b['glyph']) ?></span>
-        <div class="head"><h3><?= e($b['title']) ?><?php if ($pl['retrograde']): ?> <abbr class="badge" title="Retrograde">R</abbr><?php endif; ?></h3><?php help_button('self.planet.' . $id); ?></div>
+        <h3><?php help_term('self.planet.' . $id, $b['title']); ?><?php if ($pl['retrograde']): ?> <abbr class="badge" title="Retrograde">R</abbr><?php endif; ?></h3>
         <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
         <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
         <p class="planet__house"><?= e($houseLine($chart['houses'][$id])) ?></p>
@@ -117,14 +117,14 @@ $mc = $chart['midheaven'];
     <?php $p = $chart['node']; $b = Bodies::INFO['node']; ?>
     <article class="planet card--<?= e(strtolower($p['element'])) ?>">
       <span class="planet__glyph" aria-hidden="true"><?= e($b['glyph']) ?></span>
-      <div class="head"><h3><?= e($b['title']) ?></h3><?php help_button('self.node'); ?></div>
+      <h3><?php help_term('self.node', $b['title']); ?></h3>
       <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
       <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
       <p class="planet__house"><?= e($houseLine($chart['houses']['node'])) ?></p>
       <p class="planet__text"><?= e($b['meaning']) ?></p>
     </article>
   </div>
-  <div class="head"><p class="note">Planet positions are approximate (a fraction of a degree); a sign can be off near its boundary. <abbr class="badge" title="Retrograde">R</abbr> = apparently moving backwards.</p><?php help_button('self.retrograde'); ?></div>
+  <p class="note">Planet positions are approximate (a fraction of a degree); a sign can be off near its boundary. <abbr class="badge" title="Retrograde">R</abbr> = apparently moving backwards.</p>
 </section>
 <?php endif; ?>
 
@@ -134,12 +134,12 @@ $mc = $chart['midheaven'];
 
 <section class="block" aria-labelledby="aff-h">
   <h2 id="aff-h"><?= icon('heart') ?> Your affinities</h2>
-  <p class="note">Computed from <?= e(implode(', ', array_map(static fn (string $k): string => $refName[$k], array_keys($view['refs'])))) ?> with traditional aspects, ruling-planet friendships and modalities.</p>
-  <div class="head"><h3>Signs most in tune with you</h3><?php help_button('self.affinity.signs'); ?></div>
+  <p class="note">Based on <?= e(implode(', ', array_map(static fn (string $k): string => $refName[$k], array_keys($view['refs'])))) ?>.</p>
+  <h3><?php help_term('self.affinity.signs', 'Signs most in tune with you'); ?></h3>
   <div class="trio">
     <?php foreach ($aff['mostAffine'] as $i => $s) { $entry($s, 'affinity', '#' . ($i + 1)); } ?>
   </div>
-  <div class="head"><h3>The sign of the love of your life</h3><?php help_button('self.affinity.soulmate'); ?></div>
+  <h3><?php help_term('self.affinity.soulmate', 'The sign of the love of your life'); ?></h3>
   <div class="trio">
     <?php $entry($aff['soulmate'], 'love', 'Heart sign'); ?>
   </div>
@@ -150,7 +150,7 @@ $mc = $chart['midheaven'];
   <h2 id="bio-h"><?= icon('bolt') ?> Your biorhythms today</h2>
   <?php foreach ($bio as $name => $c): ?>
     <div class="bio-row">
-      <div class="head"><h3><?= e(ucfirst($name)) ?> <small>(<?= e($c['period']) ?> days)</small></h3><?php help_button('bio.' . $name); ?></div>
+      <h3><?php help_term('bio.' . $name, ucfirst($name)); ?> <small>(<?= e($c['period']) ?> days)</small></h3>
       <p><meter min="-100" max="100" value="<?= e($c['value']) ?>"><?= e($c['value']) ?></meter>
         <strong><?= e($c['value']) ?>%</strong>, <?= e($c['trend']) ?>.
         Next peak <?= e($c['nextPeak']) ?>, next low <?= e($c['nextTrough']) ?>.</p>
@@ -170,4 +170,3 @@ $mc = $chart['midheaven'];
   <p class="note">Next 30 days from <?= e($today) ?>. Biorhythms are a popular theory, not scientifically validated.</p>
 </section>
 
-<?php if ($share !== null) { include __DIR__ . '/partials/share.php'; } ?>

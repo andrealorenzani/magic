@@ -312,26 +312,31 @@ $resultsOf = function (string $out): string {
     $p = strpos($out, 'id="results"');
     return $p === false ? '' : str_replace(['The cards depend on your names, birth dates and the day: the same reading appears on every reload.', 'These cards come from the link you opened.'], 'CARDS-NOTE', substr($out, $p));
 };
-check('code: a compact link opens the same result, tarot and share section as the long link', function () use ($sharePage, $resultsOf, $selfGet, $loveGet) {
-    foreach ([$selfGet, $loveGet] as $get) {
-        [$long] = $sharePage($get + ['noaudit' => ''], ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
-        preg_match('/id="share-link"[^>]*value="[^"]*\?c=([^"]*)"/', $long, $m);
-        [$short] = $sharePage(['c' => $m[1]], ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
-        same($resultsOf($short) === $resultsOf($long) && $resultsOf($long) !== '', true);
-        same(str_contains($short, 'tarot__card') || $get === $selfGet, true);
-    }
+check('code: a compact link opens the same result, tarot and share section as the long link (Self: result only, no share section)', function () use ($sharePage, $resultsOf, $selfGet, $loveGet, $codeSelf, $codeToday) {
+    [$long] = $sharePage($loveGet + ['noaudit' => ''], ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    preg_match('/id="share-link"[^>]*value="[^"]*\?c=([^"]*)"/', $long, $m);
+    [$short] = $sharePage(['c' => $m[1]], ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    same($resultsOf($short) === $resultsOf($long) && $resultsOf($long) !== '', true);
+    same(str_contains($short, 'tarot__card'), true);
+    // An old Self code still opens the same result as its long link, and has no share section.
+    $selfLong = $selfGet + ['noaudit' => ''];
+    [$long] = $sharePage($selfLong, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    $c = ShareCode::encodeSelf($codeSelf($selfLong), $codeToday, true, true);
+    [$short] = $sharePage(['c' => $c], ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+    same($resultsOf($short) === $resultsOf($long) && $resultsOf($long) !== '', true);
+    same(str_contains($short, 'Share this reading'), false);
 });
 check('code: an old long link still opens the result', function () use ($sharePage, $selfGet, $loveGet) {
     foreach ([$selfGet, $loveGet + ['t' => '16u,5r,9u']] as $get) {
         [$out] = $sharePage($get, ['HTTP_HOST' => 'localhost']);
-        same(str_contains($out, 'Share this reading'), true);
+        same(str_contains($out, 'id="results"') && str_contains($out, 'Share this reading') === ($get !== $selfGet), true);
     }
 });
-check('code: a bad c gives the page with a note, a valid readable query next to it is used', function () use ($sharePage, $selfGet) {
+check('code: a bad c gives the page with a note, a valid readable query next to it is used', function () use ($sharePage, $selfGet, $loveGet) {
     foreach (['!!!', 'AAAA', str_repeat('A', 500), 'F'] as $bad) {
         [$out] = $sharePage(['c' => $bad]);
         same(str_contains($out, 'The short code in this link is not valid, so it was ignored.') && !str_contains($out, 'Share this reading'), true);
-        [$out] = $sharePage($selfGet + ['c' => $bad]);
+        [$out] = $sharePage($loveGet + ['c' => $bad]);
         same(str_contains($out, 'The short code in this link is not valid') && str_contains($out, 'Share this reading'), true);
     }
     [$out] = $sharePage(['c' => ['x']]);
@@ -340,7 +345,7 @@ check('code: a bad c gives the page with a note, a valid readable query next to 
 check('code: noaudit flag inside the code skips the audit; without it the write is attempted', function () use ($sharePage, $codeSelf, $selfBase, $codeToday) {
     $in = $codeSelf($selfBase);
     [$out, , $log] = $sharePage(['c' => ShareCode::encodeSelf($in, $codeToday, true, true)]);
-    same(str_contains($out, 'Share this reading') && $log === '', true);
+    same(str_contains($out, 'id="results"') && $log === '', true);
     [, , $log] = $sharePage(['c' => ShareCode::encodeSelf($in, $codeToday, true, false)]);
     same(str_contains($log, 'audit: write failed'), true);
 });
@@ -349,8 +354,8 @@ check('code: without consent a c link shows only the gate', function () use ($sh
     [$out] = $sharePage(['c' => $c], ['QUERY_STRING' => 'c=' . $c], false);
     same(str_contains($out, 'Terms and Conditions') && !str_contains($out, 'Share this reading') && str_contains($out, 'value="c=' . $c . '"'), true);
 });
-check('code: share section markup, small QR rule, no inline script or style', function () use ($sharePage, $selfGet) {
-    [$out] = $sharePage($selfGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
+check('code: share section markup, small QR rule, no inline script or style', function () use ($sharePage, $loveGet) {
+    [$out] = $sharePage($loveGet, ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     $d = strpos($out, '<details class="share__more">');
     $e = strpos($out, '</details>', (int) $d);
     $qr = strpos($out, '<div class="share__qr" data-qr-copy="share-link">');

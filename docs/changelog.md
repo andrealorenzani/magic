@@ -1,8 +1,35 @@
 # Changelog
 
-Newest first. Maintained by the `documenter` agent: every change to `src/`, `public/`, `templates/` or `migrations/` adds a line under "Unreleased" in the same commit, and a release moves them into a dated version.
+Newest first. Maintained by the `documenter` agent: every user- or developer-visible change adds a line under "Unreleased" in the same commit, and a release moves them into a dated version.
 
 ## Unreleased
+
+## v0.10 - 2026-10-10 - Business README, badges, quiet buttons, help terms, no Self share
+
+ADR: [0008](decisions/0008-readme-badges-quiet-ui-help-terms-no-self-share.md).
+
+**Added**
+- Badges (`docs/badges/version.svg`, `loc.svg`, `deployed.svg`), `VERSION` (0.10.0) and `scripts/update-badges.sh`; `DEVELOPER.md` with the developer material; `tests/cases/docs.php` (264 tests).
+- "Share on WhatsApp" button in the Generate hidden data code panel (opens WhatsApp with the link as the message, with a line saying the link then passes through that service).
+- `.btn--primary` for the few main actions (Reveal my sky, Explore our connection, Accept the Terms, Yes continue).
+- Compact Friends list with icon buttons (select all, remove selected with a count, Compare, Remove) and a small nickname field.
+
+**Changed**
+- README is now a business specification (badge row, one note with the site address, sections in a fixed order, a chart wheel explanation); commands, `noaudit`, test count and agent text moved to `DEVELOPER.md`.
+- Buttons are quiet by default (thin border, gold text); only `.btn--primary` keeps the strong look.
+- Hidden-code wording is honest: not a secret, an encoding and not encryption, anyone holding the link or QR can read the details. Share section note reworded the same way.
+- **Terms version 5** (`Consent::VALUE` is `5`): everyone accepts again; the Terms state "encoding, not encryption" and the messaging-service sentence.
+- Help: the "?" buttons are replaced by dotted-underline terms (`help_term()`) that open one small popup beside the term (a bottom panel on phones); keys reduced from 53 to 33. The Self buttons use tooltips instead.
+- UI notes reworded.
+
+**Removed**
+- "Share this reading" in Self Discovery. Old shared Self links still open.
+- The "Sharing" stub section and note in Soul Affinity results built from hidden data.
+- The 20 help keys that repeated what the label already said, and the `.help__btn` styles.
+
+**Migration:** visitors re-accept the Terms (cookie value `5`). No database migration; audit unchanged.
+
+## v0.9 - 2026-10-10 - Self first, Soul Affinity, Friends hidden codes
 
 ADR: [0007](decisions/0007-self-first-soul-affinity-and-friends-codes.md).
 

@@ -637,6 +637,7 @@
     const selectAll = root.querySelector("[data-friends-selectall]");
     const removeSel = root.querySelector("[data-friends-remove-selected]");
     const status = root.querySelector("[data-friends-status]");
+    const selected = root.querySelector("[data-friends-selected]");
     if (!search || !list || !tpl || !tpl.content) return;
     const me = readMe();
 
@@ -645,12 +646,20 @@
         ? "./?mode=love&h=" + encodeURIComponent(f.code) + (f.nick !== "" ? "&nick=" + encodeURIComponent(f.nick) : "") + "&" + aParams(me)
         : "./?mode=self";
     const checks = () => Array.from(list.querySelectorAll("[data-friend-check]"));
+    const label = (el, t) => {
+      if (!el) return;
+      el.setAttribute("aria-label", t);
+      el.setAttribute("title", t);
+    };
     const updateBulk = () => {
-      const n = checks().filter((c) => c.checked).length;
+      const all = checks();
+      const n = all.filter((c) => c.checked).length;
       if (removeSel) {
         removeSel.disabled = n === 0;
-        removeSel.textContent = "Remove selected (" + n + ")";
+        label(removeSel, "Remove selected (" + n + ")");
       }
+      setText(selected, n > 0 ? String(n) : "");
+      label(selectAll, all.length > 0 && n === all.length ? "Select none" : "Select all shown");
     };
     const askRemove = (codes) =>
       confirmBox("Remove hidden codes?", "Remove " + codes.length + " hidden code(s) from this browser?").then((ok) => {
@@ -676,6 +685,11 @@
         const rm = li.querySelector("[data-friend-remove]");
         const chk = li.querySelector("[data-friend-check]");
         nick.value = f.nick;
+        const names = (n) => {
+          label(cmp, n !== "" ? "Compare with " + n : "Compare with this friend");
+          label(rm, n !== "" ? "Remove " + n : "Remove this friend");
+        };
+        names(f.nick);
         if (f.t > 0) date.textContent = "Added " + new Date(f.t).toLocaleDateString();
         cmp.setAttribute("href", compareHref(f));
         nick.addEventListener("change", () => {
@@ -683,6 +697,7 @@
           nick.value = n;
           writeFriends(readFriends().map((x) => (x.code === f.code ? { code: x.code, nick: n, t: x.t } : x)));
           cmp.setAttribute("href", compareHref({ code: f.code, nick: n }));
+          names(n);
         });
         rm.addEventListener("click", () => askRemove([f.code]));
         chk.addEventListener("change", updateBulk);
@@ -695,8 +710,10 @@
     search.addEventListener("input", render);
     if (selectAll) {
       selectAll.addEventListener("click", () => {
-        checks().forEach((c) => {
-          c.checked = true;
+        const all = checks();
+        const every = all.length > 0 && all.every((c) => c.checked);
+        all.forEach((c) => {
+          c.checked = !every;
         });
         updateBulk();
       });
