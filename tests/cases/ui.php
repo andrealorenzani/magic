@@ -96,7 +96,7 @@ $uiPages = function () use ($sharePage): array {
 };
 $uiHtml = $uiPages();
 check('help: every key used in a template exists; every key exists on a rendered page', function () use ($uiRoot, $uiHtml) {
-    $keys = array_merge(Help::keys(), []);
+    $keys = Help::keys();
     same(count(array_unique($keys)), count($keys));
     foreach (Help::DYNAMIC as $prefix => $ids) {
         foreach ($ids as $id) {

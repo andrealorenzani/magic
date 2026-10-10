@@ -1,5 +1,5 @@
 // Progressive enhancement for sharing: copy a link (button, or by activating its QR code), "Share…" where the
-// browser supports it, and the menu's hidden-details link. Without JavaScript the link stays selectable in its text field.
+// browser supports it, and the hidden-details link. Without JavaScript the link stays selectable in its text field.
 // This file never reads or writes browser storage; the remembered details arrive in a page event.
 (() => {
   const field = (id) => document.getElementById(id);
@@ -101,7 +101,7 @@
     if (hint) hint.hidden = false;
   });
 
-  // ---- the menu's hidden-details link ----
+  // ---- the hidden-details link ----
   const SVG = "http://www.w3.org/2000/svg";
   const drawQr = (holder, size, path) => {
     while (holder.firstChild) holder.removeChild(holder.firstChild);

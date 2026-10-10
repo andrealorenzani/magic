@@ -11,7 +11,6 @@ use Magic\Content\TarotDeck;
  */
 final class ShareLink
 {
-    public const MAX_URL_FOR_QR = 520;
     public const MAX_CITY_BYTES = 48;
 
     /** Query for the exact Self reading (without a leading '?'). @param array<string,mixed> $input Request::parse()['input'] */

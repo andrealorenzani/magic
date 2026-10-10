@@ -3,7 +3,7 @@
  * @var ?string $mode @var array $self @var array $love @var list<string> $errors @var list<string> $notes
  * @var ?array $view @var bool $submitted @var string $today @var bool $consented @var string $returnQuery
  * @var ?string $onOverride @var bool $noAudit @var string $consentAction @var bool $withdrawn @var bool $queryDropped
- * @var ?array $share @var ?array $fixedDay @var bool $cleaned @var bool $hidden @var ?string $hiddenCode
+ * @var ?array $share @var ?array $fixedDay @var bool $hidden @var ?string $hiddenCode
  * @var ?string $nick @var ?array $pendingHidden @var bool $aKnown @var ?string $loveLink
  */
 
@@ -36,7 +36,6 @@ $cards = [
     <form class="gate__box" method="post" action="<?= e($consentAction) ?>">
       <h2 id="gate-h">Terms and Conditions</h2>
       <?php if ($withdrawn): ?><p class="note note--gate">You withdrew your acceptance.</p><?php endif; ?>
-      <?php if ($cleaned): ?><p class="note note--gate" role="status">Your browser data was cleaned and your acceptance withdrawn.</p><?php endif; ?>
       <?php if ($queryDropped): ?><p class="note note--gate">Your link could not be kept, please open it again after accepting.</p><?php endif; ?>
       <div id="gate-terms" class="gate__terms" tabindex="0" role="region" aria-label="Terms and Conditions text"><?php include __DIR__ . '/partials/terms.php'; ?></div>
       <input type="hidden" name="next" value="<?= e($returnQuery) ?>">
@@ -47,7 +46,7 @@ $cards = [
     </form>
   </div>
   <?php endif; ?>
-  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?><?= ($withdrawn || $cleaned) ? ' data-forget-memory' : '' ?>>
+  <div id="page"<?= $consented ? '' : ' inert aria-hidden="true"' ?><?= $withdrawn ? ' data-forget-memory' : '' ?>>
   <main>
     <header class="hero no-print">
       <p class="hero__eyebrow">✦ Magic ✦</p>

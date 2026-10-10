@@ -41,11 +41,10 @@ $nick = $nickState['nick'];
 $rawQuery = ltrim((string) ($_SERVER['QUERY_STRING'] ?? ''), '?');
 $returnQuery = $consented ? '' : Consent::safeQuery($rawQuery);
 $withdrawn = !$consented && ($_GET['withdrawn'] ?? null) === '1';
-$cleaned = !$consented && ($_GET['cleaned'] ?? null) === '1';
-if (($withdrawn && $returnQuery === 'withdrawn=1') || ($cleaned && $returnQuery === 'cleaned=1')) {
+if ($withdrawn && $returnQuery === 'withdrawn=1') {
     $returnQuery = '';
 }
-$queryDropped = !$consented && !$withdrawn && !$cleaned && $rawQuery !== '' && $returnQuery === '';
+$queryDropped = !$consented && !$withdrawn && $rawQuery !== '' && $returnQuery === '';
 $noAudit = Request::noAudit($q);
 $base = Http::basePath($_SERVER);
 $consentAction = ($base === null ? '' : $base . '/') . 'consent.php';

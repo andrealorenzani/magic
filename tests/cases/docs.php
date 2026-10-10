@@ -77,6 +77,28 @@ check('docs: badges are self-contained SVG; version badge shows VERSION; loc bad
     same(abs($shown - $lines) <= 0.1 * $lines, true);
 });
 
+check('deploy.sh: dry run lists tracked files but never anything under release/', function () use ($docRoot) {
+    $tmp = sys_get_temp_dir() . '/magic-deploy-' . bin2hex(random_bytes(4));
+    mkdir("$tmp/scripts", 0777, true);
+    mkdir("$tmp/tests", 0777, true);
+    mkdir("$tmp/release", 0777, true);
+    copy("$docRoot/scripts/deploy.sh", "$tmp/scripts/deploy.sh");
+    file_put_contents("$tmp/tests/run.php", "<?php\n");
+    file_put_contents("$tmp/.deploy.local", "DEPLOY_HOST=example.invalid\nDEPLOY_DIR=/x\n");
+    file_put_contents("$tmp/index.txt", 'a');
+    file_put_contents("$tmp/release/package.zip", 'b');
+    try {
+        $cd = 'cd ' . escapeshellarg($tmp) . ' && ';
+        exec($cd . 'git init -q . && git add index.txt tests scripts release && git -c user.name=t -c user.email=t@t commit -qm t 2>&1', $o, $rc);
+        same($rc, 0);
+        $out = (string) shell_exec($cd . 'bash scripts/deploy.sh --all --dry-run 2>&1');
+        same(str_contains($out, 'would upload index.txt'), true);
+        same(str_contains($out, 'release/'), false);
+    } finally {
+        exec('rm -rf ' . escapeshellarg($tmp));
+    }
+});
+
 check('docs: update-badges.sh rewrites version.svg byte for byte offline in a temp copy, rejects a bad VERSION, never touches deployed.svg', function () use ($docRoot, $docRead) {
     $tmp = sys_get_temp_dir() . '/magic-badges-' . bin2hex(random_bytes(4));
     mkdir("$tmp/scripts", 0777, true);
@@ -145,7 +167,7 @@ check('docs: DEVELOPER.md carries the developer material', function () use ($doc
 
 check('docs: the site name appears only where the owner allowed it', function () use ($docRoot, $docTracked) {
     $name = 'super' . 'maestro';
-    $allowed = ['README.md', 'docs/badges/deployed.svg', 'CLAUDE.md', 'docs/decisions/0008-readme-badges-quiet-ui-help-terms-no-self-share.md'];
+    $allowed = ['README.md', 'docs/badges/deployed.svg', 'CLAUDE.md'];
     $files = $docTracked();
     if ($files === []) {
         return;
@@ -155,5 +177,21 @@ check('docs: the site name appears only where the owner allowed it', function ()
             continue;
         }
         same([$f, stripos((string) file_get_contents("$docRoot/$f"), $name) !== false], [$f, false]);
+    }
+});
+
+check('docs: decisions folder holds only the template and 0001 or higher, and no doc links a removed ADR', function () use ($docRoot, $docTracked) {
+    foreach (scandir("$docRoot/docs/decisions") ?: [] as $f) {
+        if ($f === '.' || $f === '..') {
+            continue;
+        }
+        same([$f, $f === '0000-template.md' || preg_match('/^(000[1-9]|00[1-9]\d|0[1-9]\d\d|[1-9]\d{3})-.+\.md$/', $f) === 1], [$f, true]);
+        same([$f, preg_match('/^000[2-8]-/', $f) === 1], [$f, false]);
+    }
+    foreach ($docTracked() as $f) {
+        if (!preg_match('/\.md$/', $f) || !is_file("$docRoot/$f")) {
+            continue;
+        }
+        same([$f, preg_match('/\]\([^)]*decisions\/000[2-8]-/', (string) file_get_contents("$docRoot/$f")) === 1], [$f, false]);
     }
 });

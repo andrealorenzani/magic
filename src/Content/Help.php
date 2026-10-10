@@ -53,7 +53,7 @@ final class Help
         'love.tarot_reversed' => ['title' => 'Reversed card', 'text' => 'A card shown upside down. By tradition its message turns inward, becomes blocked or asks for a different look.'],
     ];
 
-    /** @return list<string> every key, with the dynamic ones expanded */
+    /** @return list<string> every key */
     public static function keys(): array
     {
         return array_keys(self::TEXT);

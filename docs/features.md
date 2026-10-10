@@ -4,7 +4,7 @@ What the page does, in visitor language. For how it is built, see [architecture.
 
 ## Before you start
 
-On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing you type is processed or recorded. The Terms were updated in v0.10 (they say plainly that a hidden code is an encoding, not encryption, and that the WhatsApp button sends the link through that service), so everybody is asked to accept once again. The Terms popup text scrolls inside its box and the Accept button never covers it, and the "Terms and Conditions" section at the end of the page opens when you click it.
+On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing you type is processed or recorded. The Terms say plainly that a hidden code is an encoding, not encryption, and that the WhatsApp button sends the link through that service. When the Terms change, everybody is asked to accept again. The Terms popup text scrolls inside its box and the Accept button never covers it, and the "Terms and Conditions" section at the end of the page opens when you click it.
 
 ## Three steps
 

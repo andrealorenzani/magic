@@ -27,6 +27,8 @@ else
   FILES=$(git diff --name-only --diff-filter=ACMR "$LAST" HEAD)
   git diff --name-only --diff-filter=D "$LAST" HEAD | sed 's/^/not removed on server (delete manually): /' >&2
 fi
+# release/ holds build artifacts that are never uploaded.
+FILES=$(printf '%s\n' "$FILES" | grep -v '^release/' || true)
 [ -n "$FILES" ] || echo "no tracked files changed"
 
 TRUST=(); [ "${DEPLOY_TRUST_NEW_HOST:-0}" = 1 ] && TRUST=(--trust-new-host)

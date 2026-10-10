@@ -4,9 +4,28 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
+## v1.0.0 - 2026-10-10 - First major release
+
+ADR: 0001 ([0001-before_release](decisions/0001-before_release.md), which consolidates the former ADRs 0001-0008).
+
+First major release. The page is a three-step path (Self Discovery, Soul Affinity, Friends hidden codes) with Sun, Moon, Ascendant, planets, houses and chart wheel, moon phase and Today's sky, affinities, biorhythms, a 78-card tarot spread, sharing by short link and QR code, hidden data codes with import and a local Friends list, browser memory, a blocking Terms gate, an optional MySQL audit trail, a business README, `DEVELOPER.md`, badges, Docker local run and an automated deploy. Nothing else changes for visitors in this release.
+
+**Changed**
+- Decisions: the eight ADRs are consolidated into `docs/decisions/0001-before_release.md` (by theme: what, why, trade-offs, constraints in force, rejected alternatives, open risks); the others remain in git history and in the tag `pre-release-1.0.0`. New ADRs start at 0002. Docs and agent instructions no longer link to the removed files.
+- Help popup: stays open when the page scrolls on small screens (bottom sheet) and repositions beside the term on desktop. No other visible change.
+- Docs refreshed (architecture, code map, features, roadmap, README, `DEVELOPER.md`); the releases process is documented in `DEVELOPER.md`.
+- `tests/cases/docs.php`: 265 tests.
+
+**Removed** (refactor, no user-visible change)
+- The unreachable consent `clean` action, the `?cleaned=1` gate message and `Consent::ACTIONS`.
+- `ShareLink::MAX_URL_FOR_QR`.
+
+**Fixed / Added (developer)**
+- `scripts/deploy.sh` never uploads anything under `release/` (release artifacts); new deploy test.
+
 ## v0.10 - 2026-10-10 - Business README, badges, quiet buttons, help terms, no Self share
 
-ADR: [0008](decisions/0008-readme-badges-quiet-ui-help-terms-no-self-share.md).
+ADR: 0008 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Badges (`docs/badges/version.svg`, `loc.svg`, `deployed.svg`), `VERSION` (0.10.0) and `scripts/update-badges.sh`; `DEVELOPER.md` with the developer material; `tests/cases/docs.php` (264 tests).
@@ -31,7 +50,7 @@ ADR: [0008](decisions/0008-readme-badges-quiet-ui-help-terms-no-self-share.md).
 
 ## v0.9 - 2026-10-10 - Self first, Soul Affinity, Friends hidden codes
 
-ADR: [0007](decisions/0007-self-first-soul-affinity-and-friends-codes.md).
+ADR: 0007 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Page as a path: Self Discovery first ("Start here"), then Soul Affinity and the new Friends hidden codes (`mode=friends`, no result, no audit). Both are locked, with "Self Discovery fields are required to unlock this section.", until a complete Self entry is stored (the server unlocks them when the request carries Self data; the script only ever unlocks).
@@ -51,13 +70,13 @@ ADR: [0007](decisions/0007-self-first-soul-affinity-and-friends-codes.md).
 - Help keys changed (`menu.*` removed; `self.hidden_code`, `self.clear`, `self.save`, `self.reveal`, `field.nick`, `friends.*`, `love.import` added).
 
 **Removed**
-- The Menu (`templates/partials/menu.php`) and "Forget my data". "Clear data" replaces them and keeps the Terms acceptance. The `clean` action of `consent.php` and `?cleaned=1` remain but no UI reaches them.
+- The Menu (`templates/partials/menu.php`) and "Forget my data". "Clear data" replaces them and keeps the Terms acceptance. The unreachable `clean` action of `consent.php` and `?cleaned=1` were removed in 1.0.0.
 
 **Migration:** visitors re-accept the Terms (cookie value `4`). No database migration; audit unchanged.
 
 ## v0.8 - 2026-10-10 - Menu, hidden details, help popovers, Self name
 
-ADR: [0006](decisions/0006-menu-hidden-import-hints-and-fixes.md).
+ADR: 0006 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Menu above the mode chooser: "Clean browser data" (in-page confirmation) and "Share my Self Discovery hidden data" (grey until the stored own entry is complete).
@@ -89,7 +108,7 @@ ADR: [0006](decisions/0006-menu-hidden-import-hints-and-fixes.md).
 
 ## v0.7 - 2026-10-09 - Current position, short links, browser memory, derived features
 
-ADR: [0005](decisions/0005-profile-compact-share-and-roadmap.md).
+ADR: 0005 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Optional "Current city" in Self and Love (for you and for the loved person); the reading day follows it (in Love, person A's), and the result says "Today for you: ...".
@@ -127,7 +146,7 @@ ADR: [0005](decisions/0005-profile-compact-share-and-roadmap.md).
 
 ## v0.6 - 2026-10-09 - Sharing and polish
 
-ADR: [0004](decisions/0004-sharing-tarot-spread-and-polish.md).
+ADR: 0004 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Share section: frozen and live links, QR code generated in pure PHP, tarot spread in `t=`.
@@ -156,7 +175,7 @@ ADR: [0004](decisions/0004-sharing-tarot-spread-and-polish.md).
 
 ## v0.4 - 2026-10-09 - Audit trail and consent
 
-ADR: [0003](decisions/0003-mysql-audit-trail.md).
+ADR: 0003 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - MySQL audit trail (`magic_audit`, `magic_audit_person`) with a YAML summary, written after the page is sent; migration, migrate and purge scripts.
@@ -166,7 +185,7 @@ ADR: [0003](decisions/0003-mysql-audit-trail.md).
 
 ## v0.3 - 2026-10-09 - Two modes
 
-ADR: [0002](decisions/0002-self-discovery-and-love-modes.md).
+ADR: 0002 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Self discovery: Mercury to Pluto and North Node, sign affinities, "love of your life" sign, biorhythms.
@@ -181,7 +200,7 @@ ADR: [0002](decisions/0002-self-discovery-and-love-modes.md).
 
 ## v0.1 - 2026-10-08 - PHP rewrite
 
-ADR: [0001](decisions/0001-rewrite-in-php.md).
+ADR: 0001 (summarised in [0001-before_release](decisions/0001-before_release.md)).
 
 **Added**
 - Sun, Ascendant and Moon signs from date, time and city, in PHP with no database.

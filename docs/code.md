@@ -9,7 +9,7 @@ Where things are. For the *why*, read [architecture.md](architecture.md).
 /config.php.example          Tracked template for the gitignored config.php (MySQL host, port, name, user, password)
 /config.php                  (gitignored) real DB settings, project root, outside public/; made by scripts/make-config.sh
 public/                      ← web root (the server's "web directory")
-  consent.php                POST accept/withdraw the Terms and Conditions: sets/clears cookie magic_terms (Secure also behind a proxy), 303 to ./ (accept carries the sanitised original query; withdraw goes to ./?withdrawn=1; the `clean` action and ./?cleaned=1 still exist but no UI uses them)
+  consent.php                POST accept/withdraw the Terms and Conditions: sets/clears cookie magic_terms (Secure also behind a proxy), 303 to ./ (accept carries the sanitised original query; withdraw goes to ./?withdrawn=1)
   hidden.php                 POST only (needs the Terms cookie): validates the sender's details, returns JSON {ok, link, qr:{size,path}|null, tooLong} or {ok:false, error}; relative link and no QR if the origin is unknown; stores, logs and audits nothing
   index.php                  Front controller: consent check (without cookie nothing is processed) → mode → Request::parse|parseLove → SelfReading|LoveReading::build → templates/home.php; sends no-store + `Vary: Cookie` on every response and noindex on results; reads `t=` and `noaudit`; reads the clock once (`time()`), decodes a `c=` short code and merges it over the query (the code wins), resolves `h`/`import` and `nick` (hidden person: merged for parsing only, labelled with the nickname or "Your match", no share section, audited with the hidden marker unless `noaudit`; with `mode=self` a valid `h` only becomes `$pendingHidden`), handles `mode=friends` (panel only, no parse, no audit), computes the lock state (`$aKnown`, `$loveLink`), builds the Share model only for Soul Affinity with a typed other soul (`$share` stays null for Self and hidden-derived results; the fixed-day note keeps its live link for Self and typed Love); after rendering a result, flushes and writes the audit record (errors swallowed)
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
@@ -26,7 +26,7 @@ src/
   bootstrap.php              Loads autoloader, defines MAGIC_ROOT and the e() escape helper
   Chart.php                  ★ Chart::compute (big three + midheaven), Chart::full (+ planets, node, houses), Chart::partial (optional time/place), Chart::longitudes (bodies a person has, for synastry)
   ChartWheel.php             Pure: ChartWheel::layout($chart) → drawing data for the wheel (SIZE, radii, MIN_SEPARATION), spread(), point()
-  Consent.php                Consent::COOKIE/VALUE ('5')/ACTIONS (accept, withdraw, clean)/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
+  Consent.php                Consent::COOKIE/VALUE ('5')/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
   Http.php                   Pure helpers on a passed-in server array: isSecure (HTTPS or forwarded proto), basePath, origin (validated Host)
   Request.php                MODES (self, love, friends), mode(), nickname($q) → {nick, invalid} (local label for a hidden person), parseToday(), resolveToday() (reading day), dayBasis(), noAudit(), hiddenCode($q) → {code, person, invalid} (`h` wins over `import`), parseTarot() (validates `t`), parse() (Self, optional `name` → `input.name`), parseLove(), parsePerson() (incl. optional `pos_*` current position): validated input / errors / notes; lat/lon rounded to 5 dp
   SelfReading.php            Pure: SelfReading::build($input, $today, $dayBasis) → Self view-model
@@ -37,7 +37,7 @@ src/
   Astro/Ascendant.php        Ascendant::gmst($jd), Ascendant::longitude($jd, $lat, $lon)
   Astro/Zodiac.php           Zodiac::SIGNS, Zodiac::fromLongitude($lon)
   Astro/Planets.php          Mercury–Pluto (1800–2100, approximate): supports($jd), longitude($id,$jd), all($jd)
-  Astro/MeanNode.php         MeanNode::longitude($jd) — mean North Node
+  Astro/MeanNode.php         MeanNode::longitude($jd) — North Node
   Astro/Houses.php           Houses::midheaven($jd,$lon), midheavenFromRamc(), wholeSign($ascLon,$bodyLon) → house 1-12
   Astro/MoonPhase.php        MoonPhase::at($jd) → angle, illumination, phase; PHASES, MAIN_HALF_WIDTH (10°), name()
   Astro/Aspects.php          Aspects::between($lonA,$lonB) → type + orb or null; TYPES (orb limits pinned by tests)
@@ -51,7 +51,7 @@ src/
   Love/Common.php            Common::between($chartA, $chartB) — shared Sun/Moon/Ascendant values
   Love/Synastry.php          Synastry::between($lonsA, $lonsB, $limit) → rows, counts, approx; ORDER, PERSONAL, MAX_ROWS (12)
   Tarot/Reading.php          Reading::spread($seed, $today) — deterministic Past/Present/Future, 3 distinct cards from 78; fromSlots() for a validated shared spread
-  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings; Self adds `name` when given), codeQuery(), tarotCode/parseTarot (0-77), MAX_URL_FOR_QR (520), trimCity
+  Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings; Self adds `name` when given), codeQuery(), tarotCode/parseTarot (0-77), trimCity
   Share/ShareCode.php        Pure: VERSION 1, MAX_CHARS 400, MAX_LABEL_BYTES 32; VERSION_SELF_NAME 2, VERSION_HIDDEN 3; encodeSelf (version 2 only when a name is present, else 1)/encodeLove → code string, decode($code) → long-query array or null (strict, canonical only; rejects version 3), encodeHidden($person), decodeHidden($code) → person or null (version 3 only), extractHidden($text) → code from a pasted link or bare code, cutLabel()
   Share/TimeZoneTable.php    Append-only list of time zones used by short codes (never reorder or remove)
   Share/Qr.php               Pure QR code generator: encode($data): ?modules (null if over 520 bytes), path($modules) for SVG, capacity(); generated in pure PHP
@@ -86,10 +86,10 @@ docker/config.php            DB settings for the Docker setup, read from the con
 migrations/001_create_magic_audit.sql   Idempotent schema for magic_audit and magic_audit_person (CREATE TABLE IF NOT EXISTS)
 cache/                       Geocoding cache (writable, denied from web; not in web root)
 tests/run.php                Dependency-free test runner (core checks), requires tests/cases/*.php
-tests/cases/                 docs.php (ADR 0008: VERSION, badges, update-badges.sh, README/DEVELOPER.md shape, site-name scan), hidden.php (hidden code, import flow, hidden.php, consent, no-leak), flow.php (ADR 0007: chooser and locks, Self/Soul Affinity/Friends structure, pending friend, nicknames, Terms version, Friends hardening), ui.php (chooser, required marks, help coverage and wording, CSS regressions, script static checks), planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit), position.php (ADR 0005: reading day, current position, distances), sky.php (houses, moon phase, aspects, synastry, wheel, daily copy), code.php (short codes, time-zone table, gate), memory.php (memory.js static checks, hooks in templates)
+tests/cases/                 docs.php (VERSION, badges, update-badges.sh, README/DEVELOPER.md shape, site-name scan, deploy.sh never listing release/), hidden.php (hidden code, import flow, hidden.php, consent, no-leak), flow.php (release 0.9: chooser and locks, Self/Soul Affinity/Friends structure, pending friend, nicknames, Terms version, Friends hardening), ui.php (chooser, required marks, help coverage and wording, CSS regressions, script static checks), planets.php, bio.php, love.php, tarot.php, request.php, layering.php (ADR 0002 checks), audit.php (ADR 0003: Yaml, AuditRecord, DB failure isolation), share.php (ADR 0004: QR structure, share-link round trips, noaudit), position.php (ADR 0005: reading day, current position, distances), sky.php (houses, moon phase, aspects, synastry, wheel, daily copy), code.php (short codes, time-zone table, gate), memory.php (memory.js static checks, hooks in templates)
 scripts/docker-db.sh         Docker DB helper: migrate | shell | query "SQL" | audit [N] | reset (password stays in the container)
 scripts/update-badges.sh     Rewrites docs/badges/version.svg (from VERSION) and loc.svg (rounded tracked source line count); offline, exit 1 if VERSION is not N.N.N; never touches deployed.svg
-scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill
+scripts/deploy.sh            Tests, then uploads committed files changed since last deploy via the sftp-upload skill; never uploads release/
 scripts/make-config.sh       Writes config.php (mode 600) from the database section of ~/.password; prints only "config.php written"
 scripts/db-migrate.sh        Applies migrations/*.sql in order with the mysql client (password via a temp option file, never on the command line)
 scripts/db-purge.sh          Manual retention: `--days N` deletes audit rows older than N days (cascade removes persons)
@@ -97,14 +97,17 @@ scripts/lib/dbcred.sh        Sourced helper: load_db_credentials, write_mysql_de
 .deploy.local.example        Template for the gitignored .deploy.local (host, remote dir, DB_PASSWORD_SECTION); credentials in ~/.password
 .deploy-state                (gitignored) last deployed commit SHA
 .deploy-config-hash          (gitignored) content hash of the last uploaded config.php
-docs/                        architecture.md, code.md, features.md (visitor view), changelog.md, roadmap.md, decisions/ (ADRs)
+docs/                        architecture.md, code.md, features.md (visitor view), changelog.md, roadmap.md, decisions/ (0000-template.md and 0001-before_release.md, the consolidated ADR; new ADRs start at 0002)
 docs/badges/                 version.svg and loc.svg (written by scripts/update-badges.sh), deployed.svg (hand-authored); static, self-contained
-VERSION                      Single line N.N.N (0.10.0): the only source of the version; the changelog heading must match
+VERSION                      Single line N.N.N (1.0.0): the only source of the version; the changelog heading must match
 DEVELOPER.md                 Developer material: requirements, run, tests, noaudit, database, deploy, badges and releases, agents, layering, CSP
 README.md                    Business specification only (badges, features, privacy, limits); no commands
 .claude/agents/              architect, implementer, reviewer, documenter, deployer
 .claude/commands/            new-feature.md (workflow entry point)
 CLAUDE.md                    Rules for AI agents
+AGENTS.md                    Pointer to CLAUDE.md for other agent tools
+.gitignore                   Ignores config.php, .deploy*, cache contents, local agent settings
+cache/.gitkeep               Keeps the empty cache/ directory in git
 ```
 
 ## Data shapes
@@ -115,7 +118,7 @@ CLAUDE.md                    Rules for AI agents
 // Chart::full(...same args) = compute + :
 ['planetsSupported' => bool,                       // 1800..2100
  'planets' => ['mercury' => ['position' => $pos, 'retrograde' => bool], ... 'pluto' => ...],   // [] when unsupported
- 'node' => $pos,                                  // mean North Node, any year
+ 'node' => $pos,                                  // North Node, any year
  'houses' => ['sun','moon','mercury'.. 'pluto','node' => int 1-12]]
 // Chart::partial(y, m, d, ?h, ?mi, ?lat, ?lon, ?tz)
 ['sun' => ?$pos, 'moon' => ?$pos, 'ascendant' => ?$pos, 'midheaven' => ?$pos (with time and place), 'approx' => ['sun' => bool, 'moon' => bool]]
@@ -187,7 +190,7 @@ Self with a pending friend: `GET /?mode=self&h=<code>[&nick=…]` shows a banner
 
 Hidden: `GET /?h=<code>` (or `?import=<pasted link>`) → consent check → `Request::hiddenCode` → person merged into the query for parsing, `$hidden = true`, form shows `partials/hidden-person.php` and a hidden input `h` → `LoveReading::build` with B labelled → result without share section or note → audit with the hidden marker (unless `noaudit`). Creating the link: browser (`share.js`) → `POST hidden.php` → JSON.
 
-Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie `magic_terms` the query is ignored, no result is built and the terms popup is shown (the sanitised original query travels in a hidden field). The popup/section form posts to `public/consent.php`, which sets (accept) or clears (withdraw, clean) the cookie and redirects with 303 to `./` (`./?withdrawn=1`, `./?cleaned=1`). No consent means no result and no audit record. Every response carries `Cache-Control: private, no-store` and `Vary: Cookie`.
+Consent: `public/index.php` reads `Consent::given($_COOKIE)`. Without the cookie `magic_terms` the query is ignored, no result is built and the terms popup is shown (the sanitised original query travels in a hidden field). The popup/section form posts to `public/consent.php`, which sets (accept) or clears (withdraw) the cookie and redirects with 303 to `./` (`./?withdrawn=1` after a withdraw). No consent means no result and no audit record. Every response carries `Cache-Control: private, no-store` and `Vary: Cookie`.
 
 Audit: after `templates/home.php` is rendered, and only when `$view !== null` (a result) and the request has no `noaudit` parameter (hidden-link requests are audited, with format 4), `public/index.php` calls `ignore_user_abort(true)`, `set_time_limit(10)`, `fastcgi_finish_request()` (else `flush()`), builds the record (`AuditRecord::fromSelf|fromLove`) and calls `AuditLog::tryWrite(getenv('MAGIC_CONFIG') ?: MAGIC_ROOT.'/config.php', $record)`. Missing config, missing PDO, connection or SQL errors return false; only `audit: write failed <Class> <code>` (or `audit: build failed <Class>`) is logged. `MAGIC_CONFIG` exists so tests can point to another file.
 
@@ -207,8 +210,8 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 - **Set up / migrate the database:** `scripts/make-config.sh` (or copy `config.php.example` to `config.php` and edit), then `scripts/db-migrate.sh`. If the database server refuses your machine, paste `migrations/001_create_magic_audit.sql` into the hosting panel's SQL tool.
 - **Docker database:** `scripts/docker-db.sh migrate` (re-apply migrations), `audit [N]` (latest results), `query "SELECT ..."`, `shell`, `reset` (wipes the volume and starts again). The schema is applied automatically on the first start.
 - **Add or change a help text:** add the key to `Content\Help::TEXT` (20-240 characters, plain advice, no method talk), call `help_term('key', 'visible label')` where it belongs (the label is the trigger, never inside a `<label>`); `tests/cases/ui.php` fails if a key is unused, missing or too long.
-- **Manual browser checks for ADR 0008:** (1) generate a hidden code, press Share on WhatsApp on a phone and on desktop: WhatsApp opens with the sentence and the link. (2) Help terms: Tab to a term, Enter/Space opens, Esc closes and returns focus, an outside tap closes; the popup stays inside the viewport at 1280 px and is a bottom panel at 360 px. (3) Quiet buttons: focus visible, disabled Generate/Clear still read as disabled. (4) Friends with three entries: icon buttons by keyboard, tooltips, layout at 360 and 1280 px. (5) Self result and a hidden-derived Soul Affinity result have no share block; print preview of both.
-- **Manual browser checks for ADR 0007:** (1) fresh browser: Soul Affinity and Friends greyed with the lock text, Generate and Clear grey; Save with an incomplete form says what is missing; after Save and reload the buttons and cards are active. (2) Reveal, edit the date, Reveal again: the dialog appears; Cancel keeps everything, Continue wipes friends and saved people. (3) Newcomer in a private window: open a hidden link, accept the Terms, go to Self Discovery from the locked notice, Reveal, find the friend in Friends with the typed nickname. (4) Friends: add three, search, rename, select all shown, bulk remove, single remove, Compare opens a result labelled with the nickname and no friend detail in the page source. (5) Keyboard-only walk of the dialog, list and checkboxes; layout at 360 px and 1280 px. (6) Storage blocked: Self works, Save/Clear/Friends explain it.
+- **Manual browser checks for release 0.10:** (1) generate a hidden code, press Share on WhatsApp on a phone and on desktop: WhatsApp opens with the sentence and the link. (2) Help terms: Tab to a term, Enter/Space opens, Esc closes and returns focus, an outside tap closes; the popup stays inside the viewport at 1280 px and is a bottom panel at 360 px. (3) Quiet buttons: focus visible, disabled Generate/Clear still read as disabled. (4) Friends with three entries: icon buttons by keyboard, tooltips, layout at 360 and 1280 px. (5) Self result and a hidden-derived Soul Affinity result have no share block; print preview of both.
+- **Manual browser checks for release 0.9:** (1) fresh browser: Soul Affinity and Friends greyed with the lock text, Generate and Clear grey; Save with an incomplete form says what is missing; after Save and reload the buttons and cards are active. (2) Reveal, edit the date, Reveal again: the dialog appears; Cancel keeps everything, Continue wipes friends and saved people. (3) Newcomer in a private window: open a hidden link, accept the Terms, go to Self Discovery from the locked notice, Reveal, find the friend in Friends with the typed nickname. (4) Friends: add three, search, rename, select all shown, bulk remove, single remove, Compare opens a result labelled with the nickname and no friend detail in the page source. (5) Keyboard-only walk of the dialog, list and checkboxes; layout at 360 px and 1280 px. (6) Storage blocked: Self works, Save/Clear/Friends explain it.
 - **Check the Terms section is clickable (manual):** in the browser console run `document.elementFromPoint(x, y)` at the centre of `#terms summary`; it must return `SUMMARY`, not `FOOTER`. Repeat at 360 px and 1280 px.
 - **Change the T&Cs text:** `templates/partials/terms.php` (one place, used by the popup and the end-of-page section).
 - **Purge old audit rows (manual):** `scripts/db-purge.sh --days 90`.
@@ -243,7 +246,7 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 | Change hidden sharing or import | `Share\ShareCode` (hidden code), `Request::hiddenCode`, `public/hidden.php`, `partials/import.php`, `partials/hidden-person.php`, `share.js`, `import.js`, `tests/cases/hidden.php` |
 | Force everyone to re-accept the Terms | bump `Consent::VALUE` |
 | Add an audit key | `Audit\AuditRecord`, bump `FORMAT_VERSION` if the layout changes, `tests/cases/audit.php` |
-| Document a release | bump `VERSION`, run `scripts/update-badges.sh`, `docs/changelog.md` (Unreleased → version heading) |
+| Cut a release | `/release` skill; `VERSION`, `scripts/update-badges.sh`, `docs/changelog.md` (Unreleased → version heading), `release/<version>/` (zip + changelog, never deployed) |
 | Change the badges or version | `VERSION`, `scripts/update-badges.sh`, `docs/badges/` |
 | Change a button's weight | `button` and `.btn--primary` in `public/assets/styles.css`, class in the template |
 | Change the WhatsApp button | `partials/self-actions.php`, `public/assets/share.js`, `tests/cases/hidden.php` |

@@ -25,7 +25,7 @@ Docker database helper `scripts/docker-db.sh`:
 ## Tests
 
 ```bash
-php tests/run.php        # 264 tests, exit code != 0 on failure
+php tests/run.php        # 265 tests, exit code != 0 on failure
 ```
 
 Dependency-free runner. Astronomical output needs a reference-value test. `tests/cases/docs.php` also checks `VERSION`, the badges, the README and DEVELOPER.md structure and that the site name appears only where allowed.
@@ -55,7 +55,9 @@ Never write the server host, domain, provider or credentials in tracked files.
 
 - `VERSION` (one line, `N.N.N`) is the single source of the version.
 - `scripts/update-badges.sh` rewrites `docs/badges/version.svg` and `docs/badges/loc.svg` offline from `VERSION` and the tracked source files. `deployed.svg` is hand-authored and never regenerated.
-- Release: bump `VERSION`, run `scripts/update-badges.sh`, move "Unreleased" in `docs/changelog.md` under the same version heading.
+- Small release (visible change): bump `VERSION`, run `scripts/update-badges.sh`, move "Unreleased" in `docs/changelog.md` under a heading starting `vMAJOR.MINOR` that matches `VERSION`.
+- Major release (`N.0.0`): run the `/release` skill (`~/.claude/skills/release`). It tags `pre-release-<version>`, sets `VERSION` and the changelog, refactors with tests green, refreshes the docs, consolidates the ADRs into `docs/decisions/0001-before_release.md` (future ADRs start at 0002), commits, builds `release/<version>/<version>.zip` plus a copy of the changelog from tracked files only, checks the zip listing for secrets, and deploys.
+- `release/` holds those artifacts. It is outside `public/` (not served) and `scripts/deploy.sh` never uploads it (covered by a test).
 
 ## Agent workflow
 
@@ -73,4 +75,4 @@ No inline scripts or styles: `public/.htaccess` sets a strict CSP and no third-p
 
 ## Documents
 
-[architecture](docs/architecture.md) · [code map](docs/code.md) · [features](docs/features.md) · [changelog](docs/changelog.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/)
+[architecture](docs/architecture.md) · [code map](docs/code.md) · [features](docs/features.md) · [changelog](docs/changelog.md) · [roadmap](docs/roadmap.md) · [decisions](docs/decisions/0001-before_release.md)

@@ -333,7 +333,7 @@ summary { cursor: pointer; }
   .share__qrbox > * { display: block; }
 }
 
-/* Menu, hidden-details panel and import (ADR 0006 phase B) */
+/* Hidden-details panel and import (ADR 0006 phase B) */
 .selfactions__panel { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 8px; }
 .selfactions__panel h3 { margin: 0; font-weight: 400; font-size: 1.05rem; color: var(--gold); }
 .selfactions__panel p { margin: 0; }

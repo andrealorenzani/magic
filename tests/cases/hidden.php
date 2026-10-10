@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 // ADR 0006 phase B: hidden-details code (version 3), import flow, no-leak page, audit of hidden links,
-// hidden.php, consent.php clean, menu, and static checks of the scripts.
+// hidden.php, consent.php withdraw, menu, and static checks of the scripts.
 use Magic\Audit\AuditRecord;
 use Magic\Consent;
 use Magic\Content\Help;
@@ -288,22 +288,19 @@ check('hidden.php: source has no storage, database, audit or logging calls', fun
         same([$bad, str_contains($src, $bad)], [$bad, false]);
     }
 });
-check('consent.php clean: clears the cookie, redirects to ./?cleaned=1; the gate shows the message and forgets the memory', function () use ($shareHttp, $sharePage) {
-    [$code, $h] = $shareHttp('POST', '/consent.php', 'action=clean&next=x%3D1', ['Content-Type: application/x-www-form-urlencoded', 'Cookie: magic_terms=5']);
+check('consent.php withdraw: clears the cookie, redirects to ./?withdrawn=1; the gate shows the message and forgets the memory', function () use ($shareHttp, $sharePage) {
+    [$code, $h] = $shareHttp('POST', '/consent.php', 'action=withdraw&next=x%3D1', ['Content-Type: application/x-www-form-urlencoded', 'Cookie: magic_terms=5']);
     $hs = implode("\n", $h);
-    same([$code, str_contains($hs, 'Location: ./?cleaned=1')], [303, true]);
+    same([$code, str_contains($hs, 'Location: ./?withdrawn=1')], [303, true]);
     same(preg_match('/Set-Cookie: magic_terms=deleted; expires=Thu, 01 Jan 1970/', $hs), 1);
     same(str_contains($hs, 'HttpOnly'), true);
-    same(Consent::ACTIONS, ['accept', 'withdraw', 'clean']);
     same(Consent::VALUE, '5');
     same(Consent::given([Consent::COOKIE => '2']), false);
-    [$out] = $sharePage(['cleaned' => '1'], ['QUERY_STRING' => 'cleaned=1'], false);
-    same(str_contains($out, 'Your browser data was cleaned and your acceptance withdrawn.'), true);
+    [$out] = $sharePage(['withdrawn' => '1'], ['QUERY_STRING' => 'withdrawn=1'], false);
+    same(str_contains($out, 'You withdrew your acceptance.'), true);
     same(str_contains($out, '<div id="page" inert aria-hidden="true" data-forget-memory>'), true);
     same(str_contains($out, 'name="next" value=""'), true);
     same(str_contains($out, 'Your link could not be kept'), false);
-    [$out] = $sharePage(['withdrawn' => '1'], ['QUERY_STRING' => 'withdrawn=1'], false);
-    same(str_contains($out, 'You withdrew your acceptance.') && !str_contains($out, 'cleaned and your'), true);
 });
 
 // ---- menu, import and Terms text ----

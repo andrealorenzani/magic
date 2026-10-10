@@ -9,7 +9,7 @@ use Magic\Http;
 header('Cache-Control: private, no-store');
 header('Vary: Cookie');
 
-// Accept, withdraw or clean (withdraw after the browser data was erased) the Terms and Conditions. Always answers with a redirect to this site's home page.
+// Accept or withdraw the Terms and Conditions. Always answers with a redirect to this site's home page.
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $accept = ($_POST['action'] ?? '') === 'accept';
     setcookie(Consent::COOKIE, $accept ? Consent::VALUE : '', [
@@ -23,8 +23,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     if ($accept) {
         header('Location: ./' . ($next !== '' ? '?' . $next : '') . '#results', true, 303);
     } else {
-        $clean = ($_POST['action'] ?? '') === 'clean';
-        header('Location: ./' . ($clean ? '?cleaned=1' : '?withdrawn=1'), true, 303);
+        header('Location: ./?withdrawn=1', true, 303);
     }
     exit;
 }

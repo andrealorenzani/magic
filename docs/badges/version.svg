@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20" viewBox="0 0 120 20" role="img" aria-label="version: v0.10.0">
-  <title>version: v0.10.0</title>
-  <rect width="120" height="20" rx="3" fill="#2e2a63"/>
-  <rect x="60" width="60" height="20" rx="3" fill="#f2c96b"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="114" height="20" viewBox="0 0 114 20" role="img" aria-label="version: v1.0.0">
+  <title>version: v1.0.0</title>
+  <rect width="114" height="20" rx="3" fill="#2e2a63"/>
+  <rect x="60" width="54" height="20" rx="3" fill="#f2c96b"/>
   <rect x="60" width="6" height="20" fill="#f2c96b"/>
   <g font-family="Verdana, DejaVu Sans, sans-serif" font-size="11" text-anchor="middle">
     <text x="30.0" y="14" fill="#ece9ff">version</text>
-    <text x="90.0" y="14" fill="#1a1330">v0.10.0</text>
+    <text x="87.0" y="14" fill="#1a1330">v1.0.0</text>
   </g>
 </svg>
