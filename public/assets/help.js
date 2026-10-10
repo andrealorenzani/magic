@@ -97,8 +97,11 @@
   window.addEventListener(
     "scroll",
     (e) => {
+      if (!WIDE.matches) return;
       if (e.target instanceof Element && e.target.closest(".help__pop")) return;
-      closeAll(null);
+      const open = openTerm();
+      const p = open ? popOf(open) : null;
+      if (open && p) place(open, p);
     },
     true
   );

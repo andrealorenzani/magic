@@ -172,6 +172,10 @@ check('help: texts are 20-240 characters, unique, plain words only; unknown key 
 check('help.js: Escape, outside click, no storage, network or HTML injection; node syntax check', function () use ($uiRoot) {
     $js = (string) file_get_contents($uiRoot . '/public/assets/help.js');
     same(str_contains($js, 'Escape') && str_contains($js, 'closest(".help")') && str_contains($js, 'aria-expanded'), true);
+    // Scroll never closes the popup: the sheet stays on mobile, desktop repositions it.
+    preg_match('/addEventListener\(\s*"scroll"(.*?)true\s*\)/s', $js, $sc);
+    same(isset($sc[1]) && !str_contains($sc[1], 'closeAll') && str_contains($sc[1], '!WIDE.matches') && str_contains($sc[1], 'place('), true);
+    same(str_contains($js, 'addEventListener("resize", () => closeAll(null))'), true);
     foreach (['innerHTML', 'fetch(', 'XMLHttpRequest', 'localStorage', 'sessionStorage', 'eval(', 'cookie'] as $bad) {
         same(str_contains($js, $bad), false);
     }
