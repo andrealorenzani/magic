@@ -7,7 +7,7 @@ namespace Magic;
 final class Consent
 {
     public const COOKIE = 'magic_terms';
-    public const VALUE = '3';
+    public const VALUE = '4';
     public const ACTIONS = ['accept', 'withdraw', 'clean'];
     public const LIFETIME = 31536000; // one year
 

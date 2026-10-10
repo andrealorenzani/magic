@@ -1,8 +1,8 @@
 # ✦ Magic
 
-A page for magic lovers with two modes (choose on the home page):
+A page for magic lovers in three steps (choose on the home page): Self Discovery, Soul Affinity, Friends hidden codes.
 
-**Self discovery** — enter your **birth date**, **birth time** and **birth city**:
+**1. Self Discovery** — enter your **birth date**, **birth time** and **birth city**:
 - ☉ ↑ ☽ **Sun, Ascendant and Moon** signs
 - **Mercury to Pluto** and the mean North Node, with retrograde marks (births 1800-2100)
 - the **Midheaven**, the house of each body and a **chart wheel**
@@ -10,17 +10,19 @@ A page for magic lovers with two modes (choose on the home page):
 - **born under** (moon phase at birth) and **Today's sky**
 - your three **biorhythms** (physical, emotional, intellectual) for today, with next peaks and troughs
 
-**Love** — your name and birth data plus a loved person (their name is enough; date, time and city are optional):
+**2. Soul Affinity** (locked until your Self Discovery data is stored; it uses that data, so you do not type yourself again) — you plus another soul (their name is enough; date, time and city are optional, or import their hidden code):
 - **name affinity** in percent
 - **biorhythm synchrony** of the two of you (needs both birth dates)
 - **common values** in Sun, Moon and Ascendant, and a **synastry** table
 - a **Past / Present / Future tarot spread** (78 cards) for the two of you (same input and day give the same cards)
 
-A **Menu** above the mode chooser has "Clean browser data" and "Share my Self Discovery hidden data". Self discovery has an optional **name**. A small **?** next to fields and results explains them.
+**3. Friends hidden codes** (locked until Self Discovery data is stored; needs JavaScript) — the hidden codes friends shared with you, kept in your browser with a nickname you choose: search, rename, remove, Compare.
 
-**Hidden sharing.** The menu makes a link and QR code with your details that another person can paste or scan in Love ("Import hidden details"); their screen does not show your name, birth data or place and the result has no share section. "Hidden" only means not shown: the link contains the details, so share it only with someone you trust. Opening such a link is recorded in the audit like any Love result.
+Self Discovery has an optional **name** and the buttons Generate hidden data code, Clear data, Reveal my sky and Save the data. A small **?** next to fields and results explains them.
 
-Both modes have an optional **current city**: it sets your local "today" and shows the **distance** between places. Details in [docs/features.md](docs/features.md).
+**Hidden sharing.** "Generate hidden data code" makes a link and QR code with your details that another person can paste or scan in Soul Affinity ("Import from a user"); their screen does not show your name, birth data or place and the result has no share section. "Hidden" only means not shown: the link contains the details, so share it only with someone you trust. Opening such a link is recorded in the audit like any Soul Affinity result.
+
+Self Discovery and Soul Affinity have an optional **current city**: it sets your local "today" and shows the **distance** between places. Details in [docs/features.md](docs/features.md).
 
 Both results have a **Share** section and a **Print** button (and a print layout without forms), so you can keep a paper copy.
 
@@ -32,9 +34,9 @@ Name affinity, biorhythms, scores and tarot are for wonder, not science.
 
 PHP 8.1+, no Composer. MySQL is optional and used only for the audit trail (below). Tropical zodiac. Sun and Moon are very accurate; planets (1800-2100) are approximate. Only the city text is sent to the free [Open-Meteo geocoding API](https://open-meteo.com/en/docs/geocoding-api) (cached, with an offline list of major cities as fallback). Results are shareable GET URLs: they contain names and birth data, so they are marked noindex/no-store and should be shared only with people you trust. "Today" is the day at your current city if you enter one, else the server's UTC date; add `&on=YYYY-MM-DD` to fix it.
 
-**Browser memory.** If your browser allows it, your own details (and a short list of people you looked up in Love) are remembered in your browser only, never stored by the server; "Forget my data" erases them, and so does withdrawing your acceptance.
+**Browser memory.** If your browser allows it, your own details, a short list of people you looked up and your friends' hidden codes with nicknames are remembered in your browser only, never stored by the server; "Clear data" erases them (the Terms acceptance stays), and so does withdrawing your acceptance.
 
-**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.8, so everybody accepts once again (the menu's "Clean browser data" also brings the popup back). The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
+**Terms and Conditions.** On the first visit a popup asks you to accept the Terms and Conditions; until you do, nothing is processed and nothing is recorded. Acceptance is remembered with one functional cookie (`magic_terms`, 1 year, no identifier). The Terms were updated in v0.9 (version 4), so everybody accepts once again. The same text is in the expandable "Terms and Conditions" section at the end of the page, where you can withdraw your acceptance.
 
 **Privacy.** Each Self or Love result is recorded in an audit log: names, birth date, time and place (including the loved person's details, only what is entered) and a YAML summary of the result. No IP address or user agent is stored and nothing is used to track you. There is no automatic deletion: the owner purges with `scripts/db-purge.sh --days N` or removes a person on request (details in [docs/architecture.md](docs/architecture.md) §5). Without a database the app works normally and stores nothing.
 
@@ -59,7 +61,7 @@ PHP 8.1+ is needed only if you prefer the built-in server or want to run the tes
 
 ```bash
 php -S localhost:8081 -t public     # http://localhost:8081 (no database unless config.php exists)
-php tests/run.php                   # 232 tests (astronomy, time zones, input validation, both modes, audit, short links, browser memory)
+php tests/run.php                   # 248 tests (astronomy, time zones, input validation, all modes, audit, short links, browser memory, page flow)
 ```
 
 ## Deploy (Apache shared hosting)

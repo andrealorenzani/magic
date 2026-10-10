@@ -11,7 +11,7 @@ check('memory.js: no HTML injection, code evaluation or network access', functio
     same(preg_match('/https?:\/\//', $memJs), 0);
 });
 check('memory.js: keys, limits and guarded storage access', function () use ($memJs) {
-    foreach (['magic.me.v1', 'magic.loved.v1', 'MAX_PEOPLE = 20', 'MAX_LOVED_BYTES = 16384', 'MAX_NAME = 40', 'MAX_CITY = 80', 'MAX_TZ = 64', 'MAX_COORD = 12', 'MAX_ME_BYTES = 2048', 'MAX_RAW = 32768', 'o.v === 1', 'textContent', 'createElement("option")'] as $needle) {
+    foreach (['magic.me.v1', 'magic.loved.v1', 'magic.friends.v1', 'MAX_FRIENDS = 60', 'MAX_FRIENDS_BYTES = 40000', 'MAX_FRIENDS_RAW = 49152', 'MAX_CODE = 400', 'MAX_NICK = 40', 'showModal', 'data-friends', 'data-self-save', 'MAX_PEOPLE = 20', 'MAX_LOVED_BYTES = 16384', 'MAX_NAME = 40', 'MAX_CITY = 80', 'MAX_TZ = 64', 'MAX_COORD = 12', 'MAX_ME_BYTES = 2048', 'MAX_RAW = 32768', 'o.v === 1', 'textContent', 'createElement("option")'] as $needle) {
         same(str_contains($memJs, $needle), true);
     }
     // Every storage call sits in a try block.
@@ -36,19 +36,22 @@ check('memory markup: forms, bars and select start hidden; no inline script or h
         [$out] = $sharePage($get);
         same(substr_count($out, 'data-memory-bar hidden'), 1);
         same(preg_match('/<form id="(?:birth|love)-form"[^>]* data-memory="(?:self|love)"/', $out), 1);
-        same(str_contains($out, 'data-memory-save hidden') && str_contains($out, 'data-memory-forget'), true);
+        same(str_contains($out, 'data-memory-forget>'), false);
+        same(str_contains($out, 'Forget my data'), false);
         same(str_contains($out, 'src="assets/memory.js" defer'), true);
         same(preg_match('/<script(?![^>]*\bsrc=)|\son[a-z]+=|\sstyle=/i', $out), 0);
         same(str_contains($out, 'Your details are remembered in this browser only.'), true);
     }
     [$out] = $sharePage(['mode' => 'love']);
+    same(str_contains($out, 'data-memory-save hidden'), true);
     same(str_contains($out, 'data-saved hidden') && str_contains($out, 'data-saved-select') && str_contains($out, 'data-saved-remove'), true);
-    same(substr_count($out, 'data-person="me"'), 1);
+    same(substr_count($out, 'data-person="me"'), 1); // the carried (hidden) fieldset
     same(substr_count($out, 'data-person="loved"'), 1);
     [$out] = $sharePage(['mode' => 'self']);
     same(str_contains($out, 'data-saved-select'), false);
     same(substr_count($out, 'data-person="me"'), 1);
     same(str_contains($out, 'data-memory-forget-on-submit'), true);
+    same(str_contains($out, 'data-memory-save'), false);
 });
 check('memory markup: the page after withdrawing clears the stored details; normal pages do not', function () use ($sharePage) {
     [$out] = $sharePage(['withdrawn' => '1'], [], false);
@@ -63,4 +66,8 @@ check('memory: the Terms say remembered details stay in the browser and can be e
     same(str_contains($terms, 'in your browser only'), true);
     same(str_contains($terms, 'never leaves it'), true);
     same(str_contains($terms, 'withdrawing your acceptance erases it too'), true);
+    same(str_contains($terms, 'Clear data'), true);
+    same(str_contains($terms, 'Forget my data'), false);
+    same(str_contains($terms, 'hidden codes other people shared with you'), true);
+    same(str_contains($terms, 'each with a nickname you choose'), true);
 });

@@ -35,6 +35,9 @@ if (isset($q['c'])) {
     }
 }
 $hiddenState = Request::hiddenCode($q);
+// The receiver's own nickname for a hidden person: local to this page view, never audited or shared.
+$nickState = Request::nickname($q);
+$nick = $nickState['nick'];
 $rawQuery = ltrim((string) ($_SERVER['QUERY_STRING'] ?? ''), '?');
 $returnQuery = $consented ? '' : Consent::safeQuery($rawQuery);
 $withdrawn = !$consented && ($_GET['withdrawn'] ?? null) === '1';
@@ -51,6 +54,10 @@ $mode = Request::mode($q);
 $hidden = false;
 $hiddenCode = null;
 $hiddenAnonymous = false;
+$pendingHidden = null;
+if ($mode === 'self' && $hiddenState['code'] !== null) {
+    $pendingHidden = ['code' => $hiddenState['code'], 'nick' => $nick];
+}
 if ($mode === 'love' && $hiddenState['person'] !== null) {
     foreach (array_keys($q) as $key) {
         if (str_starts_with($key, 'b_')) {
@@ -67,7 +74,7 @@ if ($mode === 'love' && $hiddenState['person'] !== null) {
         $q['b_name'] = 'Match';
     }
 }
-unset($q['h'], $q['import']);
+unset($q['h'], $q['import'], $q['nick']);
 $nowUnix = time(); // the clock is read here, nowhere else
 $userTz = null;
 $today = Request::resolveToday($q, $nowUnix, null);
@@ -85,9 +92,15 @@ $self = $person('', '12:00');
 $love = ['a' => $person('a_', '12:00'), 'b' => $hidden ? array_map(static fn (string $v): string => '', $person('b_', '')) : $person('b_', '')];
 $errors = [];
 $notes = [];
-if ($mode === 'love' && $hiddenState['invalid']) {
+if (($mode === 'love' || $mode === 'self') && $hiddenState['invalid']) {
     $notes[] = 'The hidden details in this link are not valid, so they were ignored.';
 }
+if ($nickState['invalid'] && ($hidden || $pendingHidden !== null)) {
+    $notes[] = 'The nickname was not valid, so it was ignored.';
+}
+$matchLabel = $nick ?? 'Your match';
+$aKnown = false;
+$loveLink = null;
 $view = null;
 $share = null;
 $fixedDay = null;
@@ -104,6 +117,16 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
         $today = Request::resolveToday($q, $nowUnix, $userTz);
         $view = SelfReading::build($in, $today, Request::dayBasis($q, $userTz));
         $notes = array_merge($notes, $view['notes']);
+        $aKnown = true;
+        $aQuery = ['mode' => 'love', 'a_name' => $in['name'] ?? 'Me', 'a_date' => sprintf('%04d-%02d-%02d', $in['year'], $in['month'], $in['day']),
+            'a_time' => sprintf('%02d:%02d', $in['hour'], $in['minute']), 'a_city' => $in['city'], 'a_lat' => (string) $in['lat'], 'a_lon' => (string) $in['lon'], 'a_tz' => $in['tz']];
+        if ($in['now'] !== null) {
+            $aQuery += ['a_pos_city' => $in['now']['city'], 'a_pos_lat' => (string) $in['now']['lat'], 'a_pos_lon' => (string) $in['now']['lon'], 'a_pos_tz' => $in['now']['tz']];
+        }
+        if ($noAudit) {
+            $aQuery['noaudit'] = '';
+        }
+        $loveLink = '?' . http_build_query($aQuery, '', '&', PHP_QUERY_RFC3986);
         $self = array_merge($self, $nowFields($in['now']), ['city' => $in['city'], 'lat' => (string) $in['lat'], 'lon' => (string) $in['lon'], 'tz' => $in['tz']]);
     }
 } elseif ($mode === 'love') {
@@ -123,12 +146,13 @@ if ($mode === 'self' && (isset($q['date']) || isset($q['city']))) {
             $errors = array_values(array_unique(array_map($mask, $errors)));
             $notes = array_values(array_unique(array_map($mask, $notes)));
             if ($parsed['b'] !== null) {
-                $parsed['b'] = ['label' => 'Your match', 'anonymous' => $hiddenAnonymous] + $parsed['b'];
+                $parsed['b'] = ['label' => $matchLabel, 'anonymous' => $hiddenAnonymous] + $parsed['b'];
                 if ($hiddenAnonymous) {
                     $parsed['b']['name'] = '';
                 }
             }
         }
+        $aKnown = $parsed['a'] !== null;
         if ($parsed['a'] !== null && $parsed['b'] !== null) {
             $tarotParam = Request::parseTarot($q);
             $userTz = $parsed['a']['now']['tz'] ?? null;

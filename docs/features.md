@@ -4,18 +4,19 @@ What the page does, in visitor language. For how it is built, see [architecture.
 
 ## Before you start
 
-On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing you type is processed or recorded. The Terms were updated in v0.8 (they now describe hidden-details links), so everybody is asked to accept once again. The Terms popup text scrolls inside its box and the Accept button never covers it, and the "Terms and Conditions" section at the end of the page opens when you click it.
+On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing you type is processed or recorded. The Terms were updated in v0.9 (they now describe the hidden codes of friends kept in your browser), so everybody is asked to accept once again. The Terms popup text scrolls inside its box and the Accept button never covers it, and the "Terms and Conditions" section at the end of the page opens when you click it.
 
-## Two modes
+## Three steps
 
-- **Self discovery**: you enter your birth date, birth time and birth city, and optionally a **name**. The name appears in the heading and in your links.
+1. **Self Discovery** ("Start here"): you enter your birth date, birth time and birth city, and optionally a **name**. The name appears in the heading and in your links. Fields are on the left; buttons on the right: **Generate hidden data code**, **Clear data**, **Reveal my sky** and **Save the data**. Generate and Clear are grey until your data is stored in this browser; Save stores it without showing the report (it needs the required fields and a city picked from the suggestions).
+2. **Soul Affinity** (called Love before): you do not type your own details again, the page uses your Self Discovery data. On the left "Other soul's info": the name is enough; date, time and city are optional, and each extra detail unlocks more results. On the right "Import from a user": an optional nickname, a scan of their QR code and a field to paste their link.
+3. **Friends hidden codes**: the hidden codes people shared with you, each with a nickname you choose.
 
-Required fields are marked with `*`, with a "* required" note under each form.
-- **Love**: you enter your own details and a loved person. For the loved person the name is enough; date, time and city are optional, and each extra detail unlocks more results.
+Soul Affinity and Friends hidden codes are greyed with "Self Discovery fields are required to unlock this section." until your Self Discovery data has been revealed or saved in this browser. There is no Menu any more.
 
-A **Menu** above the mode choice offers "Clean browser data" and "Share my Self Discovery hidden data" (see below). Every field and result item has a small **?** button that explains it in a sentence or two; it needs JavaScript and the page is complete without it.
+Required fields are marked with `*`, with a "* required" note under each form. Every field and result item has a small **?** button that explains it in a sentence or two; it needs JavaScript and the page is complete without it.
 
-Both forms have an optional **Current city** field (see "Where you are now"). Results can be printed (a print button and a print layout without forms).
+Self Discovery and Soul Affinity have an optional **Current city** field (see "Where you are now"). Results can be printed (a print button and a print layout without forms).
 
 ## Results
 
@@ -28,13 +29,13 @@ Both forms have an optional **Current city** field (see "Where you are now"). Re
 | Signs with most affinity, "love of your life" sign | Self | date, time, city |
 | Born under (moon phase at your birth) | Self | date, time, city |
 | Biorhythms (physical, emotional, intellectual) | Self | birth date |
-| Today's sky (moon phase, Moon sign, a short reading) | Self, compact in Love | nothing more |
-| Name affinity | Love | both names |
-| Biorhythm synchrony | Love | both birth dates |
-| In common (Sun, Moon, Ascendant values) | Love | what each person provided |
-| Synastry (aspects between the two charts) | Love | the loved person's birth date; more detail with time and city |
-| Distance and geography | Self, Love | current city (and birth city, or the other person's current city) |
-| Past / Present / Future tarot spread | Love | both names |
+| Today's sky (moon phase, Moon sign, a short reading) | Self, compact in Soul Affinity | nothing more |
+| Name affinity | Soul Affinity | both names |
+| Biorhythm synchrony | Soul Affinity | both birth dates |
+| In common (Sun, Moon, Ascendant values) | Soul Affinity | what each person provided |
+| Synastry (aspects between the two charts) | Soul Affinity | the loved person's birth date; more detail with time and city |
+| Distance and geography | Self, Soul Affinity | current city (and birth city, or the other person's current city) |
+| Past / Present / Future tarot spread | Soul Affinity | both names |
 | Share section (links and QR) | both | a result (not for a result built from hidden details) |
 
 Details worth knowing:
@@ -73,22 +74,28 @@ Under each result, "Share this reading" shows:
 
 You can let another person compare themselves with you without typing your data.
 
-- **Share:** Menu, "Share my Self Discovery hidden data". It uses the details your browser remembers; the button is grey, and leads to Self discovery, until you have submitted a complete Self form (date, time and birth city). It needs JavaScript. A panel shows a link and a QR code to copy or scan, with a warning to share it only with someone you trust.
-- **Import:** in Love, "Import hidden details": paste the link (it works without JavaScript; there is a second submit button in that box) or scan the QR code. Scanning needs a browser that supports it (for example Chrome on Android); pasting works everywhere. Opening such a link directly also lands in Love.
-- **What the receiver sees:** the shared person's name, birth date, time and city are not shown; the loved-person fields are replaced by a note "Details shared with you are loaded and hidden" with a "Remove them" link, and the results call them "Your match". There is no share section on such a result. If the link is damaged it is ignored with a note.
-- **Honest note:** "hidden" only means not shown on screen. The link contains the details and can be decoded by anyone who has it, it stays in the receiver's address bar and history, and the match results themselves say something about the person. Opening such a link is recorded like any Love result, with both people's details (add `noaudit` to skip it).
+- **Share:** in Self Discovery, **Generate hidden data code**. It uses the details your browser remembers; the button is grey until your data is stored. It needs JavaScript. A panel shows a link and a QR code to copy or scan, with a warning to share it only with someone you trust.
+- **Import:** in Soul Affinity, "Import from a user": paste the link (it works without JavaScript; there is a second submit button in that box) or scan the QR code. Scanning needs a browser that supports it (for example Chrome on Android); pasting works everywhere. Opening such a link directly also lands in Soul Affinity.
+- **What the receiver sees:** the shared person's name, birth date, time and city are not shown; the other soul's fields are replaced by a note "Details shared with you are loaded and hidden" with a "Remove them" link, and the results call them by the nickname you typed, or "Your match". The nickname stays on your device and is never in a code or link. There is no share section on such a result. If the link is damaged it is ignored with a note.
+- **Honest note:** "hidden" only means not shown on screen. The link contains the details and can be decoded by anyone who has it, it stays in the receiver's address bar and history, and the match results themselves say something about the person. Opening such a link is recorded like any Soul Affinity result, with both people's details (add `noaudit` to skip it).
 
-## Menu: clean browser data
+## Friends hidden codes
 
-"Clean browser data" (needs JavaScript) asks for confirmation in the page, then forgets the details remembered in this browser and your acceptance of the Terms; the Terms popup appears again.
+Needs JavaScript and browser storage. A hidden code is added to the list when you import it in Soul Affinity, or, if you arrived from a hidden link, when you press Reveal my sky or Save the data in Self Discovery (once; not again if it is already there). The list shows each friend's nickname (editable; "Unnamed friend" if empty) and the date added. You can search by nickname, rename, remove one, select all shown and remove several, and press **Compare** to open the result at once. Removals ask for confirmation. The list holds up to 60 friends. The real details inside a code are never shown.
+
+**Arriving from a hidden link** (even if you never used the page): accept the Terms, then Self Discovery asks for your details with a banner and an optional nickname for the friend; after Reveal or Save the friend appears in the list.
+
+## Clear data and changing your data
+
+**Clear data** (after a confirmation) erases everything this browser remembers: your Self Discovery data, saved people and friends' codes. Your acceptance of the Terms is kept. Changing your own name, date, time or birth city and revealing or saving also asks for confirmation, because it erases the previously stored data, friends included. Changing only the current city does not ask. If the browser blocks storage, the page says so and Save, Clear and Friends are unavailable.
 
 ## Remembered details
 
-If your browser allows it, the page remembers, **in your browser only**, the details you enter for yourself and a short list of people you looked up. It saves automatically when you submit a form you filled in yourself; details that arrived through a shared link are saved only if you press "Remember these details". In Love a "Saved people" list lets you fill in a loved person with one choice, or remove an entry. "Forget my data" erases everything the page keeps; withdrawing your acceptance of the Terms erases it too. If the browser blocks storage, the page works as usual with no memory bar.
+If your browser allows it, the page remembers, **in your browser only**, the details you enter for yourself and a short list of people you looked up. It saves automatically when you submit a form you filled in yourself; details that arrived through a shared link are saved only if you press "Remember these details". In Soul Affinity a "Saved people" list lets you fill in a loved person with one choice, or remove an entry. "Clear data" erases everything the page keeps; withdrawing your acceptance of the Terms erases it too. The page also keeps your friends' hidden codes and nicknames, in the browser only. If the browser blocks storage, the page works as usual with no memory bar.
 
-## Terms (version 3) and what is recorded
+## Terms (version 4) and what is recorded
 
-Each result is recorded on the server in an audit log: what you enter (names, birth date, time and place, the loved person's details if entered, and your current city if entered) and a summary of the result. Not recorded: IP address, user agent, referrer, the address you visited. Nothing is recorded without acceptance, or for requests with `noaudit`. Creating a hidden link sends your details once to the site, which does not store or record them; opening a hidden link is recorded. A single functional cookie remembers your acceptance. The remembered details above stay in your browser and are sent only when you submit a form.
+Each result is recorded on the server in an audit log: what you enter (names, birth date, time and place, the loved person's details if entered, and your current city if entered) and a summary of the result. Not recorded: IP address, user agent, referrer, the address you visited. Nothing is recorded without acceptance, or for requests with `noaudit`. Creating a hidden link sends your details once to the site, which does not store or record them; opening a hidden link is recorded. The Friends list and nicknames are never sent for recording. A single functional cookie remembers your acceptance. The remembered details above stay in your browser and are sent only when you submit a form.
 
 ## Known limits
 

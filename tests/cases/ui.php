@@ -76,7 +76,7 @@ check('forms: required marks, one legend per form, optional Self name, Love hint
     same(str_contains($out, 'Name <small>(optional)</small>'), true);
     [$out] = $sharePage(['mode' => 'love']);
     same(substr_count($out, '* required'), 1);
-    same(substr_count($out, '<span class="req" aria-hidden="true">*</span>'), 5); // You: 4, loved person: name
+    same(substr_count($out, '<span class="req" aria-hidden="true">*</span>'), 1); // the other soul's name; "you" is carried
     same(str_contains($out, 'Only the name is required'), false);
     same(preg_match('/<label for="b_name">Name <span class="req"/', $out), 1);
     same(preg_match('/<label for="b_date">Birth date<\/label>/', $out), 1);
@@ -92,7 +92,7 @@ $uiPages = function () use ($sharePage): array {
         'on' => '2026-10-09', 'noaudit' => '', 't' => '22u,40r,77u'];
     $srv = ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/'];
     $hid = ['mode' => 'love', 'h' => 'MApaZXJiaW5ldHRhsC6EBdZl4HiXGCUEqTK8tbUwuzS1gA'] + array_diff_key($love, array_flip(['b_name', 'b_date', 'b_time', 'b_city', 'b_lat', 'b_lon', 'b_tz']));
-    return [$sharePage($self, $srv)[0], $sharePage($love, $srv)[0], $sharePage($hid, $srv)[0]];
+    return [$sharePage($self, $srv)[0], $sharePage($love, $srv)[0], $sharePage($hid, $srv)[0], $sharePage(['mode' => 'friends'], $srv)[0]];
 };
 $uiHtml = $uiPages();
 check('help: every key used in a template exists; every key exists on a rendered page', function () use ($uiRoot, $uiHtml) {

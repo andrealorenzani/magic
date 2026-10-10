@@ -11,7 +11,7 @@ use Magic\Time\Zone;
 /** Validates the query string of the main page and turns it into chart inputs. */
 final class Request
 {
-    public const MODES = ['self', 'love'];
+    public const MODES = ['self', 'love', 'friends'];
 
     /**
      * Which mode the query asks for: 'self' | 'love' | null (chooser). A missing mode with
@@ -55,6 +55,28 @@ final class Request
         return $person === null
             ? ['code' => null, 'person' => null, 'invalid' => true]
             : ['code' => $raw, 'person' => $person, 'invalid' => false];
+    }
+
+    /**
+     * The receiver's own label for a hidden person (`nick`): same rules as other names. Absent or empty means none;
+     * a value that is not usable sets `invalid` and no nickname is used.
+     * @param array<string,mixed> $q
+     * @return array{nick: ?string, invalid: bool}
+     */
+    public static function nickname(array $q): array
+    {
+        if (!isset($q['nick'])) {
+            return ['nick' => null, 'invalid' => false];
+        }
+        if (!is_string($q['nick'])) {
+            return ['nick' => null, 'invalid' => true];
+        }
+        if (trim($q['nick']) === '') {
+            return ['nick' => null, 'invalid' => false];
+        }
+        $err = null;
+        $nick = self::parseName($q['nick'], $err);
+        return $err === null ? ['nick' => $nick, 'invalid' => false] : ['nick' => null, 'invalid' => true];
     }
 
     /**

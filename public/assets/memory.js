@@ -1,16 +1,25 @@
-// Remembers, in this browser only, the details the visitor typed for themselves and a short
-// list of people they looked up. Nothing leaves the browser through this file (the menu hands the
-// remembered details to share.js only when the visitor asks for a hidden link). Without
-// JavaScript or storage the page works exactly the same.
+// Remembers, in this browser only, the details the visitor typed for themselves, a short list of
+// people they looked up and the hidden codes friends shared with them. Nothing leaves the browser
+// through this file (the remembered details go to share.js only when the visitor asks for a hidden
+// code). Without JavaScript or storage the page works the same, except for the parts that need storage.
 (() => {
   const KEY_ME = "magic.me.v1";
   const KEY_LOVED = "magic.loved.v1";
+  const KEY_FRIENDS = "magic.friends.v1";
   const PREFIX = "magic.";
   const MAX_PEOPLE = 20;
   const MAX_LOVED_BYTES = 16384;
   const MAX_ME_BYTES = 2048;
   const FLAG = "magic.justSaved";
+  const FRIEND_FLAG = "magic.friendHandled";
+  const NO_STORE_TEXT = "This browser does not allow storage, so Friends and Soul Affinity cannot remember anything here.";
   const MAX_RAW = 32768;
+  const REQUIRED = ["date", "time", "city", "lat", "lon", "tz"];
+  const MAX_FRIENDS = 60;
+  const MAX_FRIENDS_BYTES = 40000;
+  const MAX_FRIENDS_RAW = 49152;
+  const MAX_CODE = 400;
+  const MAX_NICK = 40;
   const MAX_NAME = 40;
   const MAX_CITY = 80;
   const MAX_TZ = 64;
@@ -45,6 +54,7 @@
   const forgetAll = () => {
     try {
       window.sessionStorage.removeItem(FLAG);
+      window.sessionStorage.removeItem(FRIEND_FLAG);
     } catch (e) {
       /* ignore */
     }
@@ -98,8 +108,8 @@
     return out;
   };
 
-  const parse = (raw) => {
-    if (typeof raw !== "string" || raw.length > MAX_RAW) return null;
+  const parse = (raw, limit) => {
+    if (typeof raw !== "string" || raw.length > (limit || MAX_RAW)) return null;
     try {
       const o = JSON.parse(raw);
       return o && typeof o === "object" && !Array.isArray(o) && o.v === 1 ? o : null;
@@ -134,6 +144,60 @@
     const size = () => JSON.stringify({ v: 1, list: items }).length;
     while (items.length > MAX_PEOPLE || (items.length > 0 && size() > MAX_LOVED_BYTES)) items.pop();
     rawSet(KEY_LOVED, JSON.stringify({ v: 1, list: items }));
+  };
+
+  // ---- friends: hidden codes with a nickname ----
+  const validCode = (v) => (typeof v === "string" && v.length >= 1 && v.length <= MAX_CODE && /^[A-Za-z0-9_-]+$/.test(v) ? v : "");
+  const nickText = (v) => text(typeof v === "string" ? v.trim() : "", MAX_NICK);
+  const readFriends = () => {
+    const o = parse(rawGet(KEY_FRIENDS), MAX_FRIENDS_RAW);
+    if (!o || !Array.isArray(o.list)) return [];
+    const seen = {};
+    const out = [];
+    o.list.slice(0, MAX_FRIENDS).forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const code = validCode(item.code);
+      if (code === "" || seen[code]) return;
+      seen[code] = true;
+      out.push({ code, nick: nickText(item.nick), t: typeof item.t === "number" && isFinite(item.t) ? item.t : 0 });
+    });
+    return out;
+  };
+  const writeFriends = (list) => {
+    const items = list.slice().sort((a, b) => b.t - a.t);
+    const size = () => JSON.stringify({ v: 1, list: items }).length;
+    while (items.length > MAX_FRIENDS || (items.length > 0 && size() > MAX_FRIENDS_BYTES)) items.pop();
+    rawSet(KEY_FRIENDS, JSON.stringify({ v: 1, list: items }));
+  };
+  const addFriend = (code, nick) => {
+    const c = validCode(code);
+    if (c === "" || !store) return;
+    const n = nickText(nick);
+    const list = readFriends();
+    const known = list.find((x) => x.code === c);
+    if (known) {
+      if (n !== "") known.nick = n;
+    } else {
+      list.push({ code: c, nick: n, t: Date.now() });
+    }
+    writeFriends(list);
+  };
+  // The code of a pasted link or a bare code; the browser never decodes it, the server decides.
+  const extractCode = (raw) => {
+    const t = typeof raw === "string" ? raw.trim() : "";
+    const m = /(?:^|[?&#])h=([A-Za-z0-9_-]{1,400})(?![A-Za-z0-9_-])/.exec(t);
+    if (m) return /^M[A-P][A-Za-z0-9_-]{6,398}$/.test(m[1]) ? m[1] : "";
+    return /^M[A-P][A-Za-z0-9_-]{6,398}$/.test(t) ? t : "";
+  };
+  const hasFriend = (code) => readFriends().some((x) => x.code === code);
+  const fold = (s) => {
+    let out = String(s).toLowerCase();
+    try {
+      out = out.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    } catch (e) {
+      /* keep the lower-cased text */
+    }
+    return out;
   };
 
   // ---- form access ----
@@ -186,88 +250,306 @@
   };
   const hasContent = (e) => e.date !== "" || e.city !== "" || e.name !== "";
 
-  // ---- menu: clean browser data, share hidden data ----
-  const initMenu = () => {
-    const cleanBtn = document.querySelector("[data-menu-clean]");
-    const row = document.querySelector("[data-menu-clean-row]");
-    const panel = document.querySelector("[data-menu-clean-panel]");
-    const yes = document.querySelector("[data-menu-clean-yes]");
-    const no = document.querySelector("[data-menu-clean-no]");
-    const form = document.querySelector("[data-menu-clean-form]");
-    if (cleanBtn && panel && yes && no && form) {
-      if (row) row.hidden = false;
-      const heading = panel.querySelector("h3");
-      const closePanel = () => {
-        panel.hidden = true;
-        cleanBtn.focus();
-      };
-      cleanBtn.addEventListener("click", () => {
-        panel.hidden = false;
-        if (heading) heading.focus();
-      });
-      no.addEventListener("click", closePanel);
-      yes.addEventListener("click", () => {
-        forgetAll();
-        form.submit();
-      });
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !panel.hidden) closePanel();
-      });
-    }
-    const shareLink = document.querySelector("[data-menu-share-hidden]");
-    if (shareLink) {
-      const entry = store ? readMe() : null;
-      const ready = !!entry && ["date", "time", "city", "lat", "lon", "tz"].every((f) => entry[f] !== "");
-      if (!ready) {
-        shareLink.setAttribute("aria-disabled", "true");
-        shareLink.classList.add("is-empty");
-      } else {
-        shareLink.addEventListener("click", (e) => {
-          e.preventDefault();
-          const fresh = readMe();
-          if (fresh) document.dispatchEvent(new CustomEvent("magic:share-hidden", { detail: fresh }));
-        });
+  // ---- shared confirmation dialog ----
+  const confirmBox = (title, message) =>
+    new Promise((resolve) => {
+      const dlg = document.querySelector("[data-confirm]");
+      const yes = dlg ? dlg.querySelector("[data-confirm-yes]") : null;
+      const no = dlg ? dlg.querySelector("[data-confirm-no]") : null;
+      if (!dlg || !yes || !no) {
+        resolve(false);
+        return;
       }
-    }
-  };
-  initMenu();
+      const opener = document.activeElement;
+      const t = dlg.querySelector("[data-confirm-title]");
+      const p = dlg.querySelector("[data-confirm-text]");
+      if (t) t.textContent = title;
+      if (p) p.textContent = message;
+      let done = false;
+      const finish = (value) => {
+        if (done) return;
+        done = true;
+        yes.removeEventListener("click", onYes);
+        no.removeEventListener("click", onNo);
+        dlg.removeEventListener("cancel", onCancel);
+        dlg.removeEventListener("close", onNo);
+        document.removeEventListener("keydown", onKey);
+        try {
+          if (typeof dlg.close === "function") dlg.close();
+        } catch (e) {
+          /* already closed */
+        }
+        dlg.removeAttribute("open");
+        if (opener && typeof opener.focus === "function") opener.focus();
+        resolve(value);
+      };
+      const onYes = () => finish(true);
+      const onNo = () => finish(false);
+      const onCancel = (e) => {
+        e.preventDefault();
+        finish(false);
+      };
+      const onKey = (e) => {
+        if (e.key === "Escape") finish(false);
+      };
+      yes.addEventListener("click", onYes);
+      no.addEventListener("click", onNo);
+      dlg.addEventListener("cancel", onCancel);
+      dlg.addEventListener("close", onNo);
+      document.addEventListener("keydown", onKey);
+      try {
+        if (typeof dlg.showModal === "function") dlg.showModal();
+        else dlg.setAttribute("open", "");
+      } catch (e) {
+        dlg.setAttribute("open", "");
+      }
+      no.focus();
+    });
 
-  if (document.querySelector("[data-forget-memory]")) {
-    forgetAll();
-    return;
-  }
-  document.querySelectorAll("[data-memory-forget-on-submit]").forEach((form) => {
-    form.addEventListener("submit", forgetAll);
-  });
-  if (!store) return;
-
-  // ---- per form ----
   const setText = (el, msg) => {
     if (el) el.textContent = msg;
   };
+  const complete = (e) => !!e && REQUIRED.every((f) => e[f] !== "");
+  const hasAnyStored = () => {
+    try {
+      if (!store) return false;
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i);
+        if (k && k.indexOf(PREFIX) === 0 && k !== PREFIX + "probe") return true;
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    return false;
+  };
+  const setEnabled = (btn, on) => {
+    if (!btn) return;
+    btn.classList.toggle("is-empty", !on);
+    if (on) btn.removeAttribute("aria-disabled");
+    else btn.setAttribute("aria-disabled", "true");
+  };
+  const aParams = (me) => {
+    const parts = ["a_name=" + encodeURIComponent(me.name || "Me")];
+    ["date", "time", "city", "lat", "lon", "tz"].forEach((f) => parts.push("a_" + f + "=" + encodeURIComponent(me[f])));
+    POS_FIELDS.forEach((f) => {
+      if (me.pos && me.pos[f]) parts.push("a_pos_" + f + "=" + encodeURIComponent(me.pos[f]));
+    });
+    return parts.join("&");
+  };
 
-  document.querySelectorAll("form[data-memory]").forEach((form) => {
+  // ---- locks: Soul Affinity and Friends need a complete Self entry ----
+  const unlockSections = () => {
+    document.querySelectorAll("[data-needs-self]").forEach((card) => {
+      card.classList.remove("is-locked");
+      card.removeAttribute("aria-disabled");
+      if (card.dataset.unlockHref) card.setAttribute("href", card.dataset.unlockHref);
+      const lock = card.querySelector("[data-lock-text]");
+      const open = card.querySelector("[data-unlock-text]");
+      if (lock) lock.hidden = true;
+      if (open) open.hidden = false;
+    });
+    ["[data-love-locked]", "[data-friends-locked]"].forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.hidden = true;
+    });
+    ["[data-love-body]", "[data-friends-body]"].forEach((sel) => {
+      const el = document.querySelector(sel);
+      if (el) el.hidden = false;
+    });
+  };
+
+  // ---- Self Discovery: actions ----
+  const initSelf = (form) => {
+    const fs = form.querySelector("fieldset[data-person='me']");
+    if (!fs) return;
+    const actions = form.querySelector("[data-self-actions]");
+    const saveBtn = form.querySelector("[data-self-save]");
+    const clearBtn = form.querySelector("[data-self-clear]");
+    const codeBtn = form.querySelector("[data-self-hidden-code]");
+    const status = form.querySelector("[data-self-status]");
     const bar = form.querySelector("[data-memory-bar]");
-    const saveBtn = form.querySelector("[data-memory-save]");
-    const forgetBtn = form.querySelector("[data-memory-forget]");
+    const entryNow = () => cleanEntry(readFields(fs));
+    const placeChanged = (a, b) => (b.lat !== "" && b.lon !== "" ? !(sameNumber(a.lat, b.lat) && sameNumber(a.lon, b.lon) && a.tz === b.tz) : a.city !== b.city);
+    const changed = (stored, cur) => stored.name !== cur.name || stored.date !== cur.date || stored.time !== cur.time || placeChanged(stored, cur);
+    const needsConfirm = (cur) => {
+      const stored = store ? readMe() : null;
+      return complete(stored) && changed(stored, cur);
+    };
+    const CHANGE_TITLE = "Change your data?";
+    const CHANGE_TEXT = "Changing your own data erases all previous data in this browser, including the hidden data shared by friends. Continue?";
+    const pending = () => {
+      const box = form.querySelector("[data-pending-friend]");
+      if (!box) return;
+      const h = box.querySelector('input[name="h"]');
+      const n = box.querySelector('input[name="nick"]');
+      const c = h ? validCode(h.value) : "";
+      if (c === "" || !store) return "";
+      let result = "known";
+      if (!hasFriend(c)) {
+        addFriend(c, n ? n.value : "");
+        result = "added";
+      }
+      // Once handled, the code and nickname no longer travel with the form.
+      if (box.parentNode) box.parentNode.removeChild(box);
+      return result;
+    };
+    const FRIEND_TEXT = { added: "Friend added to Friends hidden codes.", known: "This friend is already in Friends hidden codes." };
+    const refresh = () => {
+      setEnabled(codeBtn, complete(store ? readMe() : null));
+      setEnabled(clearBtn, hasAnyStored());
+    };
+
+    if (store) {
+      const me = readMe();
+      if (me && isBlank(fs)) writeFields(fs, me);
+    }
+    if (bar) bar.hidden = false;
+    if (actions && saveBtn) saveBtn.hidden = false;
+
+    const afterSubmitStore = () => {
+      const cur = entryNow();
+      if (hasContent(cur)) writeMe(cur);
+      const friend = pending();
+      try {
+        if (friend !== "") window.sessionStorage.setItem(FRIEND_FLAG, friend);
+        window.sessionStorage.setItem(FLAG, "1");
+      } catch (e) {
+        /* never block the submit */
+      }
+    };
+    form.addEventListener("submit", (ev) => {
+      if (!store) return;
+      if (needsConfirm(entryNow())) {
+        ev.preventDefault();
+        confirmBox(CHANGE_TITLE, CHANGE_TEXT).then((ok) => {
+          if (!ok) return;
+          forgetAll();
+          afterSubmitStore();
+          form.submit();
+        });
+        return;
+      }
+      afterSubmitStore();
+    });
+
+    if (saveBtn) {
+      saveBtn.addEventListener("click", () => {
+        if (!store) {
+          setText(status, "This browser does not allow storage, so nothing can be saved.");
+          return;
+        }
+        const cur = entryNow();
+        if (!complete(cur)) {
+          setText(status, "To save, fill in the birth date and time and pick the birth city from the suggestions.");
+          return;
+        }
+        const proceed = () => {
+          writeMe(cur);
+          const friend = pending();
+          setText(status, "Saved in this browser." + (friend !== "" ? " " + FRIEND_TEXT[friend] : ""));
+          refresh();
+          unlockSections();
+        };
+        if (needsConfirm(cur)) {
+          confirmBox(CHANGE_TITLE, CHANGE_TEXT).then((ok) => {
+            if (!ok) return;
+            forgetAll();
+            proceed();
+          });
+        } else {
+          proceed();
+        }
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        if (clearBtn.getAttribute("aria-disabled") === "true") {
+          setText(status, store ? "There is nothing stored in this browser to clear." : NO_STORE_TEXT);
+          return;
+        }
+        confirmBox(
+          "Clear data?",
+          "This erases everything this browser remembers: your Self Discovery data, saved people and the hidden codes your friends shared. It cannot be undone."
+        ).then((ok) => {
+          if (!ok) return;
+          forgetAll();
+          window.location.assign("./?mode=self");
+        });
+      });
+    }
+    if (codeBtn) {
+      codeBtn.addEventListener("click", () => {
+        if (codeBtn.getAttribute("aria-disabled") === "true") {
+          setText(status, store ? "Save your Self Discovery data first, then you can generate a hidden code." : NO_STORE_TEXT);
+          return;
+        }
+        const fresh = readMe();
+        if (fresh) document.dispatchEvent(new CustomEvent("magic:share-hidden", { detail: fresh }));
+      });
+    }
+    try {
+      if (store && window.sessionStorage.getItem(FLAG)) {
+        window.sessionStorage.removeItem(FLAG);
+        const cur = entryNow();
+        if (hasContent(cur)) writeMe(cur);
+        let friend = window.sessionStorage.getItem(FRIEND_FLAG);
+        window.sessionStorage.removeItem(FRIEND_FLAG);
+        setText(status, "Saved in this browser." + (friend === "added" || friend === "known" ? " " + FRIEND_TEXT[friend] : ""));
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    refresh();
+  };
+
+  // ---- Soul Affinity ----
+  const initLove = (form) => {
+    const carried = form.querySelector("fieldset[data-carried]");
+    const notice = form.querySelector("[data-carried-notice]");
+    const useBtn = form.querySelector("[data-carried-use]");
+    const bar = form.querySelector("[data-memory-bar]");
     const status = form.querySelector("[data-memory-status]");
     const savedBox = form.querySelector("[data-saved]");
     const select = form.querySelector("[data-saved-select]");
     const removeBtn = form.querySelector("[data-saved-remove]");
+    const saveBtn = form.querySelector("[data-memory-save]");
     const hiddenMode = !!form.querySelector("[data-hidden-person]");
-    const people = Array.from(form.querySelectorAll("fieldset[data-person]")).filter((fs) => !(hiddenMode && fs.dataset.person === "loved")).map((fs) => ({
-      fs,
-      kind: fs.dataset.person,
-      auto: true,
-    }));
-    const lovedFs = people.find((p) => p.kind === "loved");
+    const lovedFs = hiddenMode ? null : form.querySelector("fieldset[data-person='loved']");
+    const me = readMe();
+    const meFull = complete(me) ? Object.assign({}, me, { name: me.name || "Me" }) : null;
 
-    const saveMe = (p) => {
-      const entry = cleanEntry(readFields(p.fs));
-      if (hasContent(entry)) writeMe(entry);
-    };
-    const saveLoved = (p) => {
-      const entry = cleanEntry(readFields(p.fs));
+    if (carried && meFull) {
+      if (isBlank(carried)) {
+        writeFields(carried, meFull);
+        unlockSections();
+      } else if (!same(carried, meFull) && notice) {
+        notice.hidden = false;
+        if (useBtn) {
+          useBtn.addEventListener("click", () => {
+            writeFields(carried, meFull);
+            notice.hidden = true;
+            setText(status, "Your Self Discovery data is used now. Press Explore our connection.");
+          });
+        }
+      }
+    }
+
+    // A hidden code is added to Friends only when the form is submitted.
+    const hInput = form.querySelector('input[name="h"]');
+    const impInput = form.querySelector('input[name="import"]');
+    const nickInput = form.querySelector('input[name="nick"]');
+    form.addEventListener("submit", () => {
+      const code = hInput ? hInput.value : impInput ? extractCode(impInput.value) : "";
+      if (code !== "") addFriend(code, nickInput ? nickInput.value : "");
+    });
+
+    if (!lovedFs) {
+      if (bar) bar.hidden = false;
+      return;
+    }
+    let auto = true;
+    const saveLoved = () => {
+      const entry = cleanEntry(readFields(lovedFs));
       if (entry.name === "") return;
       entry.id = entry.name.toLowerCase();
       entry.t = Date.now();
@@ -275,8 +557,6 @@
       list.push(entry);
       writeLoved(list);
     };
-    const saveOne = (p) => (p.kind === "me" ? saveMe(p) : saveLoved(p));
-
     const refreshSaved = () => {
       if (!select || !savedBox) return;
       const list = readLoved().sort((a, b) => a.name.localeCompare(b.name));
@@ -290,43 +570,29 @@
       savedBox.hidden = list.length === 0;
     };
     const refreshSave = () => {
-      if (!saveBtn) return;
-      saveBtn.hidden = !people.some((p) => !p.auto && hasContent(cleanEntry(readFields(p.fs))));
+      if (saveBtn) saveBtn.hidden = auto || !hasContent(cleanEntry(readFields(lovedFs)));
     };
-
-    // Prefill fresh forms; decide whether filled forms may be saved automatically.
-    const me = readMe();
-    const loved = readLoved();
-    people.forEach((p) => {
-      if (isBlank(p.fs)) {
-        if (p.kind === "me" && me) writeFields(p.fs, me);
-        return;
-      }
-      const stored = p.kind === "me" ? me : loved.find((x) => x.id === cleanEntry(readFields(p.fs)).name.toLowerCase());
-      p.auto = same(p.fs, stored);
-    });
-
+    if (!isBlank(lovedFs)) {
+      const stored = readLoved().find((x) => x.id === cleanEntry(readFields(lovedFs)).name.toLowerCase());
+      auto = same(lovedFs, stored);
+    }
     form.addEventListener("submit", () => {
       try {
-        let saved = false;
-        people.forEach((p) => {
-          if (p.auto) {
-            saveOne(p);
-            saved = true;
-          }
-        });
-        if (saved) window.sessionStorage.setItem(FLAG, "1");
+        if (auto) {
+          saveLoved();
+          window.sessionStorage.removeItem(FRIEND_FLAG);
+          window.sessionStorage.setItem(FLAG, "1");
+        }
       } catch (e) {
         /* never block the submit */
       }
     });
-
-    if (select && lovedFs) {
+    if (select) {
       select.addEventListener("change", () => {
         const e = readLoved().find((x) => x.id === select.value);
         if (!e) return;
-        writeFields(lovedFs.fs, e);
-        lovedFs.auto = true;
+        writeFields(lovedFs, e);
+        auto = true;
         refreshSave();
       });
     }
@@ -341,25 +607,13 @@
     }
     if (saveBtn) {
       saveBtn.addEventListener("click", () => {
-        people.forEach((p) => {
-          if (!p.auto) {
-            saveOne(p);
-            p.auto = true;
-          }
-        });
+        saveLoved();
+        auto = true;
         refreshSaved();
         refreshSave();
         setText(status, "Saved in this browser.");
       });
     }
-    if (forgetBtn) {
-      forgetBtn.addEventListener("click", () => {
-        forgetAll();
-        refreshSaved();
-        setText(status, "Removed from this browser.");
-      });
-    }
-
     try {
       if (window.sessionStorage.getItem(FLAG)) {
         window.sessionStorage.removeItem(FLAG);
@@ -371,5 +625,112 @@
     refreshSaved();
     refreshSave();
     if (bar) bar.hidden = false;
+  };
+
+  // ---- Friends hidden codes ----
+  const initFriends = (root) => {
+    const search = root.querySelector("[data-friends-search]");
+    const count = root.querySelector("[data-friends-count]");
+    const list = root.querySelector("[data-friends-list]");
+    const tpl = root.querySelector("template[data-friends-row]");
+    const empty = root.querySelector("[data-friends-empty]");
+    const selectAll = root.querySelector("[data-friends-selectall]");
+    const removeSel = root.querySelector("[data-friends-remove-selected]");
+    const status = root.querySelector("[data-friends-status]");
+    if (!search || !list || !tpl || !tpl.content) return;
+    const me = readMe();
+
+    const compareHref = (f) =>
+      complete(me)
+        ? "./?mode=love&h=" + encodeURIComponent(f.code) + (f.nick !== "" ? "&nick=" + encodeURIComponent(f.nick) : "") + "&" + aParams(me)
+        : "./?mode=self";
+    const checks = () => Array.from(list.querySelectorAll("[data-friend-check]"));
+    const updateBulk = () => {
+      const n = checks().filter((c) => c.checked).length;
+      if (removeSel) {
+        removeSel.disabled = n === 0;
+        removeSel.textContent = "Remove selected (" + n + ")";
+      }
+    };
+    const askRemove = (codes) =>
+      confirmBox("Remove hidden codes?", "Remove " + codes.length + " hidden code(s) from this browser?").then((ok) => {
+        if (!ok) return;
+        writeFriends(readFriends().filter((x) => codes.indexOf(x.code) < 0));
+        setText(status, "Removed from this browser.");
+        render();
+        search.focus();
+      });
+    const render = () => {
+      const q = fold(search.value.trim());
+      const all = readFriends().sort((a, b) => b.t - a.t);
+      while (list.firstChild) list.removeChild(list.firstChild);
+      let shown = 0;
+      all.forEach((f) => {
+        if (q !== "" && fold(f.nick).indexOf(q) < 0) return;
+        shown++;
+        const li = tpl.content.firstElementChild.cloneNode(true);
+        li.dataset.code = f.code;
+        const nick = li.querySelector("[data-friend-nick]");
+        const date = li.querySelector("[data-friend-date]");
+        const cmp = li.querySelector("[data-friend-compare]");
+        const rm = li.querySelector("[data-friend-remove]");
+        const chk = li.querySelector("[data-friend-check]");
+        nick.value = f.nick;
+        if (f.t > 0) date.textContent = "Added " + new Date(f.t).toLocaleDateString();
+        cmp.setAttribute("href", compareHref(f));
+        nick.addEventListener("change", () => {
+          const n = nickText(nick.value);
+          nick.value = n;
+          writeFriends(readFriends().map((x) => (x.code === f.code ? { code: x.code, nick: n, t: x.t } : x)));
+          cmp.setAttribute("href", compareHref({ code: f.code, nick: n }));
+        });
+        rm.addEventListener("click", () => askRemove([f.code]));
+        chk.addEventListener("change", updateBulk);
+        list.appendChild(li);
+      });
+      setText(count, "Showing " + shown + " of " + all.length);
+      if (empty) empty.hidden = all.length > 0;
+      updateBulk();
+    };
+    search.addEventListener("input", render);
+    if (selectAll) {
+      selectAll.addEventListener("click", () => {
+        checks().forEach((c) => {
+          c.checked = true;
+        });
+        updateBulk();
+      });
+    }
+    if (removeSel) {
+      removeSel.addEventListener("click", () => {
+        const codes = checks()
+          .filter((c) => c.checked)
+          .map((c) => c.closest("li").dataset.code);
+        if (codes.length > 0) askRemove(codes);
+      });
+    }
+    render();
+  };
+
+  // ---- start ----
+  if (document.querySelector("[data-forget-memory]")) {
+    forgetAll();
+    return;
+  }
+  document.querySelectorAll("[data-memory-forget-on-submit]").forEach((form) => {
+    form.addEventListener("submit", forgetAll);
   });
+  const selfForm = document.querySelector("form[data-memory='self']");
+  if (selfForm) initSelf(selfForm);
+  if (!store) {
+    document.querySelectorAll("[data-nostore]").forEach((el) => {
+      el.hidden = false;
+    });
+    return;
+  }
+  if (complete(readMe())) unlockSections();
+  const loveForm = document.querySelector("form[data-memory='love']");
+  if (loveForm) initLove(loveForm);
+  const friendsRoot = document.querySelector("[data-friends]");
+  if (friendsRoot) initFriends(friendsRoot);
 })();

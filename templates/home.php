@@ -4,19 +4,28 @@
  * @var ?array $view @var bool $submitted @var string $today @var bool $consented @var string $returnQuery
  * @var ?string $onOverride @var bool $noAudit @var string $consentAction @var bool $withdrawn @var bool $queryDropped
  * @var ?array $share @var ?array $fixedDay @var bool $cleaned @var bool $hidden @var ?string $hiddenCode
+ * @var ?string $nick @var ?array $pendingHidden @var bool $aKnown @var ?string $loveLink
  */
 
 require_once __DIR__ . '/partials/icons.php';
 require_once __DIR__ . '/partials/help.php';
 
-$title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun, Ascendant & Moon');
+$titles = ['love' => 'Soul Affinity', 'self' => 'Self Discovery', 'friends' => 'Friends hidden codes'];
+$title = $titles[$mode] ?? 'Sun, Ascendant & Moon';
+// Self Discovery is proven by a valid Self result or by valid details of "you" in a Soul Affinity request; the script unlocks the rest from the stored entry.
+$unlocked = ($mode === 'self' && $view !== null) || ($mode === 'love' && $aKnown);
+$selfHref = '?mode=self' . ($hiddenCode !== null ? '&h=' . rawurlencode($hiddenCode) . ($nick !== null ? '&nick=' . rawurlencode($nick) : '') : '');
+$cards = [
+    ['mode' => 'love', 'name' => 'Soul Affinity', 'glyph' => '♀', 'icon' => 'heart', 'text' => 'Name affinity, biorhythm synchrony, common signs and a tarot spread.', 'href' => ($unlocked && $loveLink !== null) ? $loveLink : '?mode=love'],
+    ['mode' => 'friends', 'name' => 'Friends hidden codes', 'glyph' => '✦', 'icon' => 'bulb', 'text' => 'Hidden codes your friends shared with you.', 'href' => '?mode=friends'],
+];
 ?><!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Magic · <?= e($title) ?></title>
-  <meta name="description" content="Discover your planets, signs and biorhythms, or compare two people: name affinity, biorhythm synchrony, common signs and a Past, Present and Future tarot spread.">
+  <meta name="description" content="Discover your planets, signs and biorhythms, or find your affinity with another soul: name affinity, biorhythm synchrony, common signs and a Past, Present and Future tarot spread.">
   <?php if ($submitted): ?><meta name="robots" content="noindex"><?php endif; ?>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
@@ -46,19 +55,21 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <p class="hero__lead">Discover yourself, or find out how you and someone you love fit together.</p>
     </header>
 
-    <?php include __DIR__ . '/partials/menu.php'; ?>
-
     <nav class="chooser no-print" aria-label="Choose a mode">
       <a class="chooser__card<?= $mode === 'self' ? ' is-active' : '' ?>" href="?mode=self"<?= $mode === 'self' ? ' aria-current="page"' : '' ?>>
         <span class="chooser__icon" aria-hidden="true">☉ <?= icon('bulb') ?></span>
-        <strong>Self discovery</strong>
+        <strong>Self Discovery</strong>
+        <?php if ($mode === null): ?><span class="chooser__badge">Start here</span><?php endif; ?>
         <span>Your planets, the signs closest to you, and your biorhythms.</span>
       </a>
-      <a class="chooser__card<?= $mode === 'love' ? ' is-active' : '' ?>" href="?mode=love"<?= $mode === 'love' ? ' aria-current="page"' : '' ?>>
-        <span class="chooser__icon" aria-hidden="true">♀ <?= icon('heart') ?></span>
-        <strong>Love</strong>
-        <span>Name affinity, biorhythm synchrony, common signs and a tarot spread.</span>
+      <?php foreach ($cards as $c): ?>
+      <a class="chooser__card<?= $mode === $c['mode'] ? ' is-active' : '' ?><?= $unlocked ? '' : ' is-locked' ?>" href="<?= e($unlocked ? $c['href'] : $selfHref) ?>"<?= $mode === $c['mode'] ? ' aria-current="page"' : '' ?><?= $unlocked ? '' : ' aria-disabled="true"' ?> data-needs-self data-unlock-href="<?= e($c['href']) ?>" data-lock-href="<?= e($selfHref) ?>">
+        <span class="chooser__icon" aria-hidden="true"><?= e($c['glyph']) ?> <?= icon($c['icon']) ?></span>
+        <strong><?= e($c['name']) ?></strong>
+        <span data-lock-text<?= $unlocked ? ' hidden' : '' ?>>Self Discovery fields are required to unlock this section.</span>
+        <span data-unlock-text<?= $unlocked ? '' : ' hidden' ?>><?= e($c['text']) ?></span>
       </a>
+      <?php endforeach; ?>
     </nav>
 
     <?php if ($mode === 'self'): ?>
@@ -66,31 +77,56 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
         <input type="hidden" name="mode" value="self">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
-        <p class="hint">* required</p>
-        <?php $pf = ['prefix' => '', 'required' => true, 'name' => true, 'nameRequired' => false, 'values' => $self, 'legend' => 'Your birth', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
-        <?php $memoryKind = 'self'; include __DIR__ . '/partials/memory.php'; ?>
-        <button type="submit">Reveal my sky</button>
+        <?php if ($pendingHidden !== null): ?>
+        <div class="pending" data-pending-friend>
+          <input type="hidden" name="h" value="<?= e($pendingHidden['code']) ?>">
+          <p class="note">A friend shared hidden data with you. Fill in Self Discovery and press Reveal my sky or Save the data: it will be added to Friends hidden codes.</p>
+          <div class="field">
+            <div class="field__head"><label for="pending-nick">Nickname for this friend <small>(optional)</small></label><?php help_button('field.nick'); ?></div>
+            <input id="pending-nick" name="nick" type="text" maxlength="40" autocomplete="off" value="<?= e($pendingHidden['nick'] ?? '') ?>">
+          </div>
+        </div>
+        <?php endif; ?>
+        <div class="split">
+          <div class="split__main">
+            <p class="hint">* required</p>
+            <?php $pf = ['prefix' => '', 'required' => true, 'name' => true, 'nameRequired' => false, 'values' => $self, 'legend' => 'Your birth', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
+            <?php $memoryKind = 'self'; include __DIR__ . '/partials/memory.php'; ?>
+          </div>
+          <?php include __DIR__ . '/partials/self-actions.php'; ?>
+        </div>
       </form>
     <?php elseif ($mode === 'love'): ?>
       <form id="love-form" class="panel no-print" method="get" data-memory="love" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="love">
         <?php if ($onOverride !== null): ?><input type="hidden" name="on" value="<?= e($onOverride) ?>"><?php endif; ?>
         <?php if ($noAudit): ?><input type="hidden" name="noaudit" value=""><?php endif; ?>
-        <?php if ($hidden): ?><input type="hidden" name="h" value="<?= e($hiddenCode) ?>"><?php endif; ?>
-        <p class="hint">* required</p>
-        <div class="people">
-          <?php $pf = ['prefix' => 'a_', 'required' => true, 'name' => true, 'values' => $love['a'], 'legend' => 'You', 'person' => 'me']; include __DIR__ . '/partials/person-fields.php'; ?>
-          <?php if ($hidden): ?>
-            <?php include __DIR__ . '/partials/hidden-person.php'; ?>
-          <?php else: ?>
-            <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'nameRequired' => true, 'values' => $love['b'], 'legend' => 'The person you love', 'person' => 'loved']; include __DIR__ . '/partials/person-fields.php'; ?>
-          <?php endif; ?>
+        <?php if ($hidden): ?><input type="hidden" name="h" value="<?= e($hiddenCode) ?>"><?php if ($nick !== null): ?><input type="hidden" name="nick" value="<?= e($nick) ?>"><?php endif; endif; ?>
+        <div class="lock" data-love-locked<?= $aKnown ? ' hidden' : '' ?>>
+          <p class="note">Self Discovery fields are required to unlock this section.</p>
+          <p><a href="<?= e($selfHref) ?>">Go to Self Discovery</a></p>
+          <p class="note" data-nostore hidden>This browser does not allow storage, so Self Discovery data cannot be remembered here. Use a link that carries your details.</p>
+          <noscript><p class="hint">Starting Soul Affinity from your stored details needs JavaScript. A link that carries your details works without it.</p></noscript>
         </div>
-        <?php if (!$hidden): include __DIR__ . '/partials/import.php'; endif; ?>
-        <p class="hint">Names and dates appear in the address bar; share the link only with people you trust.</p>
-        <?php $memoryKind = 'love'; $memorySaved = !$hidden; include __DIR__ . '/partials/memory.php'; ?>
-        <button type="submit">Explore our connection</button>
+        <div data-love-body<?= $aKnown ? '' : ' hidden' ?>>
+          <?php $carried = $love['a']; include __DIR__ . '/partials/person-carried.php'; ?>
+          <p class="hint" data-carried-notice hidden>These results use the details from the link. <button type="button" class="linklike" data-carried-use>Use my Self Discovery data</button></p>
+          <p class="hint">* required</p>
+          <div class="people split<?= $hidden ? '' : ' split--two' ?>">
+            <?php if ($hidden): ?>
+              <?php include __DIR__ . '/partials/hidden-person.php'; ?>
+            <?php else: ?>
+              <?php $pf = ['prefix' => 'b_', 'required' => false, 'name' => true, 'nameRequired' => true, 'values' => $love['b'], 'legend' => "Other soul's info", 'person' => 'loved']; include __DIR__ . '/partials/person-fields.php'; ?>
+              <?php include __DIR__ . '/partials/import.php'; ?>
+            <?php endif; ?>
+          </div>
+          <p class="hint">Names and dates appear in the address bar; share the link only with people you trust.</p>
+          <?php $memoryKind = 'love'; $memorySaved = !$hidden; include __DIR__ . '/partials/memory.php'; ?>
+          <button type="submit">Explore our connection</button>
+        </div>
       </form>
+    <?php elseif ($mode === 'friends'): ?>
+      <?php include __DIR__ . '/partials/friends.php'; ?>
     <?php endif; ?>
 
     <section id="results" class="results">
@@ -117,6 +153,7 @@ $title = $mode === 'love' ? 'Love' : ($mode === 'self' ? 'Self discovery' : 'Sun
       <?php endif; ?>
     </details>
   </section>
+  <?php include __DIR__ . '/partials/confirm.php'; ?>
   </div>
   <script src="assets/autocomplete.js" defer></script>
   <script src="assets/memory.js" defer></script>

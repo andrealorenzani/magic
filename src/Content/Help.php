@@ -13,15 +13,21 @@ final class Help
 
     /** @var array<string, array{title:string, text:string}> */
     public const TEXT = [
-        'field.name' => ['title' => 'Name', 'text' => 'The name you want shown on the reading. In Love mode the names are also compared with each other.'],
+        'field.name' => ['title' => 'Name', 'text' => 'The name you want shown on the reading. In Soul Affinity the names are also compared with each other.'],
         'field.date' => ['title' => 'Birth date', 'text' => 'The day you were born. It gives your Sun sign, your planets and your biorhythm cycles.'],
         'field.time' => ['title' => 'Birth time', 'text' => 'The local clock time of your birth, as written on a birth certificate. It places your Moon and Ascendant more exactly.'],
         'field.city' => ['title' => 'Birth city', 'text' => 'The town where you were born. Pick a suggestion so the place and its time zone are filled in for you.'],
         'field.import' => ['title' => 'Import hidden details', 'text' => 'Paste the link someone shared with you, or scan their QR code. Their details are not shown on your screen; you only see the match results.'],
         'field.pos_city' => ['title' => 'Current city', 'text' => 'Where you are right now. It gives you the right "today" for your time zone and lets us show distances.'],
 
-        'menu.clean' => ['title' => 'Clean browser data', 'text' => 'Forgets what this browser remembers about you and your saved people, and withdraws your acceptance of the Terms.'],
-        'menu.share_hidden' => ['title' => 'Share my hidden data', 'text' => 'Makes a link and QR code with your own details so another person can compare themselves with you. Their screen will not show your details.'],
+        'field.nick' => ['title' => 'Nickname', 'text' => 'A name only you will see for this person, so you can tell your matches apart. It is kept in this browser and never inside the code.'],
+
+        'self.hidden_code' => ['title' => 'Generate hidden data code', 'text' => 'Makes a link and QR code with your own details so another person can compare themselves with you. Their screen will not show your details.'],
+        'self.clear' => ['title' => 'Clear data', 'text' => 'Erases everything this browser remembers: your details, the people you saved and the hidden codes your friends shared. It stays grey until something is stored.'],
+        'self.save' => ['title' => 'Save the data', 'text' => 'Keeps your details in this browser without opening the reading, so Soul Affinity and Friends hidden codes can use them.'],
+        'self.reveal' => ['title' => 'Reveal my sky', 'text' => 'Opens your reading and keeps your details in this browser, so you do not have to type them again.'],
+        'friends.list' => ['title' => 'Friends hidden codes', 'text' => 'The codes your friends shared with you. Their details stay hidden; you only choose a nickname and compare yourself with them.'],
+        'friends.search' => ['title' => 'Search friends', 'text' => 'Type part of a nickname to show only the matching friends. Clearing the box shows everybody again.'],
         'share.link' => ['title' => 'Link', 'text' => 'The address of this exact reading. Anyone who opens it sees the same reading; it contains the details you entered.'],
         'share.qr' => ['title' => 'QR code', 'text' => 'The same link as a picture. Point a phone camera at it to open the reading, or click it to copy the link.'],
         'share.live' => ['title' => 'Live link', 'text' => 'A link to the same people but with the values of the day it is opened, so the reading keeps up with the calendar.'],
@@ -59,6 +65,7 @@ final class Help
         'love.common_level' => ['title' => 'Level of match', 'text' => 'How close the two signs are: the same sign, the same element or style, or opposites that complete each other.'],
         'love.synastry' => ['title' => 'Synastry', 'text' => 'Compares your two skies planet by planet. The closest links show where you ease each other and where you rub.'],
         'love.aspect' => ['title' => 'Aspect', 'text' => 'The angle between one planet of yours and one of theirs. A smaller gap from the exact angle means a stronger link.'],
+        'love.import' => ['title' => 'Import from a user', 'text' => 'Paste the link a friend shared with you, or scan their QR code. You can give them a nickname; their details are never shown.'],
         'love.match_hidden' => ['title' => 'Your match', 'text' => 'This person shared their details with you in a link. They are not shown anywhere on your screen; only the results of comparing you two appear.'],
         'love.tarot.past' => ['title' => 'Past card', 'text' => 'The card for what lies behind the two of you: the roots and history that shaped the connection.'],
         'love.tarot.present' => ['title' => 'Present card', 'text' => 'The card for where the connection stands today: what is alive between you right now.'],

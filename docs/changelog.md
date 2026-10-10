@@ -4,7 +4,29 @@ Newest first. Maintained by the `documenter` agent: every change to `src/`, `pub
 
 ## Unreleased
 
-Nothing yet.
+ADR: [0007](decisions/0007-self-first-soul-affinity-and-friends-codes.md).
+
+**Added**
+- Page as a path: Self Discovery first ("Start here"), then Soul Affinity and the new Friends hidden codes (`mode=friends`, no result, no audit). Both are locked, with "Self Discovery fields are required to unlock this section.", until a complete Self entry is stored (the server unlocks them when the request carries Self data; the script only ever unlocks).
+- Self Discovery buttons on the right (`partials/self-actions.php`): Generate hidden data code, Clear data (grey until data is stored), Reveal my sky, Save the data.
+- Friends hidden codes list in `localStorage` (`magic.friends.v1`, at most 60, strict code shape): nickname edit, search, remove, bulk remove, Compare.
+- `nick` parameter (`Request::nickname`): receiver-local nickname for a hidden person; never in codes, audit or share links.
+- One shared confirm dialog (`partials/confirm.php`) for Clear data, changing the Self data (wipes friends) and removing friends.
+- Newcomer path from a hidden link: Terms, then Self Discovery with a pending-friend banner; the code is added to Friends once on Reveal/Save, only if not already stored.
+- No-storage notices; non-identifying `sessionStorage` flags `magic.justSaved` and `magic.friendHandled`.
+- New partials `self-actions`, `person-carried`, `friends`, `confirm`; new tests `tests/cases/flow.php` (248 tests).
+
+**Changed**
+- Love is called Soul Affinity in the UI only (`mode=love`, URLs, share codes and audit unchanged). It has no "You" part: person A comes from the stored Self data or the request (name "Me" if empty). "Other soul's info" is on the left, "Import from a user" (camera scan, paste link, nickname) on the right.
+- Self Discovery fields are half width.
+- **Terms version 4** (`Consent::VALUE` is `4`): everyone accepts the Terms once again; they now mention friends' codes and nicknames kept in the browser.
+- D8 narrowed: Soul Affinity from stored data and Friends need JavaScript.
+- Help keys changed (`menu.*` removed; `self.hidden_code`, `self.clear`, `self.save`, `self.reveal`, `field.nick`, `friends.*`, `love.import` added).
+
+**Removed**
+- The Menu (`templates/partials/menu.php`) and "Forget my data". "Clear data" replaces them and keeps the Terms acceptance. The `clean` action of `consent.php` and `?cleaned=1` remain but no UI reaches them.
+
+**Migration:** visitors re-accept the Terms (cookie value `4`). No database migration; audit unchanged.
 
 ## v0.8 - 2026-10-10 - Menu, hidden details, help popovers, Self name
 

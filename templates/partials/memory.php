@@ -17,9 +17,10 @@
     <button type="button" class="linklike" data-saved-remove>Remove from this browser</button>
   </div>
   <?php endif; ?>
+  <?php if ($memoryKind === 'love'): ?>
   <div class="memory__actions">
     <button type="button" data-memory-save hidden>Remember these details</button>
-    <button type="button" class="linklike" data-memory-forget>Forget my data</button>
   </div>
   <p class="status" data-memory-status role="status" aria-live="polite"></p>
+  <?php endif; ?>
 </div>

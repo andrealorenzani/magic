@@ -322,7 +322,7 @@ check('wheel partial: one svg, no style attribute or script, texts escaped; sky 
 // ---- Pages ----
 $skyPage = function (array $get): string {
     $root = dirname(__DIR__, 2);
-    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ["magic_terms" => "3"]; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
+    $code = '$_GET = json_decode($argv[1], true); $_COOKIE = ["magic_terms" => "4"]; $_SERVER["REQUEST_METHOD"] = "GET"; ob_start(); require $argv[2]; echo ob_get_clean();';
     $out = (string) shell_exec('MAGIC_CONFIG=/nonexistent php -d display_errors=1 -r ' . escapeshellarg($code) . ' ' . escapeshellarg((string) json_encode($get)) . ' ' . escapeshellarg($root . '/public/index.php') . ' 2>&1');
     if (preg_match('/Warning|Notice|Fatal|Deprecated/', $out)) {
         throw new RuntimeException('PHP problem: ' . substr($out, 0, 300));

@@ -235,7 +235,7 @@ check('love view: a shared person is labelled in every shown text; name affinity
 $hiPost = function (array $f, bool $cookie = true, ?string $raw = null) use ($shareHttp): array {
     $hdr = ['Content-Type: application/x-www-form-urlencoded'];
     if ($cookie) {
-        $hdr[] = 'Cookie: magic_terms=3';
+        $hdr[] = 'Cookie: magic_terms=4';
     }
     [$code, $h, $body] = $shareHttp('POST', '/hidden.php', $raw ?? http_build_query($f), $hdr);
     return [$code, $h, $body, json_decode($body, true)];
@@ -245,7 +245,7 @@ $hiMemory = ['name' => 'Zerbinetta', 'date' => '1987-11-23', 'time' => '04:17', 
 check('hidden.php: terms cookie and POST required, bad input rejected, nothing echoed', function () use ($hiPost, $hiMemory, $shareHttp) {
     [$code, , , $j] = $hiPost($hiMemory, false);
     same([$code, $j], [403, ['ok' => false, 'error' => 'terms']]);
-    [$code, $h, , $j] = $shareHttp('GET', '/hidden.php', '', ['Cookie: magic_terms=3']) + [3 => null];
+    [$code, $h, , $j] = $shareHttp('GET', '/hidden.php', '', ['Cookie: magic_terms=4']) + [3 => null];
     same($code, 405);
     same(str_contains(implode("\n", $h), 'Allow: POST'), true);
     [$code, , , $j] = $hiPost(['lat' => '', 'lon' => ''] + $hiMemory);
@@ -289,13 +289,13 @@ check('hidden.php: source has no storage, database, audit or logging calls', fun
     }
 });
 check('consent.php clean: clears the cookie, redirects to ./?cleaned=1; the gate shows the message and forgets the memory', function () use ($shareHttp, $sharePage) {
-    [$code, $h] = $shareHttp('POST', '/consent.php', 'action=clean&next=x%3D1', ['Content-Type: application/x-www-form-urlencoded', 'Cookie: magic_terms=3']);
+    [$code, $h] = $shareHttp('POST', '/consent.php', 'action=clean&next=x%3D1', ['Content-Type: application/x-www-form-urlencoded', 'Cookie: magic_terms=4']);
     $hs = implode("\n", $h);
     same([$code, str_contains($hs, 'Location: ./?cleaned=1')], [303, true]);
     same(preg_match('/Set-Cookie: magic_terms=deleted; expires=Thu, 01 Jan 1970/', $hs), 1);
     same(str_contains($hs, 'HttpOnly'), true);
     same(Consent::ACTIONS, ['accept', 'withdraw', 'clean']);
-    same(Consent::VALUE, '3');
+    same(Consent::VALUE, '4');
     same(Consent::given([Consent::COOKIE => '2']), false);
     [$out] = $sharePage(['cleaned' => '1'], ['QUERY_STRING' => 'cleaned=1'], false);
     same(str_contains($out, 'Your browser data was cleaned and your acceptance withdrawn.'), true);
@@ -307,33 +307,24 @@ check('consent.php clean: clears the cookie, redirects to ./?cleaned=1; the gate
 });
 
 // ---- menu, import and Terms text ----
-check('menu: above the chooser, both items, panels hidden until the script runs, no inline script or style', function () use ($sharePage) {
-    foreach ([[], ['mode' => 'self'], ['mode' => 'love']] as $get) {
+check('self actions and import: no menu, panels hidden until the script runs, import beside the other soul, no inline script or style', function () use ($sharePage) {
+    foreach ([[], ['mode' => 'self'], ['mode' => 'love'], ['mode' => 'friends']] as $get) {
         [$out] = $sharePage($get);
-        $m = strpos($out, 'class="menu no-print"');
-        $c = strpos($out, 'class="chooser no-print"');
-        same($m !== false && $c !== false && $m < $c, true);
-        same(str_contains($out, 'Share my Self Discovery hidden data') && str_contains($out, 'href="?mode=self" data-menu-share-hidden'), true);
-        same(str_contains($out, 'data-menu-clean>Clean browser data'), true);
-        same(preg_match('/data-menu-clean-row hidden/', $out), 1);
-        same(preg_match('/data-menu-clean-panel role="group"[^>]* hidden>/', $out), 1);
-        same(preg_match('/data-hidden-panel role="group"[^>]* hidden>/', $out), 1);
-        same(str_contains($out, 'Yes, clean') && str_contains($out, 'Cancel'), true);
-        same(str_contains($out, 'action="/consent.php"') || str_contains($out, 'action="consent.php"'), true);
-        same(str_contains($out, 'name="action" value="clean"'), true);
-        same(str_contains($out, 'Anyone who gets this link or QR code can read your name, birth details and place from it.'), true);
-        same(str_contains($out, 'Opening the link records the details in the audit'), true);
+        same(str_contains($out, 'class="menu') || str_contains($out, 'data-menu') || str_contains($out, '<summary>Menu'), false);
         same(preg_match('/\sstyle=|<script(?![^>]*\ssrc=)|\son[a-z]+=/i', $out), 0);
     }
+    [$out] = $sharePage(['mode' => 'self']);
+    same(preg_match('/data-hidden-panel role="group"[^>]* hidden>/', $out), 1);
+    same(str_contains($out, 'Anyone who gets this link or QR code can read your name, birth details and place from it.'), true);
+    same(str_contains($out, 'Opening the link records the details in the audit'), true);
+    same(str_contains($out, 'name="import"'), false);
     [$out] = $sharePage(['mode' => 'love']);
     $imp = strpos($out, 'class="import"');
     $loved = strpos($out, 'data-person="loved"');
     $mem = strpos($out, 'data-memory-bar');
     same($loved !== false && $imp > $loved && $imp < $mem, true);
-    same(str_contains($out, 'data-import-scan hidden') && str_contains($out, 'Pasting always works.') && str_contains($out, 'name="import"'), true);
+    same(str_contains($out, 'data-import-scan hidden') && str_contains($out, 'Pasting always works.') && str_contains($out, 'name="import"') && str_contains($out, 'name="nick"'), true);
     same(str_contains($out, 'src="assets/import.js"'), true);
-    [$out] = $sharePage(['mode' => 'self']);
-    same(str_contains($out, 'name="import"'), false);
 });
 check('terms: hidden links hold the sender details, are not secret, and opening one is recorded', function () use ($hiRoot) {
     $t = html_entity_decode((string) file_get_contents($hiRoot . '/templates/partials/terms.php'));
@@ -372,7 +363,8 @@ check('scripts: memory.js, share.js, import.js, help.js static rules and syntax'
     same(str_contains($share, 'method: "POST"') && str_contains($share, 'createElementNS') && str_contains($share, 'magic:share-hidden'), true);
     same(str_contains($share, 'credentials: "same-origin"'), true);
     $mem = $read('memory');
-    same(str_contains($mem, 'magic:share-hidden') && str_contains($mem, 'data-menu-clean') && str_contains($mem, 'forgetAll();') && str_contains($mem, 'form.submit()'), true);
+    same(str_contains($mem, 'magic:share-hidden') && str_contains($mem, 'data-self-clear') && str_contains($mem, 'forgetAll();') && str_contains($mem, 'form.submit()'), true);
+    same(str_contains($mem, 'data-menu'), false);
     same(str_contains($mem, 'data-hidden-person'), true);
     same(preg_match('/fetch\(|https?:\/\//', $mem), 0);
     $imp = $read('import');
@@ -386,8 +378,9 @@ check('scripts: memory.js, share.js, import.js, help.js static rules and syntax'
     }
 });
 check('help: phase B keys exist and read as plain advice', function () {
-    foreach (['field.import', 'menu.clean', 'menu.share_hidden', 'love.match_hidden'] as $k) {
+    foreach (['field.import', 'self.hidden_code', 'self.clear', 'love.import', 'love.match_hidden'] as $k) {
         same(isset(Help::TEXT[$k]), true);
     }
     same(str_contains(Help::TEXT['love.match_hidden']['text'], 'not shown'), true);
+    same(isset(Help::TEXT['menu.clean']) || isset(Help::TEXT['menu.share_hidden']), false);
 });
