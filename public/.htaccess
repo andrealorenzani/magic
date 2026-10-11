@@ -11,3 +11,8 @@ DirectoryIndex index.php
   ExpiresByType text/css "access plus 1 day"
   ExpiresByType application/javascript "access plus 1 day"
 </IfModule>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^sitemap\.xml$ sitemap.php [L]
+  RewriteRule ^robots\.txt$ robots.php [L]
+</IfModule>

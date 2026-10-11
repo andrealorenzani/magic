@@ -17,11 +17,13 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (name th
 - Menu, hidden sharing and import, help popovers, Self name, v0.8 (ADR 0006): Menu (clean browser data, share hidden data), hidden-details link/QR and import by paste or scan, optional Self name, "?" popovers, click-to-copy and collapsible QR, required marks, smaller wheel, Terms section and gate fixes, Terms version 3 (audit `format_version` 4 for hidden-link opens)
 - Self Discovery first, Soul Affinity, Friends hidden codes, v0.9 (ADR 0007): Menu removed, Self buttons (Generate hidden data code, Clear data, Reveal my sky, Save the data), Soul Affinity (Love renamed in the UI) unlocked by stored Self data with no "You" part, Import from a user, Friends hidden codes in the browser with nicknames, shared confirm dialog, newcomer hidden-link path, Terms version 4 (no audit format change)
 - Business README, badges, quiet buttons, v0.10 (ADR 0008): README as a business specification, `DEVELOPER.md`, `VERSION` and badges (`scripts/update-badges.sh`), quiet buttons with `.btn--primary`, WhatsApp button for hidden codes, honest hidden-code wording, help terms replacing the "?" buttons (33 keys), Self Discovery without a share section, no "Sharing" stub for hidden-derived Soul Affinity, compact Friends list with icon buttons, Terms version 5
+- SEO: metadata, structured data, sitemap, robots, landing text and FAQ, icon and preview image (home page only is indexable)
 - Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)
 - Planets before 1800 (`Planets::supports` is the gate); skipped earlier: needs another data source
-- Social image card for shared results; skipped: needs image rendering without dependencies, and result pages are behind the Terms and noindex
+- Social image card per shared result; skipped: needs image rendering without dependencies, and result pages are behind the Terms and noindex (a single static preview image exists)
+- Owner: submit the sitemap in Google Search Console and Bing Webmaster Tools
 - Personal tarot spread in Self mode, "Draw again" button; skipped: needs more copy or non-reproducible readings (owner decision)
 - Count opens of shared links in the audit; skipped: needs a marker column and migration
 - Another house system; skipped: would need a house-system selector

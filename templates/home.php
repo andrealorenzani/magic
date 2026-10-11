@@ -19,14 +19,20 @@ $cards = [
     ['mode' => 'love', 'name' => 'Soul Affinity', 'glyph' => '♀', 'icon' => 'heart', 'text' => 'Name affinity, biorhythm synchrony, common signs and a tarot spread.', 'href' => ($unlocked && $loveLink !== null) ? $loveLink : '?mode=love'],
     ['mode' => 'friends', 'name' => 'Friends hidden codes', 'glyph' => '✦', 'icon' => 'bulb', 'text' => 'Hidden codes your friends shared with you.', 'href' => '?mode=friends'],
 ];
+$faq = ($mode === null && $seo['index']) ? [
+    ['What do I need to get my Sun, Moon and Ascendant signs?', 'Your birth date, your birth time (hours and minutes) and your birth city. The Sun and Moon signs also come out with an approximate time, but the Ascendant, the houses and the Midheaven need the time and place to be as exact as you can make them.'],
+    ['What is Self Discovery?', 'Self Discovery is the first step: from your birth details you get your Sun, Moon and Ascendant, the other planets, the Midheaven, the houses and a chart wheel, the signs closest to you, the moon phase, Today\'s sky and your three biorhythms, with a printable page.'],
+    ['What is Soul Affinity?', 'Soul Affinity compares you with another person: name affinity, biorhythm synchrony, the signs you have in common and a Past, Present and Future tarot spread. It unlocks once your Self Discovery details are known.'],
+    ['What are Friends hidden codes?', 'A hidden code lets a friend share their birth details with you without showing them. You can keep the codes in your Friends list and compare yourself with a friend in one click.'],
+    ['Is this astrology advice?', 'No. Astrology, biorhythms, name affinity and tarot on this page are for wonder and entertainment, not advice. Planet positions are approximate.'],
+    ['Do I have to accept the Terms and Conditions?', 'Yes. The page asks you to accept the Terms and Conditions on your first visit, and you can read them again or withdraw your acceptance at any time at the end of the page.'],
+] : [];
 ?><!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Magic · <?= e($title) ?></title>
-  <meta name="description" content="Discover your planets, signs and biorhythms, or find your affinity with another soul: name affinity, biorhythm synchrony, common signs and a Past, Present and Future tarot spread.">
-  <?php if ($submitted): ?><meta name="robots" content="noindex"><?php endif; ?>
+<?php include __DIR__ . '/partials/head-seo.php'; ?>
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
@@ -50,7 +56,7 @@ $cards = [
   <main>
     <header class="hero no-print">
       <p class="hero__eyebrow">✦ Magic ✦</p>
-      <h1>Read your sky</h1>
+      <h1><?= e($seo['h1']) ?></h1>
       <p class="hero__lead">Discover yourself, or find out how you and someone you love fit together.</p>
     </header>
 
@@ -128,6 +134,36 @@ $cards = [
       <?php include __DIR__ . '/partials/friends.php'; ?>
     <?php endif; ?>
 
+    <?php if (!$submitted && $mode === null): ?>
+    <section class="about no-print" aria-labelledby="about-h">
+      <h2 id="about-h">Your Sun, Moon and Ascendant in one place</h2>
+      <p>Magic is a page for people who love astrology and the little rituals around it. Type your birth date, birth time and birth city and you get your <strong>Sun sign</strong>, your <strong>Moon sign</strong> and your <strong>Ascendant (rising sign)</strong>, together with the other planets, your Midheaven, the twelve houses and a chart wheel you can print.</p>
+      <h2>Three steps, one path</h2>
+      <ul>
+        <li><strong><a href="?mode=self">Self Discovery</a></strong>: your birth chart, the zodiac signs closest to you, the moon phase, Today's sky and your three biorhythms.</li>
+        <li><strong><a href="?mode=love">Soul Affinity</a></strong>: love compatibility with someone else, with name affinity, biorhythm synchrony, the signs you share and a Past, Present and Future tarot spread. Results can be shared with a short link and a QR code.</li>
+        <li><strong>Friends hidden codes</strong>: keep the codes your friends share with you and compare yourself with them without ever seeing their details.</li>
+      </ul>
+      <h2>Frequently asked questions</h2>
+      <?php foreach ($faq as $f): ?>
+      <details>
+        <summary><?= e($f[0]) ?></summary>
+        <p><?= e($f[1]) ?></p>
+      </details>
+      <?php endforeach; ?>
+    </section>
+    <?php elseif (!$submitted && ($mode === 'self' || $mode === 'love')): ?>
+    <section class="about no-print" aria-labelledby="about-h">
+      <h2 id="about-h"><?= $mode === 'self' ? 'About Self Discovery' : 'About Soul Affinity' ?></h2>
+      <?php if ($mode === 'self'): ?>
+      <p>Enter your birth date, birth time and birth city to see your Sun, Moon and Ascendant signs, your planets, houses and chart wheel, the moon phase, Today's sky and your three biorhythms. You can print the result and keep your details in this browser for next time.</p>
+      <?php else: ?>
+      <p>Compare yourself with someone you love. You get name affinity, biorhythm synchrony, the signs you have in common and a Past, Present and Future tarot spread, plus a short link and a QR code to share the result with them.</p>
+      <?php endif; ?>
+      <p><a href="./">Back to the Sun, Moon and Ascendant calculator</a></p>
+    </section>
+    <?php endif; ?>
+
     <section id="results" class="results">
       <?php foreach ($errors as $err): ?>
         <p class="note note--error" aria-live="polite"><?= e($err) ?></p>
@@ -142,7 +178,7 @@ $cards = [
       <?php endforeach; ?>
     </section>
   </main>
-  <footer class="no-print">Tropical zodiac · planets are approximate · astrology, biorhythms, name affinity and tarot are for wonder and entertainment, not advice</footer>
+  <footer class="no-print">Tropical zodiac · planets are approximate · astrology, biorhythms, name affinity and tarot are for wonder and entertainment, not advice · Updated <time datetime="<?= e($updated) ?>"><?= e($updated) ?></time></footer>
   <section id="terms" class="no-print notice">
     <details>
       <summary>Terms and Conditions</summary>

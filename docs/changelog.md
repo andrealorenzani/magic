@@ -4,6 +4,17 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
+**Added**
+- Search and share metadata: title, description, keywords, robots, canonical, Open Graph and Twitter tags, and structured data (WebSite, WebApplication, WebPage, FAQPage) from `src/Seo.php` through `templates/partials/head-seo.php`.
+- Only the bare home page is indexable; modes, results, shared links and Friends are `noindex`; `consent.php`, `hidden.php` and `api/` are disallowed.
+- `/sitemap.xml` and `/robots.txt` generated per request (`public/sitemap.php`, `public/robots.php`, rewrites in `public/.htaccess`); no address is stored.
+- Home landing text, FAQ and a visible "Updated" date in the footer; home heading is now "Read your sky: Sun, Moon & Ascendant".
+- Site icon (`assets/favicon.svg`) and a 1200x630 preview image (`assets/og-image.png`).
+- `tests/cases/seo.php`; the suite is now 270 tests.
+
+**Changed (developer)**
+- `CLAUDE.md` SEO rule; architect, implementer, reviewer and documenter agents and `/new-feature` now include an SEO step (`seo_check.py`, zero FAIL). `DEVELOPER.md` documents it, including submitting the sitemap to the search engines' webmaster tools.
+
 ## v1.0.0 - 2026-10-10 - First major release
 
 ADR: 0001 ([0001-before_release](decisions/0001-before_release.md), which consolidates the former ADRs 0001-0008).

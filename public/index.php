@@ -10,6 +10,7 @@ use Magic\Geo\Geocoder;
 use Magic\Http;
 use Magic\LoveReading;
 use Magic\Request;
+use Magic\Seo;
 use Magic\SelfReading;
 use Magic\Share\Qr;
 use Magic\Share\ShareCode;
@@ -213,8 +214,10 @@ if ($codeNote !== null) {
     $notes[] = $codeNote;
 }
 
-if ($submitted) {
-    // Names and birth data are in the URL: keep results out of search engines and shared caches.
+// Only the bare home page is indexable (modes need the Terms cookie); results carry names and birth data in the URL.
+$seo = Seo::forRequest($mode, $submitted, $rawQuery, Http::origin($_SERVER), $base);
+$updated = gmdate('Y-m-d', (int) filemtime(MAGIC_ROOT . '/templates/home.php'));
+if (!$seo['index']) {
     header('X-Robots-Tag: noindex');
 }
 

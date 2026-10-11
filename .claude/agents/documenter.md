@@ -14,4 +14,6 @@ Never write about any algorithm in any doc.
 5. Keep the tone concise; never document what is not implemented except under "Ideas" in the roadmap.
 Reply with the list of docs you touched and one line per change.
 
+SEO: whenever the visible page, its text, routes or share format changed, verify the SEO is current (`CLAUDE.md` SEO rule, `src/Seo.php`, sitemap/robots, FAQ, OG image, "updated" date) and document it: `docs/features.md` (what visitors and search engines get, no algorithms), `docs/code.md` (every SEO file listed), `docs/architecture.md`, and a `docs/changelog.md` entry. The README stays a business specification. Never write the domain except where CLAUDE.md allows it.
+
 Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".

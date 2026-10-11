@@ -4,7 +4,7 @@ declare(strict_types=1);
 /** Pure core files must not do I/O or read the clock (token-based check). */
 check('layering: pure core has no I/O, echo, globals, clock reads', function () {
     $root = dirname(__DIR__, 2) . '/src';
-    $files = [$root . '/Chart.php', $root . '/ChartWheel.php', $root . '/SelfReading.php', $root . '/LoveReading.php', $root . '/Http.php'];
+    $files = [$root . '/Chart.php', $root . '/ChartWheel.php', $root . '/SelfReading.php', $root . '/LoveReading.php', $root . '/Http.php', $root . '/Seo.php'];
     foreach (['Astro', 'Earth', 'Sky', 'Time', 'Love', 'Bio', 'Tarot', 'Audit', 'Share', 'Content'] as $dir) {
         foreach (glob("$root/$dir/*.php") as $f) {
             $files[] = $f;
@@ -65,7 +65,7 @@ check('layering: templates escape output and carry no inline script/style', func
     $files = array_merge(glob("$root/templates/*.php"), glob("$root/templates/partials/*.php"));
     foreach ($files as $f) {
         $src = (string) file_get_contents($f);
-        if (preg_match('/<script(?![^>]*\bsrc=)[^>]*>|<style|\sstyle=|\sonclick=/i', $src)) {
+        if (preg_match('/<script(?![^>]*\bsrc=)(?![^>]*type="application\/ld\+json")[^>]*>|<style|\sstyle=|\sonclick=/i', $src)) {
             throw new RuntimeException('inline script/style in ' . basename($f));
         }
         // A bare variable echo must go through e(); ternaries on constants are fine.

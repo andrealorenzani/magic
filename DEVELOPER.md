@@ -25,7 +25,7 @@ Docker database helper `scripts/docker-db.sh`:
 ## Tests
 
 ```bash
-php tests/run.php        # 265 tests, exit code != 0 on failure
+php tests/run.php        # 270 tests, exit code != 0 on failure
 ```
 
 Dependency-free runner. Astronomical output needs a reference-value test. `tests/cases/docs.php` also checks `VERSION`, the badges, the README and DEVELOPER.md structure and that the site name appears only where allowed.
@@ -50,6 +50,16 @@ If the tables or `config.php` are missing, pages still work and the audit write 
 4. Commit, then run `scripts/deploy.sh [--dry-run] [--all]`. It runs the tests, uploads committed files changed since the last deployed commit through the `sftp-upload` skill (and `config.php` when it changed), and cannot delete remote files.
 
 Never write the server host, domain, provider or credentials in tracked files.
+
+## SEO
+
+Head metadata, structured data, the sitemap and robots text live in `src/Seo.php`, `templates/partials/head-seo.php`, `public/sitemap.php` and `public/robots.php`; the rule is in `CLAUDE.md`. After any visible change keep them current, extend `tests/cases/seo.php`, start the dev server and run:
+
+```
+python3 ~/.claude/skills/seo-page/scripts/seo_check.py http://localhost:8081/
+```
+
+The result must have zero FAIL. `/sitemap.xml` and `/robots.txt` are generated from the request host, so nothing needs configuring. After the first deploy the owner must submit the sitemap in Google Search Console and Bing Webmaster Tools (a manual step, not automated).
 
 ## Badges and releases
 

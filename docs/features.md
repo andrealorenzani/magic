@@ -6,6 +6,10 @@ What the page does, in visitor language. For how it is built, see [architecture.
 
 On the first visit a popup asks you to accept the Terms and Conditions. Until you do, nothing you type is processed or recorded. The Terms say plainly that a hidden code is an encoding, not encryption, and that the WhatsApp button sends the link through that service. When the Terms change, everybody is asked to accept again. The Terms popup text scrolls inside its box and the Accept button never covers it, and the "Terms and Conditions" section at the end of the page opens when you click it.
 
+## Finding the page
+
+The home page introduces the tool in plain words ("Read your sky: Sun, Moon & Ascendant"), answers common questions in a short FAQ and shows when the page was last updated in the footer. It has a site icon and a preview image, so links shared in chat and social apps show a title, description and picture. Only the home page is meant for search engines; results, shared links and anything with personal details are kept out of search results.
+
 ## Three steps
 
 1. **Self Discovery** ("Start here"): you enter your birth date, birth time and birth city, and optionally a **name**. The name appears in the heading and in your links. Fields are on the left; buttons on the right: **Generate hidden data code**, **Clear data**, **Reveal my sky** and **Save the data**. Buttons are quiet; only the main action of a form is strong. Generate and Clear are grey until your data is stored in this browser; Save stores it without showing the report (it needs the required fields and a city picked from the suggestions).

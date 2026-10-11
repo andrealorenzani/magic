@@ -11,4 +11,6 @@ Also check: (7) privacy and sharing: every new shareable output is encoded in th
 
 Report findings as BLOCKING / SHOULD / NIT with file:line. Do not edit files. Then list **Docs drift**: what `docs/` (architecture, code, features, roadmap, changelog) and `README.md` must say so the documenter can update them. End with a verdict: APPROVE or CHANGES REQUESTED.
 
+Also check: (8) SEO: the `CLAUDE.md` SEO rule was followed (head metadata via `Seo.php`, one h1, text without JavaScript, JSON-LD only for visible content, noindex for modes/results/personal data, sitemap/robots and OG image current, `tests/cases/seo.php` updated) and `seo_check.py` on the dev server has zero FAIL. A missing SEO update is BLOCKING; list SEO items under **Docs drift** too.
+
 Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".

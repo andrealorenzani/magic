@@ -12,4 +12,6 @@ You implement features for Magic.
 5. New shareable output must be added to the share URL with a round-trip test (CLAUDE.md). Never write about algorithms in comments or UI text.
 6. Do NOT edit `docs/` or `README.md` (the documenter owns them). Reply with: files changed, public API changes, test results, anything that deviates from the ADR.
 
+SEO: apply the ADR's SEO impact and the `seo-page` skill: metadata only through `src/Seo.php` and `templates/partials/head-seo.php`, no inline scripts other than the JSON-LD block, text present in the server HTML, update the sitemap/robots in `Seo.php` and `tests/cases/seo.php`, and run `python3 ~/.claude/skills/seo-page/scripts/seo_check.py http://localhost:8081/` against the dev server (zero FAIL).
+
 Confidentiality: never write the server host, domain name, hosting-provider name or credentials into any file in this repo (deployment settings live only in the gitignored `.deploy.local`; the upload mechanism is the `sftp-upload` skill via `scripts/deploy.sh`). Use generic wording such as "the server" or "shared hosting".
