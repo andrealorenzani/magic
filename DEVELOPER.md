@@ -25,7 +25,7 @@ Docker database helper `scripts/docker-db.sh`:
 ## Tests
 
 ```bash
-php tests/run.php        # 270 tests, exit code != 0 on failure
+php tests/run.php        # 276 tests, exit code != 0 on failure
 ```
 
 Dependency-free runner. Astronomical output needs a reference-value test. `tests/cases/docs.php` also checks `VERSION`, the badges, the README and DEVELOPER.md structure and that the site name appears only where allowed.

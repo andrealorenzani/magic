@@ -322,6 +322,28 @@ summary { cursor: pointer; }
 @media (max-width: 720px) {
   .help__pop { position: fixed; left: 8px !important; right: 8px; top: auto !important; bottom: 8px; width: auto; max-width: none; max-height: 50vh; overflow-y: auto; }
 }
+.bar { position: relative; display: inline-block; width: min(100%, 320px); vertical-align: middle; border-radius: 4px; }
+.bar meter { width: 100%; display: block; cursor: help; }
+.bar:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.bar__tip {
+  position: absolute; z-index: 10; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); padding: 2px 8px; white-space: nowrap;
+  font-size: .85rem; font-weight: 700; color: var(--ink); background: #0f0d2c; border: 1px solid var(--gold); border-radius: 6px;
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s;
+}
+.bar:hover .bar__tip, .bar:focus .bar__tip { opacity: 1; visibility: visible; }
+.bar--wide { width: 100%; }
+.heart-card .trio3 { width: 100%; justify-self: stretch; }
+.trio3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 16px; align-items: end; }
+.trio3__item { display: grid; gap: 8px; min-width: 0; text-align: center; }
+.trio3__item h3 { margin: 0; font-size: 1rem; font-weight: 400; }
+.trio3__main h3 { font-size: 1.15rem; color: #e89bd2; }
+.trio3__main meter { height: 20px; }
+@media (max-width: 720px) { .trio3 { grid-template-columns: 1fr; } }
+@media print {
+  .bar__tip { position: static; transform: none; opacity: 1; visibility: visible; display: inline; border: 0; background: none; color: #000; padding: 0 0 0 6px; }
+  .bar { width: auto; }
+  .bar meter { display: inline-block; width: 200px; }
+}
 .req { color: var(--gold); }
 .result-title { margin: 0; font-weight: 400; font-size: 1.6rem; text-align: center; color: var(--gold); }
 .share__qrbox summary { padding: 4px 0; color: var(--gold); }

@@ -14,8 +14,8 @@ $moon = $sky['moon'];
 <section class="block sky" aria-labelledby="sky-h">
   <h2 id="sky-h"><?= icon('bulb') ?> <?php help_term('self.sky', "Today's sky"); ?></h2>
   <p class="sky__phase"><span class="sky__symbol" aria-hidden="true"><?= e($sky['symbol']) ?></span>
-    <strong><?= e($sky['phaseName']) ?></strong>, <?= e($sky['illumination']) ?>% lit</p>
-  <p><meter min="0" max="100" value="<?= e($sky['illumination']) ?>"><?= e($sky['illumination']) ?>%</meter></p>
+    <strong><?= e($sky['phaseName']) ?></strong></p>
+  <p><?php bar($sky['illumination'], $sky['illumination'] . '% lit', 'Moon'); ?></p>
   <p>The Moon is in <span aria-hidden="true"><?= e($moon['symbol']) ?></span> <?= e($moon['name']) ?> on <?= e($sky['day']) ?>.</p>
   <?php if ($skyMode === 'self'): ?>
     <?php foreach ($sky['people'] as $p): ?>

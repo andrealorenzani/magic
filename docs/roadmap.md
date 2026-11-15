@@ -18,6 +18,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (name th
 - Self Discovery first, Soul Affinity, Friends hidden codes, v0.9 (ADR 0007): Menu removed, Self buttons (Generate hidden data code, Clear data, Reveal my sky, Save the data), Soul Affinity (Love renamed in the UI) unlocked by stored Self data with no "You" part, Import from a user, Friends hidden codes in the browser with nicknames, shared confirm dialog, newcomer hidden-link path, Terms version 4 (no audit format change)
 - Business README, badges, quiet buttons, v0.10 (ADR 0008): README as a business specification, `DEVELOPER.md`, `VERSION` and badges (`scripts/update-badges.sh`), quiet buttons with `.btn--primary`, WhatsApp button for hidden codes, honest hidden-code wording, help terms replacing the "?" buttons (33 keys), Self Discovery without a share section, no "Sharing" stub for hidden-derived Soul Affinity, compact Friends list with icon buttons, Terms version 5
 - SEO: metadata, structured data, sitemap, robots, landing text and FAQ, icon and preview image (home page only is indexable)
+- Self sign myths ("History" popups), Soul Affinity attraction / Harmony / Fights with the tarot right after them, value bubbles on percentage bars, simpler synchrony and "In common", seven synastry aspects, Distance card removed (no ADR, owner request)
 - Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)

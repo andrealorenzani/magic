@@ -20,7 +20,7 @@ You enter your birth date, birth time and birth city. You can add a name and a c
 
 You get:
 
-- Your Sun, Ascendant and Moon signs.
+- Your Sun, Ascendant and Moon signs, each with a History link that tells the Greek myth of the sign.
 - Mercury to Pluto and the North Node, with retrograde marks (births from 1800 to 2100).
 - The Midheaven and the house of each body.
 - The signs in tune with you and the sign of the love of your life.
@@ -57,12 +57,13 @@ For the other soul, the name is enough. Date, time and city are optional, and ea
 
 You get:
 
-- Name affinity in percent.
-- Biorhythm synchrony of the two of you (needs both birth dates).
+- A first line with three values: how much you are attracted, Harmony (how peaceful the two of you are likely to be together) and Fights.
+- Your connection in three cards: a Past, Present and Future tarot spread from a deck of 78 cards. The same people on the same day draw the same cards.
+- Biorhythm synchrony of the two of you, cycle by cycle, with the next days you are both high or both low (needs both birth dates).
 - What you have in common in Sun, Moon and Ascendant.
-- Synastry: the closest links between the two charts, each with a short meaning.
-- Distance between the two places, when known.
-- A Past, Present and Future tarot spread from a deck of 78 cards. The same people on the same day draw the same cards.
+- Synastry: the seven closest links between the two charts, each with a short meaning.
+
+Percentages are drawn as bars; the number shows in a small bubble when you point at a bar or reach it with the keyboard, and it is always printed.
 
 You can also fill the other soul from a friend's hidden code ("Import from a user", by pasting the link or scanning the QR code) and give them a nickname that stays on your device.
 
@@ -110,7 +111,6 @@ Share links contain the names and birth details that were typed. They are not en
 A current city is optional. When you give one:
 
 - It decides which calendar day counts as today for biorhythms, tarot and Today's sky.
-- It enables the distance between places.
 
 Without it, today is the server's date.
 
@@ -139,6 +139,6 @@ None of it is stored by the server. Clear data erases all of it, and so does wit
 - The Ascendant, houses and wheel are approximate at extreme latitudes and are marked so.
 - A person with only a birth date has an approximate chart.
 - One house system, tropical zodiac only, English only.
-- Name affinity, biorhythms, scores and tarot are for wonder, not science.
+- Attraction, Harmony, Fights, biorhythms, scores, myths and tarot are for wonder, not science.
 
 For running, testing and deploying the project, read [DEVELOPER.md](DEVELOPER.md). More documents are in the [docs](docs/) folder.

@@ -7,26 +7,29 @@ namespace Magic\Love;
 final class NameAffinity
 {
     public const LETTERS = ['A', 'M', 'O', 'R', 'E'];
+    /** Letters of the "Fights" value. */
+    public const FIGHT_LETTERS = ['H', 'A', 'T', 'R', 'E', 'D'];
 
-    /** @return array<string,mixed> */
-    public static function compute(string $nameA, string $nameB): array
+    /** @param list<string> $letters @return array<string,mixed> */
+    public static function compute(string $nameA, string $nameB, array $letters = self::LETTERS): array
     {
         $norm = self::normalize($nameA . ' ' . $nameB);
         $counts = [];
-        foreach (self::LETTERS as $l) {
+        foreach ($letters as $l) {
             $counts[$l] = substr_count($norm, strtolower($l));
         }
-        return self::fromCounts($counts);
+        return self::fromCounts($counts, $letters);
     }
 
-    /** @param array<string,int> $counts keys A, M, O, R, E @return array<string,mixed> */
-    public static function fromCounts(array $counts): array
+    /** @param array<string,int> $counts keys from $letters @param list<string> $letters @return array<string,mixed> */
+    public static function fromCounts(array $counts, array $letters = self::LETTERS): array
     {
         $c = [];
-        foreach (self::LETTERS as $l) {
+        foreach ($letters as $l) {
             $c[] = (int) ($counts[$l] ?? 0);
         }
-        $slots = [0, 0, 0, 0, 0];
+        $len = count($c);
+        $slots = array_fill(0, $len, 0);
         foreach ($c as $i => $n) {
             if ($n < 10) {
                 $slots[$i] += $n;
@@ -37,7 +40,7 @@ final class NameAffinity
         }
         $start = 0;
         foreach ($slots as $i => $s) {
-            $start += $s * 10 ** (4 - $i);
+            $start += $s * 10 ** ($len - 1 - $i);
         }
         $chain = [$start];
         $v = $start;
@@ -46,7 +49,7 @@ final class NameAffinity
             $chain[] = $v;
         }
         return [
-            'counts' => array_combine(self::LETTERS, $c),
+            'counts' => array_combine($letters, $c),
             'slots' => $slots,
             'start' => $start,
             'chain' => $chain,
@@ -76,6 +79,7 @@ final class NameAffinity
             $groups = [
                 'a' => 'àáâãäåāăąǎǻÀÁÂÃÄÅĀĂĄǍǺ', 'e' => 'èéêëēĕėęěÈÉÊËĒĔĖĘĚ',
                 'o' => 'òóôõöøōŏőơǒǿÒÓÔÕÖØŌŎŐƠǑǾ', 'r' => 'ŕŗřŔŖŘ',
+                'd' => 'ďđĎĐ', 't' => 'ţťŧțŢŤŦȚ', 'h' => 'ĥħĤĦ',
             ];
             foreach ($groups as $plain => $chars) {
                 foreach (preg_split('//u', $chars, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $ch) {

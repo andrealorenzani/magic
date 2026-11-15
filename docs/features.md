@@ -26,29 +26,33 @@ Self Discovery and Soul Affinity have an optional **Current city** field (see "W
 
 | Block | Mode | Needs |
 |---|---|---|
-| Sun, Ascendant, Moon signs | Self | date, time, city |
+| Sun, Ascendant, Moon signs, each with a "History" link to its Greek myth | Self | date, time, city |
 | Midheaven and the house of each body | Self | date, time, city |
 | Chart wheel | Self | date, time, city |
-| Mercury to Pluto and North Node, with retrograde marks | Self | date, time, city (planets for births 1800-2100) |
+| Mercury to Pluto and North Node, with retrograde marks and a "History" link for the sign | Self | date, time, city (planets for births 1800-2100) |
 | Signs with most affinity, "love of your life" sign | Self | date, time, city |
 | Born under (moon phase at your birth) | Self | date, time, city |
 | Biorhythms (physical, emotional, intellectual) | Self | birth date |
 | Today's sky (moon phase, Moon sign, a short reading) | Self, compact in Soul Affinity | nothing more |
-| Name affinity | Soul Affinity | both names |
+| How much you are attracted, Fights | Soul Affinity | both names |
+| Harmony | Soul Affinity | the reading (kept private) |
+| Past / Present / Future tarot spread ("Your connection in three cards", right after the first line) | Soul Affinity | both names |
 | Biorhythm synchrony | Soul Affinity | both birth dates |
-| In common (Sun, Moon, Ascendant values) | Soul Affinity | what each person provided |
+| What you have in common (Sun, Moon, Ascendant) | Soul Affinity | what each person provided |
 | Synastry (aspects between the two charts) | Soul Affinity | the loved person's birth date; more detail with time and city |
-| Distance and geography | Self, Soul Affinity | current city (and birth city, or the other person's current city) |
-| Past / Present / Future tarot spread | Soul Affinity | both names |
 | Share section (links and QR) | Soul Affinity | a result where the other soul was typed (none for Self Discovery or for hidden details) |
 
 Details worth knowing:
 
+- **History**: each sign card (Sun, Ascendant, Moon, planets, North Node) has a "History" link that opens a popup with the Greek myth of its sign in a sentence or two. The cards no longer show the degree and minute of the position.
+- **Bars**: wherever a bar stands for a percentage (Soul Affinity values, biorhythm synchrony, signs in tune, your biorhythms, the Moon's light in Today's sky) the number is not printed beside it: it appears in a small bubble when you hover the bar or reach it with the keyboard, and it is always printed on paper.
 - **Midheaven, houses and wheel**: the Midheaven is shown with the other signs; each planet card says which of the twelve houses it falls in, with a one-line theme. The wheel is a picture of the same data, with a table beside it. It is smaller and brighter than before and can be collapsed.
 - **Born under**: the Moon phase on your birth day, in plain words.
 - **Today's sky**: the Moon phase and illumination of the reading day, the Moon sign of the day, and a short reading related to your Sun sign (in Love, one sentence per person). The same day always gives the same text.
-- **Synastry**: a table of the closest links between the two charts (for example "Venus trine Mars"), each with a meaning sentence and a harmonious / tense / neutral count. If the loved person has only a date, the table is marked approximate; with no date a card invites you to add it.
-- **Distance and geography**: shown only when positions are known, labelled approximate and in a straight line, in km and miles, with the time difference.
+- **Attraction, Harmony, Fights**: the first line of a Soul Affinity result. "How much you are attracted" is a playful score from the two names; "Harmony" is a percentage of how peaceful the two of you are likely to be together; "Fights" is a playful score, from the names, of how much you spark arguments.
+- **Biorhythm synchrony**: one card per cycle with its bar and the next day you are both high or both low. There is no overall score or verdict.
+- **What you have in common**: three cards (Sun, Moon, Ascendant) with their comments, without a summary score.
+- **Synastry**: a table of the seven closest links between the two charts (for example "Venus trine Mars"), each with a meaning sentence and a harmonious / tense / neutral count. If the loved person has only a date, the table is marked approximate; with no date a card invites you to add it.
 - **Tarot**: the full 78-card deck. Each of Past, Present and Future has its own text for the card, upright or reversed. The same people on the same day always draw the same cards.
 
 ## Where you are now (optional)
@@ -56,7 +60,6 @@ Details worth knowing:
 Entering a current city is never required; links and forms without it work as before. When given, it:
 
 - decides which calendar day counts as "today" for biorhythms, tarot, Today's sky and moon phase. In Love the day follows **your** current city (person A), not the loved person's. The result shows "Today for you: <date> (time zone ...)".
-- enables the distance card.
 - Without it, "today" is the server's UTC date, so it can be a day off for visitors far from UTC. A date given as `on=YYYY-MM-DD` in the link always wins.
 
 If a current city cannot be found, it is ignored with a note; the rest of the reading is shown.

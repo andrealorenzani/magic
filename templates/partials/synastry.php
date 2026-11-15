@@ -26,7 +26,7 @@ require_once __DIR__ . '/help.php';
       <table class="synastry__table">
         <caption class="sr-only">Closest aspects between <?= e($names['a']) ?> and <?= e($names['b']) ?></caption>
         <thead>
-          <tr><th scope="col">Aspect</th><th scope="col">Orb</th><th scope="col">Meaning</th></tr>
+          <tr><th scope="col">Aspect</th><th scope="col">Meaning</th></tr>
         </thead>
         <tbody>
           <?php foreach ($synastry['rows'] as $r): ?>
@@ -36,7 +36,6 @@ require_once __DIR__ . '/help.php';
                 <?= e(AspectText::NAMES[$r['type']]) ?>
                 <?= e($names['b']) ?>'s <?= e(Bodies::INFO[$r['b']]['title']) ?>
               </th>
-              <td><?= e(number_format($r['orb'], 1)) ?>&deg;</td>
               <td><span class="pill synastry__tone"><?= e(AspectText::TONE_LABELS[$r['tone']]) ?></span> <?= e(AspectText::MEANING[$r['type']]) ?></td>
             </tr>
           <?php endforeach; ?>
@@ -46,6 +45,6 @@ require_once __DIR__ . '/help.php';
     <?php if ($synastry['approx']): ?>
       <p class="note"><span class="badge">Approximate</span> At least one birth time or place is missing, so the Moon, Ascendant and Midheaven are left out and the planets are taken at midday UTC.</p>
     <?php endif; ?>
-    <p class="note">Orb is how far each aspect is from exact. For entertainment: two charts are never a verdict on a relationship.</p>
+    <p class="note">For entertainment: two charts are never a verdict on a relationship.</p>
   <?php endif; ?>
 </section>

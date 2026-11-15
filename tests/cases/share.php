@@ -507,7 +507,9 @@ check('love page: in common shows chips, pills, meaning sentences and placeholde
     same(str_contains($out, 'Ascendant: add both birth times and cities to compare it.'), true);
     same(substr_count($out, '<p class="chip '), 4);
     same(str_contains($out, 'Compared: Sun, Moon.'), true);
-    same(str_contains($out, 'How your two names harmonise.'), true);
+    same(str_contains($out, 'How your two names harmonise.'), false);
+    same(str_contains($out, 'How much you are attracted') && str_contains($out, 'data-help="love.harmony"') && str_contains($out, 'data-help="love.fights"'), true);
+    same(str_contains($out, 'class="common__summary"'), false);
     [$out] = $sharePage(array_diff_key($loveGet, ['b_date' => 1]));
     same(str_contains($out, "Add Silvia's birth date to see what you share.") || str_contains($out, 'Add Silvia&#039;s birth date to see what you share.'), true);
     same(str_contains($out, 'id="common-h"'), true);
@@ -541,4 +543,24 @@ check('terms say shared links are not recorded again; no server names or algorit
     foreach (['templates/partials/share.php', 'templates/love-result.php', 'public/assets/share.js'] as $f) {
         same(preg_match('/algorithm|sha256|hash/i', (string) file_get_contents($shareRoot . '/' . $f)), 0);
     }
+});
+
+check('love page: first line has attraction, harmony and fights; tarot follows it; bars hide their value until hover; no geography', function () use ($sharePage, $loveGet) {
+    [$out] = $sharePage($loveGet + ['noaudit' => '']);
+    $name = strpos($out, 'id="name-h"');
+    $tarot = strpos($out, 'id="tarot-h"');
+    $sync = strpos($out, 'id="sync-h"');
+    same($name !== false && $tarot !== false && $sync !== false && $name < $tarot && $tarot < $sync, true);
+    same(substr_count(substr($out, $name, $tarot - $name), '<span class="bar bar--wide" tabindex="0">'), 3);
+    same(str_contains($out, '% affinity') || str_contains($out, '</strong> overall.'), false);
+    same(substr_count($out, 'class="bar__tip" aria-hidden="true"'), substr_count($out, '<meter '));
+    same(str_contains($out, 'Distance and geography') || str_contains($out, 'class="block geo"'), false);
+    same(substr_count($out, 'Next shared high'), 3);
+});
+check('self page: sign cards show a History story instead of the degree; no geography', function () use ($sharePage) {
+    [$out] = $sharePage(['mode' => 'self', 'name' => 'Ann', 'date' => '1990-07-15', 'time' => '08:30', 'city' => 'Rome', 'lat' => '41.9', 'lon' => '12.5', 'tz' => 'Europe/Rome', 'noaudit' => '']);
+    same(substr_count($out, 'data-help="myth.') >= 3, true);
+    same(preg_match('/class="card__pos">\d+°/', $out), 0);
+    same(str_contains($out, 'Distance and geography'), false);
+    same(substr_count($out, 'class="bar__tip" aria-hidden="true"'), substr_count($out, '<meter '));
 });

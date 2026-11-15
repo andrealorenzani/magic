@@ -21,7 +21,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
     <div class="card__symbol" aria-hidden="true"><?= e($s['sign']['symbol']) ?></div>
     <h4 class="card__role"><?= e($heading) ?></h4>
     <p class="card__sign"><?= e($s['sign']['name']) ?></p>
-    <p class="card__pos"><meter min="0" max="100" value="<?= e(round($s[$key])) ?>"><?= e(round($s[$key])) ?>%</meter> <?= e(round($s[$key])) ?>% match</p>
+    <p class="card__pos"><?php bar(round($s[$key]), round($s[$key]) . '% match', $s['sign']['name'], 0, 100, 'bar--wide'); ?></p>
     <ul class="reasons">
       <?php foreach ($s['reasons'] as $r): ?>
         <li><?= e(ucfirst($r['ref'])) ?> in <?= e($r['refSign']) ?> <?= e($r['aspect']) ?> <?= e($s['sign']['name']) ?>;
@@ -50,7 +50,7 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
     <div class="card__symbol" aria-hidden="true"><?= e($p['symbol']) ?></div>
     <h3 class="card__role"><?php help_term('self.' . $role, $r['title']); ?></h3>
     <p class="card__sign"><?= e($p['name']) ?></p>
-    <p class="card__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?> · <?= e($p['modality']) ?></p>
+    <p class="card__pos"><?php help_term('myth.' . $p['id'], 'History'); ?> · <?= e($p['element']) ?> · <?= e($p['modality']) ?></p>
     <p class="card__tag"><?= e($r['tagline']) ?></p>
     <p class="card__text"><?= e(Signs::TEXT[$p['id']]) ?></p>
     <?php if (isset($chart['houses'][$role])): ?><p class="card__house"><?= e($houseLine($chart['houses'][$role])) ?></p><?php endif; ?>
@@ -109,7 +109,7 @@ $mc = $chart['midheaven'];
         <span class="planet__glyph" aria-hidden="true"><?= e($b['glyph']) ?></span>
         <h3><?php help_term('self.planet.' . $id, $b['title']); ?><?php if ($pl['retrograde']): ?> <abbr class="badge" title="Retrograde">R</abbr><?php endif; ?></h3>
         <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
-        <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
+        <p class="planet__pos"><?php help_term('myth.' . $p['id'], 'History'); ?> · <?= e($p['element']) ?></p>
         <p class="planet__house"><?= e($houseLine($chart['houses'][$id])) ?></p>
         <p class="planet__text"><?= e($b['meaning']) ?></p>
       </article>
@@ -119,7 +119,7 @@ $mc = $chart['midheaven'];
       <span class="planet__glyph" aria-hidden="true"><?= e($b['glyph']) ?></span>
       <h3><?php help_term('self.node', $b['title']); ?></h3>
       <p class="planet__sign"><span aria-hidden="true"><?= e($p['symbol']) ?></span> <?= e($p['name']) ?></p>
-      <p class="planet__pos"><?= e($p['degree']) ?>°<?= e(sprintf('%02d', $p['minute'])) ?>′ · <?= e($p['element']) ?></p>
+      <p class="planet__pos"><?php help_term('myth.' . $p['id'], 'History'); ?> · <?= e($p['element']) ?></p>
       <p class="planet__house"><?= e($houseLine($chart['houses']['node'])) ?></p>
       <p class="planet__text"><?= e($b['meaning']) ?></p>
     </article>
@@ -130,7 +130,6 @@ $mc = $chart['midheaven'];
 
 <?php $sky = $view['sky']; $skyMode = 'self'; include __DIR__ . '/partials/sky.php'; ?>
 
-<?php $geo = $view['geo'] ?? null; include __DIR__ . '/partials/geo.php'; ?>
 
 <section class="block" aria-labelledby="aff-h">
   <h2 id="aff-h"><?= icon('heart') ?> Your affinities</h2>
@@ -151,8 +150,8 @@ $mc = $chart['midheaven'];
   <?php foreach ($bio as $name => $c): ?>
     <div class="bio-row">
       <h3><?php help_term('bio.' . $name, ucfirst($name)); ?> <small>(<?= e($c['period']) ?> days)</small></h3>
-      <p><meter min="-100" max="100" value="<?= e($c['value']) ?>"><?= e($c['value']) ?></meter>
-        <strong><?= e($c['value']) ?>%</strong>, <?= e($c['trend']) ?>.
+      <p><?php bar($c['value'], $c['value'] . '%', ucfirst($name), -100, 100); ?>
+        <?= e(ucfirst($c['trend'])) ?>.
         Next peak <?= e($c['nextPeak']) ?>, next low <?= e($c['nextTrough']) ?>.</p>
     </div>
   <?php endforeach; ?>

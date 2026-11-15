@@ -47,14 +47,15 @@ src/
   Astro/MoonPhase.php        MoonPhase::at($jd) → angle, illumination, phase; PHASES, MAIN_HALF_WIDTH (10°), name()
   Astro/Aspects.php          Aspects::between($lonA,$lonB) → type + orb or null; TYPES (orb limits pinned by tests)
   Earth/Distance.php         Distance::km(), miles() — straight-line distance
-  Earth/Geography.php        Geography::between(), forSelf(), forLove(), formatOffset() — the "Distance and geography" model
+  Earth/Geography.php        Geography::between(), forSelf(), forLove(), formatOffset() — distances recorded in the audit (no card on the page)
   Sky/Today.php              Today::for($day, $sunSigns) → phase, illumination, Moon sign and reading; phaseAt($jd) (also "born under")
   Bio/Biorhythm.php          dayNumber/date/dayOf, value, forPerson (3 cycles, peaks, 30-day curve)
   Bio/Synchrony.php          Synchrony::pair — per-cycle delta/sync/amplitude/combined peaks, overall, band
-  Love/NameAffinity.php      Name affinity percentage: compute($nameA, $nameB)
+  Love/NameAffinity.php      Attraction and Fights percentages from the names: compute($nameA, $nameB, $set), fromCounts()
+  Love/Harmony.php           Harmony::compute(...) → int percentage of how peaceful the two are likely to be together
   Love/SignAffinity.php      Sign-vs-sign scoring: rank($refs) → ranking, mostAffine (3), soulmate
   Love/Common.php            Common::between($chartA, $chartB) — shared Sun/Moon/Ascendant values
-  Love/Synastry.php          Synastry::between($lonsA, $lonsB, $limit) → rows, counts, approx; ORDER, PERSONAL, MAX_ROWS (12)
+  Love/Synastry.php          Synastry::between($lonsA, $lonsB, $limit) → rows, counts, approx; ORDER, PERSONAL, MAX_ROWS (7)
   Tarot/Reading.php          Reading::spread($seed, $today) — deterministic Past/Present/Future, 3 distinct cards from 78; fromSlots() for a validated shared spread
   Share/ShareLink.php        Pure: self/love/liveSelf/liveLove (canonical long query strings; Self adds `name` when given), codeQuery(), tarotCode/parseTarot (0-77), trimCity
   Share/ShareCode.php        Pure: VERSION 1, MAX_CHARS 400, MAX_LABEL_BYTES 32; VERSION_SELF_NAME 2, VERSION_HIDDEN 3; encodeSelf (version 2 only when a name is present, else 1)/encodeLove → code string, decode($code) → long-query array or null (strict, canonical only; rejects version 3), encodeHidden($person), decodeHidden($code) → person or null (version 3 only), extractHidden($text) → code from a pasted link or bare code, cutLabel()
@@ -77,14 +78,15 @@ src/
   Content/Daily.php          Moon phase names/symbols and the "Today's sky" sentences (MOOD, RELATION, INVITATION)
   Content/Houses.php         THEMES: title and one line for each of the 12 houses
   Content/Aspects.php        NAMES, MEANING, TONE, TONE_LABELS for synastry
-  Content/Help.php           Help::TEXT (33 keys → title + text for the help terms), DYNAMIC, keys(), get(), dynamicKeys()
+  Content/Help.php           Help::TEXT (35 keys → title + text for the help terms), DYNAMIC, keys(), get() (also `myth.<sign id>` via Myths), dynamicKeys()
+  Content/Myths.php          Myths::TEXT (sign id → the Greek myth in a sentence or two), get($id) → title + text for the "History" popup
   Content/TarotPast.php      TEXT: 22 cards x up/rev, Past position
   Content/TarotPresent.php   same, Present position
   Content/TarotFuture.php    same, Future position
 templates/home.php           Page shell: hero, chooser (Self Discovery, Soul Affinity, Friends hidden codes; the last two locked by default), form for the mode, Friends panel, confirm dialog, includes the result template; escapes via e()
-templates/self-result.php    Self result: big three, Midheaven, planets with houses, wheel, affinities, biorhythms, born under, Today's sky, distance, print button (no share section)
-templates/love-result.php    Love result: name %, compact synchrony, common values, synastry, Today's sky, distance, Past/Present/Future spread, share section (typed other soul only), print button
-templates/partials/          head-seo.php (the whole <head> metadata from `$seo`: title, description, keywords, robots, canonical, Open Graph, Twitter card, JSON-LD for WebSite, WebApplication, WebPage and FAQPage), help.php (help_term($key, $label); an unknown key throws under MAGIC_TESTING, else prints the label), self-actions.php (Self buttons, status, hidden-code panel with the "not a secret" note and the WhatsApp anchor), person-carried.php (hidden `a_*` inputs of Soul Affinity), friends.php (Friends panel: search, bulk bar, row `<template>`, noscript note), confirm.php (the shared `<dialog>`), import.php ("Import from a user": nickname, scan, paste), hidden-person.php ("details loaded and hidden" block), person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG incl. check-all, trash, compare, x), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section, Soul Affinity with a typed other soul only: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), geo.php (distance card), memory.php (browser-memory bar and saved-people select)
+templates/self-result.php    Self result: big three and planets with a "History" myth link (no degree/minute), Midheaven, houses, wheel, affinities, biorhythms, born under, Today's sky, print button (no share section)
+templates/love-result.php    Love result: first line (attraction, Harmony, Fights), Past/Present/Future spread, compact synchrony (per cycle, no overall), common values (three cards, no summary), synastry, Today's sky, share section (typed other soul only), print button
+templates/partials/          head-seo.php (the whole <head> metadata from `$seo`: title, description, keywords, robots, canonical, Open Graph, Twitter card, JSON-LD for WebSite, WebApplication, WebPage and FAQPage), help.php (help_term($key, $label); an unknown key throws under MAGIC_TESTING, else prints the label; bar($value, $text, $label, $min, $max, $class): a `<meter>` with a value bubble on hover/focus, always shown in print), self-actions.php (Self buttons, status, hidden-code panel with the "not a secret" note and the WhatsApp anchor), person-carried.php (hidden `a_*` inputs of Soul Affinity), friends.php (Friends panel: search, bulk bar, row `<template>`, noscript note), confirm.php (the shared `<dialog>`), import.php ("Import from a user": nickname, scan, paste), hidden-person.php ("details loaded and hidden" block), person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG incl. check-all, trash, compare, x), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section, Soul Affinity with a typed other soul only: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), memory.php (browser-memory bar and saved-people select)
 docker-compose.yml           Local run: web (PHP + Apache, bind mount, 127.0.0.1:8081) and db (MySQL 8.4, volume dbdata, migrations/ as initdb, not published)
 docker/Dockerfile            php:8.3-apache + pdo_mysql + rewrite/headers/expires; Apache config allowing the root .htaccess
 docker/config.php            DB settings for the Docker setup, read from the container environment (MAGIC_DB_*)
@@ -139,10 +141,10 @@ $person = ['name' => string, 'date' => ?['year','month','day'], 'time' => ?['hou
 
 // SelfReading::build → ['chart' => Chart::full, 'refs' => ['sun','moon','ascendant'(,'venus','mars') => sign index],
 //   'affinity' => SignAffinity::rank, 'bio' => Biorhythm::forPerson, 'today', 'dayBasis' (utc|current_position|on), 'dayZone',
-//   'wheel' => ChartWheel::layout, 'sky' => Today::for, 'moonAtBirth' => Today::phaseAt, 'geo' => Geography::forSelf|null, 'notes']
-// LoveReading::build → ['names','affinity' => NameAffinity::compute, 'charts' => ['a','b' => partial|null],
+//   'wheel' => ChartWheel::layout, 'sky' => Today::for, 'moonAtBirth' => Today::phaseAt, 'geo' => Geography::forSelf|null (audit only), 'notes']
+// LoveReading::build → ['names','hidden','affinity' => NameAffinity::compute, 'fights' => NameAffinity::compute (Fights set), 'harmony' => int 0-100, 'charts' => ['a','b' => partial|null],
 //   'common' => Common::between|null, 'bio' => Synchrony::pair|null, 'tarot' => Reading::spread, 'tarotShared' => bool, 'today', 'dayBasis', 'dayZone',
-//   'sky' => Today::for, 'synastry' => ['rows','total','counts','approx','available'], 'geo' => Geography::forLove|null, 'notes']
+//   'sky' => Today::for, 'synastry' => ['rows','total','counts','approx','available'], 'geo' => Geography::forLove|null (audit only), 'notes']
 // NameAffinity::compute → ['percent', 'noLetters', plus supporting values shown by the template]
 // Synchrony::pair → ['cycles' => [physical|emotional|intellectual => delta, sync, amplitude, flat, peaksTogether,
 //   nextCombinedPeak/Trough, nextBothHigh/Low, curveA/B], 'overall' => float, 'band' => tune|complementary|apart]
@@ -236,7 +238,10 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 |---|---|
 | Change what counts as "today" | `Request::resolveToday`, `Zone::dateAt`; clock read in `public/index.php` |
 | Add or change a current-position field | `Request::parsePerson`, `templates/partials/person-fields.php`, `tests/cases/position.php` |
-| Change the distance card | `Earth\Geography`, `templates/partials/geo.php` |
+| Change the distances in the audit | `Earth\Geography`, `Audit\AuditRecord` |
+| Change a sign's myth ("History" popup) | `Content\Myths::TEXT` |
+| Change Attraction, Harmony or Fights | `Love\NameAffinity`, `Love\Harmony`, first line of `templates/love-result.php`, help keys `love.name_affinity`, `love.harmony`, `love.fights`, `tests/cases/love.php` |
+| Change how a percentage bar looks | `bar()` in `templates/partials/help.php`, `.bar` / `.bar__tip` in `public/assets/styles.css` |
 | Change houses / Midheaven | `Astro\Houses`, `Chart::compute`/`full`, `Content\Houses` |
 | Change the wheel drawing | `ChartWheel`, `templates/partials/wheel.php`, wheel classes in `styles.css` |
 | Change moon phase or Today's sky text | `Astro\MoonPhase`, `Sky\Today`, `Content\Daily`, `templates/partials/sky.php` |

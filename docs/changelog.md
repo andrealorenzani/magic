@@ -4,7 +4,25 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
+2026-11-15 (Self myths, Attraction / Harmony / Fights, value bubbles): no ADR (owner request, no new architectural decision).
+
 **Added**
+- Self Discovery: each Sun, Ascendant, Moon, planet and North Node card has a "History" link that opens the Greek myth of its sign in a sentence or two (`src/Content/Myths.php`, help keys `myth.<sign id>`).
+- Soul Affinity first line with three values: "How much you are attracted" (the former name affinity), **Harmony** (a percentage of how peaceful the two people are likely to be together, `src/Love/Harmony.php`) and **Fights** (a playful score from the names). Help keys `love.harmony` and `love.fights` (35 keys). No share-format change.
+- Percentage bars (Soul Affinity values, biorhythm synchrony, Self signs in tune and biorhythms, Today's sky Moon light) show their number in a small bubble on hover or keyboard focus, and always in print (`bar()` in `templates/partials/help.php`).
+- SEO: Soul Affinity description and keywords, home FAQ, "Three steps" text and mode cards mention attraction, harmony, fights and the Greek myth of each sign; new check in `tests/cases/seo.php` (seo_check: 0 FAIL). The suite is 276 tests.
+
+**Changed**
+- Self sign and planet cards no longer show the degree and minute of the position.
+- "Your connection in three cards" (tarot) now comes right after the first line of Soul Affinity.
+- Biorhythm synchrony: no overall percentage, verdict or the word "affinity"; one card per cycle with its bar and the next shared high/low.
+- "What you have in common": the summary bar, percentage and verdict are gone; the three cards and their comments stay.
+- Synastry lists the seven closest aspects (was twelve), without the Orb column and its explanation.
+
+**Removed**
+- The "Distance and geography" card on Self and Soul Affinity (its template partial is deleted); distances are still recorded in the audit only.
+
+**Added (SEO, earlier)**
 - Search and share metadata: title, description, keywords, robots, canonical, Open Graph and Twitter tags, and structured data (WebSite, WebApplication, WebPage, FAQPage) from `src/Seo.php` through `templates/partials/head-seo.php`.
 - Only the bare home page is indexable; modes, results, shared links and Friends are `noindex`; `consent.php`, `hidden.php` and `api/` are disallowed.
 - `/sitemap.xml` and `/robots.txt` generated per request (`public/sitemap.php`, `public/robots.php`, rewrites in `public/.htaccess`); no address is stored.

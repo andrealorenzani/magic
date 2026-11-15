@@ -41,7 +41,9 @@ final class Help
         'bio.emotional' => ['title' => 'Emotional cycle', 'text' => 'A rhythm of 28 days that follows mood and sensitivity. High days feel warm and open, low days feel more fragile.'],
         'bio.intellectual' => ['title' => 'Intellectual cycle', 'text' => 'A rhythm of 33 days that follows focus and clear thinking. It is a popular theory, not something science has confirmed.'],
 
-        'love.name_affinity' => ['title' => 'Name affinity', 'text' => 'A playful score of how the two names go together. It is just for fun and says nothing about the people.'],
+        'love.name_affinity' => ['title' => 'Attraction', 'text' => 'A playful score of how much your two names pull you towards each other. It is just for fun and says nothing about the people.'],
+        'love.harmony' => ['title' => 'Harmony', 'text' => 'How peaceful the two of you are likely to be together: how well you balance each other day by day. For entertainment.'],
+        'love.fights' => ['title' => 'Fights', 'text' => 'A playful score of how much your two names spark arguments. A high value is a wink, not a warning.'],
         'love.sync' => ['title' => 'Biorhythm synchrony', 'text' => 'Shows whether your three cycles rise and fall together or take turns. Being out of step is not a verdict on a relationship.'],
         'love.common' => ['title' => 'In common', 'text' => 'Compares your Sun, Moon and Ascendant signs with theirs and shows what you share, from the same sign to a complementary one.'],
         'love.common_level' => ['title' => 'Level of match', 'text' => 'How close the two signs are: the same sign, the same element or style, or opposites that complete each other.'],
@@ -62,6 +64,9 @@ final class Help
     /** @return ?array{title:string, text:string} */
     public static function get(string $key): ?array
     {
+        if (str_starts_with($key, 'myth.')) {
+            return Myths::get(substr($key, 5));
+        }
         return self::TEXT[$key] ?? null;
     }
 

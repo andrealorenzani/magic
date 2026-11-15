@@ -11,6 +11,7 @@ require_once __DIR__ . '/partials/bio.php';
 
 $names = $view['names'];
 $aff = $view['affinity'];
+$fights = $view['fights'];
 $bio = $view['bio'];
 $common = $view['common'];
 $bodyName = ['sun' => 'Sun', 'moon' => 'Moon', 'ascendant' => 'Ascendant'];
@@ -28,26 +29,62 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 </div>
 
 <section class="block heart-card" aria-labelledby="name-h">
-  <h2 id="name-h"><?= icon('heart') ?> <?php help_term('love.name_affinity', $names['a'] . ' & ' . $names['b']); ?></h2>
-  <?php if ($aff['noLetters']): ?>
-    <p>There is nothing to compare in these names, so no name reading is shown.</p>
-  <?php else: ?>
-    <p class="heart__percent"><span aria-hidden="true">♥</span> <?= e($aff['percent']) ?>%</p>
-    <p><meter min="0" max="100" value="<?= e($aff['percent']) ?>"><?= e($aff['percent']) ?>%</meter></p>
-    <p>How your two names harmonise.</p>
-  <?php endif; ?>
+  <h2 id="name-h"><?= icon('heart') ?> <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
+  <div class="trio3">
+    <div class="trio3__item trio3__main">
+      <h3><?php help_term('love.name_affinity', 'How much you are attracted'); ?></h3>
+      <?php if ($aff['noLetters']): ?>
+        <p class="hint">Nothing to compare in these names.</p>
+      <?php else: ?>
+        <?php bar($aff['percent'], $aff['percent'] . '%', 'How much you are attracted', 0, 100, 'bar--wide'); ?>
+      <?php endif; ?>
+    </div>
+    <div class="trio3__item">
+      <h3><?php help_term('love.harmony', 'Harmony'); ?></h3>
+      <?php bar($view['harmony'], $view['harmony'] . '%', 'Harmony', 0, 100, 'bar--wide'); ?>
+    </div>
+    <div class="trio3__item">
+      <h3><?php help_term('love.fights', 'Fights'); ?></h3>
+      <?php if ($fights['noLetters']): ?>
+        <p class="hint">Nothing to compare in these names.</p>
+      <?php else: ?>
+        <?php bar($fights['percent'], $fights['percent'] . '%', 'Fights', 0, 100, 'bar--wide'); ?>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
+
+<section class="block" aria-labelledby="tarot-h">
+  <h2 id="tarot-h"><?= icon('bulb') ?> Your connection in three cards</h2>
+  <div class="tarot">
+    <?php foreach ($view['tarot'] as $t): $c = $t['card']; $pp = TarotSpread::POSITIONS[$t['position']]; ?>
+      <article class="tarot__card tarot__card--<?= e($t['position']) ?>">
+        <h3 class="card__role"><?php help_term('love.tarot.' . $t['position'], $pp['title']); ?></h3>
+        <p class="hint"><?= e($pp['question']) ?></p>
+        <div class="tarot__face">
+          <div class="tarot__art<?= $c['suit'] !== null ? ' tarot__art--' . e($c['suit']) : '' ?><?= $t['reversed'] ? ' tarot__art--reversed' : '' ?>" aria-hidden="true">
+            <span class="tarot__num"><?= e($c['mark']) ?></span>
+            <span class="tarot__name"><?= e($c['name']) ?></span>
+          </div>
+        </div>
+        <p class="card__sign"><?= e($c['name']) ?></p>
+        <p class="card__pos"><?php if ($t['reversed']) { help_term('love.tarot_reversed', 'Reversed'); } else { echo 'Upright'; } ?></p>
+        <p class="card__essence"><?= e($t['reversed'] ? $c['reversed'] : $c['upright']) ?></p>
+        <p class="card__text"><?= e($t['text']) ?></p>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <p class="note"><?= $view['tarotShared'] ? 'These cards come from the link you opened. ' : 'The cards depend on your names, birth dates and the day: the same reading appears on every reload. ' ?>For entertainment.</p>
 </section>
 
 <?php if ($bio): ?>
 <section class="block" aria-labelledby="sync-h">
   <h2 id="sync-h"><?= icon('bolt') ?> <?php help_term('love.sync', 'Biorhythm synchrony'); ?></h2>
-  <p><strong><?= e(round($bio['overall'])) ?>%</strong> overall. <?= e(Traits::VERDICTS[$bio['band']]) ?></p>
   <div class="sync-grid">
     <?php foreach ($bio['cycles'] as $name => $c): ?>
       <article class="sync-card">
         <h3><?php help_term('bio.' . $name, ucfirst($name)); ?> <small>(<?= e($c['period']) ?> days)</small></h3>
-        <p class="sync-card__pct"><meter min="0" max="100" value="<?= e(round($c['sync'])) ?>"><?= e(round($c['sync'])) ?>%</meter>
-          <strong><?= e(round($c['sync'])) ?>%</strong> affinity</p>
+        <p class="sync-card__pct"><?php bar(round($c['sync']), round($c['sync']) . '%', ucfirst($name), 0, 100, 'bar--wide'); ?></p>
         <dl class="sync-card__dates">
           <dt>Next shared high</dt><dd><?= $c['nextBothHigh'] ? e($c['nextBothHigh']['date']) : 'not in the next 4 months' ?></dd>
           <dt>Next shared low</dt><dd><?= $c['nextBothLow'] ? e($c['nextBothLow']['date']) : 'not in the next 4 months' ?></dd>
@@ -99,10 +136,6 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
       <p class="card__text">Add <?= e($names['b']) ?>'s birth date to see what you share.</p>
     </article>
   <?php else: ?>
-    <?php if ($common['score'] !== null): ?>
-      <p class="common__summary"><meter min="0" max="100" value="<?= e($common['score']) ?>"><?= e($common['score']) ?>%</meter>
-        <strong><?= e($common['score']) ?>%</strong> <?= e(Traits::COMMON_VERDICTS[Traits::commonBand($common['score'])]) ?></p>
-    <?php endif; ?>
     <?php
     $compared = array_column($common['items'], 'body');
     ?>
@@ -147,29 +180,5 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 
 <?php $sky = $view['sky']; $skyMode = 'love'; $skyNames = $names; include __DIR__ . '/partials/sky.php'; ?>
 
-<?php $geo = $view['geo'] ?? null; include __DIR__ . '/partials/geo.php'; ?>
-
-<section class="block" aria-labelledby="tarot-h">
-  <h2 id="tarot-h"><?= icon('bulb') ?> Your connection in three cards</h2>
-  <div class="tarot">
-    <?php foreach ($view['tarot'] as $t): $c = $t['card']; $pp = TarotSpread::POSITIONS[$t['position']]; ?>
-      <article class="tarot__card tarot__card--<?= e($t['position']) ?>">
-        <h3 class="card__role"><?php help_term('love.tarot.' . $t['position'], $pp['title']); ?></h3>
-        <p class="hint"><?= e($pp['question']) ?></p>
-        <div class="tarot__face">
-          <div class="tarot__art<?= $c['suit'] !== null ? ' tarot__art--' . e($c['suit']) : '' ?><?= $t['reversed'] ? ' tarot__art--reversed' : '' ?>" aria-hidden="true">
-            <span class="tarot__num"><?= e($c['mark']) ?></span>
-            <span class="tarot__name"><?= e($c['name']) ?></span>
-          </div>
-        </div>
-        <p class="card__sign"><?= e($c['name']) ?></p>
-        <p class="card__pos"><?php if ($t['reversed']) { help_term('love.tarot_reversed', 'Reversed'); } else { echo 'Upright'; } ?></p>
-        <p class="card__essence"><?= e($t['reversed'] ? $c['reversed'] : $c['upright']) ?></p>
-        <p class="card__text"><?= e($t['text']) ?></p>
-      </article>
-    <?php endforeach; ?>
-  </div>
-  <p class="note"><?= $view['tarotShared'] ? 'These cards come from the link you opened. ' : 'The cards depend on your names, birth dates and the day: the same reading appears on every reload. ' ?>For entertainment.</p>
-</section>
 
 <?php if ($share !== null) { include __DIR__ . '/partials/share.php'; } ?>

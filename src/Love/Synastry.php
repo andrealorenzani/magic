@@ -12,7 +12,7 @@ final class Synastry
     public const ORDER = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'ascendant', 'midheaven'];
     /** An aspect is kept when at least one of its two bodies is one of these. */
     public const PERSONAL = ['sun', 'moon', 'venus', 'mars', 'ascendant'];
-    public const MAX_ROWS = 12;
+    public const MAX_ROWS = 7;
 
     /**
      * @param array<string,float> $lonsA Chart::longitudes() of the first person

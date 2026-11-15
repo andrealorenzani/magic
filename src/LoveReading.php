@@ -7,6 +7,7 @@ use Magic\Bio\Biorhythm;
 use Magic\Bio\Synchrony;
 use Magic\Earth\Geography;
 use Magic\Love\Common;
+use Magic\Love\Harmony;
 use Magic\Love\NameAffinity;
 use Magic\Love\Synastry;
 use Magic\Sky\Today;
@@ -40,14 +41,19 @@ final class LoveReading
         }
         $common = ($chartA !== null && $chartB !== null) ? Common::between($chartA, $chartB) : null;
         $seed = strtolower(trim($a['name'])) . '|' . strtolower(trim($b['name'])) . '|' . self::ymd($a['date']) . '|' . self::ymd($b['date']);
+        $tarot = $tarotSlots !== null ? Reading::fromSlots($tarotSlots) : Reading::spread($seed, $today);
         return [
             'names' => ['a' => $a['name'], 'b' => $shownB],
             'hidden' => $hidden,
             'affinity' => $anonymous ? NameAffinity::fromCounts([]) : NameAffinity::compute($a['name'], $b['name']),
+            'fights' => $anonymous
+                ? NameAffinity::fromCounts([], NameAffinity::FIGHT_LETTERS)
+                : NameAffinity::compute($a['name'], $b['name'], NameAffinity::FIGHT_LETTERS),
+            'harmony' => Harmony::compute($bio, $chartA, $chartB, $tarot),
             'charts' => ['a' => $chartA, 'b' => $chartB],
             'common' => $common,
             'bio' => $bio,
-            'tarot' => $tarotSlots !== null ? Reading::fromSlots($tarotSlots) : Reading::spread($seed, $today),
+            'tarot' => $tarot,
             'tarotShared' => $tarotSlots !== null,
             'today' => $today,
             'dayBasis' => $dayBasis,

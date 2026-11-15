@@ -62,7 +62,7 @@ check('flow: no Menu; chooser has three cards in order, Soul Affinity and Friend
         same(substr_count($out, 'class="chooser__card is-locked"') + substr_count($out, 'class="chooser__card is-active is-locked"'), 2);
         same(substr_count($out, 'aria-disabled="true" data-needs-self'), 2);
         same(substr_count($out, 'Self Discovery fields are required to unlock this section.') >= 2, true);
-        same(str_contains($out, 'Name affinity, biorhythm synchrony, common signs and a tarot spread.') && str_contains($out, 'Hidden codes your friends shared with you.'), true);
+        same(str_contains($out, 'Attraction, harmony and fights, a tarot spread, biorhythms and common signs.') && str_contains($out, 'Hidden codes your friends shared with you.'), true);
         same(preg_match('/<span data-unlock-text hidden>/', $out), 1);
         same(preg_match('/href="\?mode=self"[^>]* aria-disabled="true" data-needs-self/', $out), 1);
     }

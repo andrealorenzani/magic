@@ -117,3 +117,36 @@ check('common values: partial data and score', function () use ($chartOf) {
     $r = Common::between(['sun' => null, 'moon' => null, 'ascendant' => null], $chartOf(0, 0));
     same([$r['items'], $r['score']], [[], null]);
 });
+
+// ---- Fights, Harmony, sign stories ----
+check('fights: Andrea Lorenzani + Silvia Pellico = 60 (hand-computed), order and accents do not matter', function () {
+    $r = NameAffinity::compute('Andrea Lorenzani', 'Silvia Pellico', NameAffinity::FIGHT_LETTERS);
+    same($r['counts'], ['H' => 0, 'A' => 4, 'T' => 0, 'R' => 2, 'E' => 3, 'D' => 1]);
+    same($r['chain'], [40231, 4254, 679, 146, 60]);
+    same($r['percent'], 60);
+    same(NameAffinity::compute('Silvia Pellico', 'ANDRÉA lorenzani', NameAffinity::FIGHT_LETTERS)['percent'], 60);
+    same(NameAffinity::fromCounts([], NameAffinity::FIGHT_LETTERS)['noLetters'], true);
+    same(NameAffinity::compute('Andrea Lorenzani', 'Silvia Pellico')['percent'], 48); // the attraction value is unchanged
+});
+check('harmony: 1-99, deterministic, present without birth dates, and the same for a shared spread', function () {
+    $p = static fn (string $name, ?array $date): array => ['name' => $name, 'date' => $date, 'time' => null, 'place' => null];
+    $a = $p('Ann', ['year' => 1990, 'month' => 7, 'day' => 15]);
+    $b = $p('Bob', ['year' => 1988, 'month' => 2, 'day' => 3]);
+    $v = Magic\LoveReading::build($a, $b, '2026-10-09');
+    same(is_int($v['harmony']) && $v['harmony'] >= 1 && $v['harmony'] <= 99, true);
+    same(Magic\LoveReading::build($a, $b, '2026-10-09')['harmony'], $v['harmony']);
+    $slots = array_map(static fn (array $t): array => ['number' => $t['card']['number'], 'reversed' => $t['reversed']], $v['tarot']);
+    same(Magic\LoveReading::build($a, $b, '2026-10-09', $slots)['harmony'], $v['harmony']);
+    $n = Magic\LoveReading::build($a, $p('Bob', null), '2026-10-09')['harmony'];
+    same(is_int($n) && $n >= 1 && $n <= 99, true);
+});
+check('sign stories: one for each sign, short, and reachable as a help popup', function () {
+    foreach (Zodiac::SIGNS as $s) {
+        $h = Magic\Content\Help::get('myth.' . $s['id']);
+        same([$s['id'], $h !== null && $h['title'] === $s['name']], [$s['id'], true]);
+        $len = mb_strlen($h['text'], 'UTF-8');
+        same([$s['id'], $len >= 40 && $len <= 240], [$s['id'], true]);
+    }
+    same(count(Magic\Content\Myths::TEXT), 12);
+    same(Magic\Content\Help::get('myth.nowhere'), null);
+});

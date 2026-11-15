@@ -335,7 +335,7 @@ check('self page: Midheaven, houses, wheel, born under, today\'s sky; no inline 
     same(str_contains($out, 'Midheaven in Taurus'), true);
     same(str_contains($out, 'House 12 - Inner life'), true);
     same(str_contains($out, 'data-help="self.born_under"') && str_contains($out, '</span> a <strong>'), true);
-    same(str_contains($out, 'Full Moon</strong>, 100% lit'), true);
+    same(str_contains($out, 'Full Moon</strong></p>') && str_contains($out, '<span class="bar__tip" aria-hidden="true">100% lit</span>'), true);
     same(str_contains($out, 'The Moon is in'), true);
     same(preg_match('/\sstyle=|<script(?![^>]*\ssrc=)/i', $out), 0);
     same(str_contains($out, '<th scope="col">House</th>'), true);
@@ -349,7 +349,8 @@ check('love page: synastry table after "in common", today\'s sky after it, minor
     same($c !== false && $c < $s && $s < $k, true);
     same(str_contains($out, '<caption class="sr-only">'), true);
     same(str_contains($out, '<th scope="col">Aspect</th>'), true);
-    same(substr_count($out, '<th scope="row">'), 12);
+    same(substr_count($out, '<th scope="row">'), 7);
+    same(str_contains($out, '<th scope="col">Orb</th>') || str_contains($out, 'Orb is how far'), false);
     same(str_contains(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($out))), "Ann's Mars square Silvia's Saturn"), true);
     same(str_contains($out, 'tarot__art tarot__art--wands'), true);
     same(str_contains($out, 'tarot__art tarot__art--pentacles'), true);

@@ -16,13 +16,13 @@ $title = $titles[$mode] ?? 'Sun, Ascendant & Moon';
 $unlocked = ($mode === 'self' && $view !== null) || ($mode === 'love' && $aKnown);
 $selfHref = '?mode=self' . ($hiddenCode !== null ? '&h=' . rawurlencode($hiddenCode) . ($nick !== null ? '&nick=' . rawurlencode($nick) : '') : '');
 $cards = [
-    ['mode' => 'love', 'name' => 'Soul Affinity', 'glyph' => '♀', 'icon' => 'heart', 'text' => 'Name affinity, biorhythm synchrony, common signs and a tarot spread.', 'href' => ($unlocked && $loveLink !== null) ? $loveLink : '?mode=love'],
+    ['mode' => 'love', 'name' => 'Soul Affinity', 'glyph' => '♀', 'icon' => 'heart', 'text' => 'Attraction, harmony and fights, a tarot spread, biorhythms and common signs.', 'href' => ($unlocked && $loveLink !== null) ? $loveLink : '?mode=love'],
     ['mode' => 'friends', 'name' => 'Friends hidden codes', 'glyph' => '✦', 'icon' => 'bulb', 'text' => 'Hidden codes your friends shared with you.', 'href' => '?mode=friends'],
 ];
 $faq = ($mode === null && $seo['index']) ? [
     ['What do I need to get my Sun, Moon and Ascendant signs?', 'Your birth date, your birth time (hours and minutes) and your birth city. The Sun and Moon signs also come out with an approximate time, but the Ascendant, the houses and the Midheaven need the time and place to be as exact as you can make them.'],
-    ['What is Self Discovery?', 'Self Discovery is the first step: from your birth details you get your Sun, Moon and Ascendant, the other planets, the Midheaven, the houses and a chart wheel, the signs closest to you, the moon phase, Today\'s sky and your three biorhythms, with a printable page.'],
-    ['What is Soul Affinity?', 'Soul Affinity compares you with another person: name affinity, biorhythm synchrony, the signs you have in common and a Past, Present and Future tarot spread. It unlocks once your Self Discovery details are known.'],
+    ['What is Self Discovery?', 'Self Discovery is the first step: from your birth details you get your Sun, Moon and Ascendant, the other planets, the Midheaven, the houses and a chart wheel, the Greek myth behind each of your signs, the signs closest to you, the moon phase, Today\'s sky and your three biorhythms, with a printable page.'],
+    ['What is Soul Affinity?', 'Soul Affinity compares you with another person: how much you are attracted, your harmony and your fights, a Past, Present and Future tarot spread, biorhythm synchrony, the signs you have in common and the closest links between your two skies. It unlocks once your Self Discovery details are known.'],
     ['What are Friends hidden codes?', 'A hidden code lets a friend share their birth details with you without showing them. You can keep the codes in your Friends list and compare yourself with a friend in one click.'],
     ['Is this astrology advice?', 'No. Astrology, biorhythms, name affinity and tarot on this page are for wonder and entertainment, not advice. Planet positions are approximate.'],
     ['Do I have to accept the Terms and Conditions?', 'Yes. The page asks you to accept the Terms and Conditions on your first visit, and you can read them again or withdraw your acceptance at any time at the end of the page.'],
@@ -141,7 +141,7 @@ $faq = ($mode === null && $seo['index']) ? [
       <h2>Three steps, one path</h2>
       <ul>
         <li><strong><a href="?mode=self">Self Discovery</a></strong>: your birth chart, the zodiac signs closest to you, the moon phase, Today's sky and your three biorhythms.</li>
-        <li><strong><a href="?mode=love">Soul Affinity</a></strong>: love compatibility with someone else, with name affinity, biorhythm synchrony, the signs you share and a Past, Present and Future tarot spread. Results can be shared with a short link and a QR code.</li>
+        <li><strong><a href="?mode=love">Soul Affinity</a></strong>: love compatibility with someone else: how much you are attracted, your harmony and your fights, a Past, Present and Future tarot spread, biorhythm synchrony and the signs you share. Results can be shared with a short link and a QR code.</li>
         <li><strong>Friends hidden codes</strong>: keep the codes your friends share with you and compare yourself with them without ever seeing their details.</li>
       </ul>
       <h2>Frequently asked questions</h2>
@@ -158,7 +158,7 @@ $faq = ($mode === null && $seo['index']) ? [
       <?php if ($mode === 'self'): ?>
       <p>Enter your birth date, birth time and birth city to see your Sun, Moon and Ascendant signs, your planets, houses and chart wheel, the moon phase, Today's sky and your three biorhythms. You can print the result and keep your details in this browser for next time.</p>
       <?php else: ?>
-      <p>Compare yourself with someone you love. You get name affinity, biorhythm synchrony, the signs you have in common and a Past, Present and Future tarot spread, plus a short link and a QR code to share the result with them.</p>
+      <p>Compare yourself with someone you love. You get how much you are attracted, your harmony and your fights, a Past, Present and Future tarot spread, biorhythm synchrony and the signs you have in common, plus a short link and a QR code to share the result with them.</p>
       <?php endif; ?>
       <p><a href="./">Back to the Sun, Moon and Ascendant calculator</a></p>
     </section>

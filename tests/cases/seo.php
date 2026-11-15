@@ -44,3 +44,10 @@ check('seo: sitemap and robots point at the request origin and keep form endpoin
     same(str_contains($robots, "Sitemap: https://x.test/m/sitemap.xml\n"), true);
     same(str_contains($robots, 'Disallow: /m/consent.php'), true);
 });
+
+check('seo: Soul Affinity texts name attraction, harmony and fights', function () {
+    same(str_contains(Seo::forRequest('love', false, '', null, null)['description'], 'attraction, harmony and fights'), true);
+    $home = (string) file_get_contents(dirname(__DIR__, 2) . '/templates/home.php');
+    same(substr_count($home, 'your harmony and your fights') >= 3, true);
+    same(str_contains($home, 'Greek myth behind each of your signs'), true);
+});

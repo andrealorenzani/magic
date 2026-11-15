@@ -112,7 +112,7 @@ check('help: every key used in a template exists; every key exists on a rendered
         preg_match_all("/help_term\('([a-z_.]+)'(\s*\.)?/", (string) file_get_contents($f), $m, PREG_SET_ORDER);
         foreach ($m as $x) {
             if (isset($x[2])) {
-                same(isset(Help::DYNAMIC[rtrim($x[1], '.')]) || count(array_filter(Help::keys(), fn ($k) => str_starts_with($k, $x[1]))) > 0, true);
+                same($x[1] === 'myth.' || isset(Help::DYNAMIC[rtrim($x[1], '.')]) || count(array_filter(Help::keys(), fn ($k) => str_starts_with($k, $x[1]))) > 0, true);
             } else {
                 same(isset(Help::TEXT[$x[1]]), true);
             }
@@ -122,7 +122,7 @@ check('help: every key used in a template exists; every key exists on a rendered
     foreach ($uiHtml as $html) {
         preg_match_all('/data-help="([^"]+)"/', $html, $m);
         foreach ($m[1] as $k) {
-            same(isset(Help::TEXT[$k]), true);
+            same([$k, Help::get($k) !== null], [$k, true]);
             $seen[$k] = true;
         }
         preg_match_all('/<(?:span|button|div|p|h2|input)[^>]* id="([^"]+)"/', $html, $ids);
@@ -153,7 +153,7 @@ check('help: texts are 20-240 characters, unique, plain words only; unknown key 
         }
     }
     same(count(array_unique($texts)), count($texts));
-    same(count(Help::TEXT), 33);
+    same(count(Help::TEXT), 35);
     if (!function_exists('e')) {
         require_once dirname(__DIR__, 2) . '/src/bootstrap.php';
     }
@@ -259,11 +259,11 @@ check('wheel: drawn glyphs keep the larger minimum separation', function () {
 // ---- ADR 0008: quiet buttons, help terms, Friends, WhatsApp ----
 $uiRemovedHelp = ['field.name', 'field.date', 'field.time', 'field.import', 'self.hidden_code', 'self.clear', 'self.save', 'self.reveal', 'friends.list', 'friends.search',
     'share.link', 'share.qr', 'share.live', 'self.midheaven', 'self.houses', 'self.retrograde', 'self.geo', 'love.sync_overall', 'love.import', 'love.match_hidden'];
-check('help: the 20 removed keys are gone, 33 remain, none left in templates', function () use ($uiRoot, $uiRemovedHelp) {
+check('help: the 20 removed keys are gone, 35 remain, none left in templates', function () use ($uiRoot, $uiRemovedHelp) {
     foreach ($uiRemovedHelp as $k) {
         same([$k, isset(Help::TEXT[$k])], [$k, false]);
     }
-    same(count(Help::TEXT), 33);
+    same(count(Help::TEXT), 35);
     $files = array_merge(glob($uiRoot . '/templates/*.php'), glob($uiRoot . '/templates/partials/*.php'));
     foreach ($files as $f) {
         $src = (string) file_get_contents($f);

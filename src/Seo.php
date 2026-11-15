@@ -24,8 +24,8 @@ final class Seo
         ],
         'love' => [
             'title' => 'Soul Affinity: Love Compatibility & Tarot · Magic',
-            'description' => 'Compare two souls: name affinity, biorhythm synchrony, signs in common and a Past, Present and Future tarot spread for you and someone you love.',
-            'keywords' => 'love compatibility, zodiac compatibility, synastry, name affinity, biorhythm compatibility, tarot spread',
+            'description' => 'Compare two souls: attraction, harmony and fights, a Past, Present and Future tarot spread, biorhythm synchrony and the signs you have in common.',
+            'keywords' => 'love compatibility, zodiac compatibility, synastry, name affinity, attraction, harmony, biorhythm compatibility, tarot spread',
         ],
     ];
 

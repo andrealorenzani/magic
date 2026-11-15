@@ -156,7 +156,7 @@ check('hidden page: nothing about the shared person is rendered; match results, 
 });
 check('hidden page: anonymous match shows "nothing to compare"; errors never mention the shared person; invalid code is ignored with a note', function () use ($sharePage, $hiLove, $hiGolden) {
     [$out] = $sharePage($hiLove + ['h' => $hiGolden['anonymous'], 'noaudit' => '']);
-    same(str_contains($out, 'There is nothing to compare in these names'), true);
+    same(str_contains($out, 'Nothing to compare in these names.'), true);
     same(str_contains($out, 'Your match'), true);
     [$out] = $sharePage(['mode' => 'love', 'a_name' => 'Ann', 'a_date' => 'nope', 'h' => $hiGolden['named']]);
     same(str_contains($out, 'note--error'), true);
