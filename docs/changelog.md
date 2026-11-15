@@ -4,6 +4,9 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
+**Changed**
+- The page has a new public address, shown in the README badge and first note.
+
 ## v1.2.0 - 2026-11-15 - Cleaner hidden-friend result, Best and Hardest aspects
 
 No ADR (owner request, no new architectural decision). Not a release: no release artifacts.

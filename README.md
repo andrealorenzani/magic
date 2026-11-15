@@ -1,6 +1,6 @@
-![version](docs/badges/version.svg) ![lines of code](docs/badges/loc.svg) [![deployed](docs/badges/deployed.svg)](https://magic.supermaestro.org)
+![version](docs/badges/version.svg) ![lines of code](docs/badges/loc.svg) [![deployed](docs/badges/deployed.svg)](https://zodiac.supermaestro.org)
 
-This project can be used on [magic.supermaestro.org](https://magic.supermaestro.org)
+This project can be used on [zodiac.supermaestro.org](https://zodiac.supermaestro.org)
 
 # Magic
 

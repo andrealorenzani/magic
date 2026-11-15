@@ -6,7 +6,7 @@ declare(strict_types=1);
 
 $docRoot = dirname(__DIR__, 2);
 $docRead = fn (string $f): string => is_file("$docRoot/$f") ? (string) file_get_contents("$docRoot/$f") : '';
-$docSite = 'magic.' . 'super' . 'maestro' . '.org';
+$docSite = 'zodiac.' . 'super' . 'maestro' . '.org';
 $docReadme = $docRead('README.md');
 $docReady = str_starts_with(ltrim($docReadme), '![') || str_starts_with(ltrim($docReadme), '[![');
 $docTracked = function () use ($docRoot): array {
