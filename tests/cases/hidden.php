@@ -324,7 +324,7 @@ check('self actions and import: no menu, panels hidden until the script runs, im
     $mem = strpos($out, 'data-memory-bar');
     same($loved !== false && $imp > $loved && $imp < $mem, true);
     same(str_contains($out, 'data-import-scan hidden') && str_contains($out, 'Pasting always works.') && str_contains($out, 'name="import"') && str_contains($out, 'name="nick"'), true);
-    same(str_contains($out, 'src="assets/import.js"'), true);
+    same(str_contains($out, 'src="assets/import.js?v='), true);
 });
 check('terms: hidden links hold the sender details, are not secret, and opening one is recorded', function () use ($hiRoot) {
     $t = html_entity_decode((string) file_get_contents($hiRoot . '/templates/partials/terms.php'));

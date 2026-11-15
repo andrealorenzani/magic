@@ -38,7 +38,7 @@ check('memory markup: forms, bars and select start hidden; no inline script or h
         same(preg_match('/<form id="(?:birth|love)-form"[^>]* data-memory="(?:self|love)"/', $out), 1);
         same(str_contains($out, 'data-memory-forget>'), false);
         same(str_contains($out, 'Forget my data'), false);
-        same(str_contains($out, 'src="assets/memory.js" defer'), true);
+        same(str_contains($out, 'src="assets/memory.js?v='), true);
         same(preg_match('/<script(?![^>]*\bsrc=)|\son[a-z]+=|\sstyle=/i', $out), 0);
         same(str_contains($out, 'Your details are remembered in this browser only.'), true);
     }
@@ -55,7 +55,7 @@ check('memory markup: forms, bars and select start hidden; no inline script or h
 });
 check('memory markup: the page after withdrawing clears the stored details; normal pages do not', function () use ($sharePage) {
     [$out] = $sharePage(['withdrawn' => '1'], [], false);
-    same(str_contains($out, 'data-forget-memory') && str_contains($out, 'src="assets/memory.js"'), true);
+    same(str_contains($out, 'data-forget-memory') && str_contains($out, 'src="assets/memory.js?v='), true);
     [$out] = $sharePage(['withdrawn' => '1']);
     same(str_contains($out, 'data-forget-memory'), false);
     [$out] = $sharePage([], [], false);

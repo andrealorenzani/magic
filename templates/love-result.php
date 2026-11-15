@@ -17,12 +17,8 @@ $common = $view['common'];
 $bodyName = ['sun' => 'Sun', 'moon' => 'Moon', 'ascendant' => 'Ascendant'];
 $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $p['degree'] . '°';
 ?>
-<div class="print-only print-head">
-  <h2>Magic · <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
-  <p>Reading of <?= e($today) ?></p>
-</div>
 <?php if (!empty($view['dayZone'])): ?>
-<p class="note">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
+<p class="note no-print">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
 <?php endif; ?>
 <div class="toolbar no-print">
   <button type="button" class="print-btn" data-print hidden><?= icon('printer') ?> Print</button>

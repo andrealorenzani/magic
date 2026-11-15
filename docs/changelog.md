@@ -4,7 +4,20 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
-2026-11-15 (Self myths, Attraction / Harmony / Fights, value bubbles): no ADR (owner request, no new architectural decision).
+## v1.1.0 - 2026-11-15 - Sign myths, Attraction / Harmony / Fights, one-page print
+
+No ADR (owner request, no new architectural decision). A minor release: the `/release` skill covers majors; the artifacts are built the same way into `release/1.1.0/` (zip plus a copy of the changelog, from tracked files only, never deployed).
+
+**Changed (this step)**
+- Soul Affinity first line: the three values (attraction, Harmony, Fights) always sit side by side, also on phones (they used to stack on narrow screens).
+- Print: no "Magic · ..." / "Reading of ..." header on Self or Soul Affinity results, and the "Today for you" time-zone note is not printed.
+- Print: a Soul Affinity reading fits on a single A4 page. The three values stay as the opening box; the rest is compacted (tarot without the card art, smaller text, the biorhythm curve details and the share section are not printed). The results section carries the class `results--love` for this.
+
+**Fixed (this step)**
+- The stylesheet and the six scripts are linked with a version tag (`asset_version()` in `src/bootstrap.php`), so browsers fetch a changed file at once instead of keeping an old copy; the value bubbles and the side-by-side values of this release did not show where the old stylesheet was still cached.
+- New check in `tests/cases/share.php` (version tags, no print header, the one-page print class); the suite is 277 tests.
+
+**Earlier in 1.1.0** (Self myths, Attraction / Harmony / Fights, value bubbles)
 
 **Added**
 - Self Discovery: each Sun, Ascendant, Moon, planet and North Node card has a "History" link that opens the Greek myth of its sign in a sentence or two (`src/Content/Myths.php`, help keys `myth.<sign id>`).

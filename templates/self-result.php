@@ -32,12 +32,8 @@ $entry = static function (array $s, string $key, string $heading): void { ?>
 <?php };
 ?>
 <?php $who = (string) ($view['name'] ?? ''); ?>
-<div class="print-only print-head">
-  <h2>Magic · Self discovery<?= $who !== '' ? ' for ' . e($who) : '' ?></h2>
-  <p>Reading of <?= e($today) ?></p>
-</div>
 <?php if (!empty($view['dayZone'])): ?>
-<p class="note">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
+<p class="note no-print">Today for you: <?= e($today) ?> (time zone <?= e($view['dayZone']) ?>)</p>
 <?php endif; ?>
 <?php if ($who !== ''): ?><h2 class="result-title no-print">Self discovery for <?= e($who) ?></h2><?php endif; ?>
 <div class="toolbar no-print">

@@ -33,7 +33,7 @@ $faq = ($mode === null && $seo['index']) ? [
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 <?php include __DIR__ . '/partials/head-seo.php'; ?>
-  <link rel="stylesheet" href="assets/styles.css">
+  <link rel="stylesheet" href="assets/styles.css?v=<?= e(asset_version('styles.css')) ?>">
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
@@ -164,7 +164,7 @@ $faq = ($mode === null && $seo['index']) ? [
     </section>
     <?php endif; ?>
 
-    <section id="results" class="results">
+    <section id="results" class="results<?= $view && $mode === 'love' ? ' results--love' : '' ?>">
       <?php foreach ($errors as $err): ?>
         <p class="note note--error" aria-live="polite"><?= e($err) ?></p>
       <?php endforeach; ?>
@@ -190,11 +190,11 @@ $faq = ($mode === null && $seo['index']) ? [
   </section>
   <?php include __DIR__ . '/partials/confirm.php'; ?>
   </div>
-  <script src="assets/autocomplete.js" defer></script>
-  <script src="assets/memory.js" defer></script>
-  <script src="assets/print.js" defer></script>
-  <script src="assets/share.js" defer></script>
-  <script src="assets/help.js" defer></script>
-  <script src="assets/import.js" defer></script>
+  <script src="assets/autocomplete.js?v=<?= e(asset_version('autocomplete.js')) ?>" defer></script>
+  <script src="assets/memory.js?v=<?= e(asset_version('memory.js')) ?>" defer></script>
+  <script src="assets/print.js?v=<?= e(asset_version('print.js')) ?>" defer></script>
+  <script src="assets/share.js?v=<?= e(asset_version('share.js')) ?>" defer></script>
+  <script src="assets/help.js?v=<?= e(asset_version('help.js')) ?>" defer></script>
+  <script src="assets/import.js?v=<?= e(asset_version('import.js')) ?>" defer></script>
 </body>
 </html>

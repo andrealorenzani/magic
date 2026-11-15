@@ -20,7 +20,7 @@ Soul Affinity and Friends hidden codes are greyed with "Self Discovery fields ar
 
 Required fields are marked with `*`, with a "* required" note under each form. Some terms (for example the city suggestion, the planets, the biorhythm names, the tarot positions) are underlined with dots: click or press Enter on one to open a small popup beside it (a panel at the bottom on phones) that explains it in a sentence or two. Esc or a click elsewhere closes it. It needs JavaScript and the page is complete without it.
 
-Self Discovery and Soul Affinity have an optional **Current city** field (see "Where you are now"). Results can be printed (a print button and a print layout without forms).
+Self Discovery and Soul Affinity have an optional **Current city** field (see "Where you are now"). Results can be printed (a print button and a print layout without forms, without a page header and without the "Today for you" note). A Soul Affinity reading prints on a single A4 page: the three values open it and the rest is compacted (tarot without the card pictures, smaller text, no curve details and no share section).
 
 ## Results
 
@@ -49,7 +49,7 @@ Details worth knowing:
 - **Midheaven, houses and wheel**: the Midheaven is shown with the other signs; each planet card says which of the twelve houses it falls in, with a one-line theme. The wheel is a picture of the same data, with a table beside it. It is smaller and brighter than before and can be collapsed.
 - **Born under**: the Moon phase on your birth day, in plain words.
 - **Today's sky**: the Moon phase and illumination of the reading day, the Moon sign of the day, and a short reading related to your Sun sign (in Love, one sentence per person). The same day always gives the same text.
-- **Attraction, Harmony, Fights**: the first line of a Soul Affinity result. "How much you are attracted" is a playful score from the two names; "Harmony" is a percentage of how peaceful the two of you are likely to be together; "Fights" is a playful score, from the names, of how much you spark arguments.
+- **Attraction, Harmony, Fights**: the first line of a Soul Affinity result. "How much you are attracted" is a playful score from the two names; "Harmony" is a percentage of how peaceful the two of you are likely to be together; "Fights" is a playful score, from the names, of how much you spark arguments. The three values always sit side by side, also on phones.
 - **Biorhythm synchrony**: one card per cycle with its bar and the next day you are both high or both low. There is no overall score or verdict.
 - **What you have in common**: three cards (Sun, Moon, Ascendant) with their comments, without a summary score.
 - **Synastry**: a table of the seven closest links between the two charts (for example "Venus trine Mars"), each with a meaning sentence and a harmonious / tense / neutral count. If the loved person has only a date, the table is marked approximate; with no date a card invites you to add it.

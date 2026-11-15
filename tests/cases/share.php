@@ -434,7 +434,7 @@ check('love page: share section with link, QR and live link; fixed-day note; Sel
         same(str_contains($selfOut, $gone), false);
     }
     same(preg_match('/Link to a live reading[^<]*<a href="http:\/\/localhost:8081\/\?c=[A-Za-z0-9_-]+"/', $out) === 1, true);
-    same(str_contains($out, 'src="assets/share.js"') && str_contains($out, 'data-copy="share-link" hidden'), true);
+    same(str_contains($out, 'src="assets/share.js?v=') && str_contains($out, 'data-copy="share-link" hidden'), true);
     [$out] = $sharePage(array_diff_key($loveGet, ['on' => 1]), ['HTTP_HOST' => 'localhost:8081', 'REQUEST_URI' => '/']);
     same(str_contains($out, 'This reading is fixed to'), false);
     [$out] = $sharePage($loveGet, []); // no usable origin: relative link, no QR
@@ -563,4 +563,17 @@ check('self page: sign cards show a History story instead of the degree; no geog
     same(preg_match('/class="card__pos">\d+°/', $out), 0);
     same(str_contains($out, 'Distance and geography'), false);
     same(substr_count($out, 'class="bar__tip" aria-hidden="true"'), substr_count($out, '<meter '));
+});
+
+check('1.1.0: assets carry a version tag; print has no page header or date note; love results get the one-page print class', function () use ($sharePage, $loveGet) {
+    [$out] = $sharePage($loveGet + ['noaudit' => '']);
+    same(preg_match('#href="assets/styles\.css\?v=\d+"#', $out), 1);
+    same(preg_match_all('#<script src="assets/[a-z]+\.js\?v=\d+" defer></script>#', $out), 6);
+    same(str_contains($out, 'print-head') || str_contains($out, 'Reading of '), false);
+    same(str_contains($out, 'class="results results--love"'), true);
+    $css = (string) file_get_contents(dirname(__DIR__, 2) . '/public/assets/styles.css');
+    same(str_contains($css, '.trio3 { grid-template-columns: 1fr; }'), false); // the three values never stack
+    same(str_contains($css, '@page { size: A4;'), true);
+    require_once dirname(__DIR__, 2) . '/src/bootstrap.php';
+    same(asset_version('nope.css'), '0');
 });

@@ -17,7 +17,7 @@ public/                      ← web root (the server's "web directory")
   api/cities.php             JSON city autocomplete endpoint (?q=…) backed by Geocoder
   assets/favicon.svg         Site icon
   assets/og-image.png        1200x630 social preview image
-  assets/styles.css          All styling (dark/starry theme, quiet default `button`, `.btn--primary` for main actions, `.iconbtn`, `.help__term`/`.help__pop`, compact `.friends*`, element colours, bio chart classes, @media print)
+  assets/styles.css          All styling (dark/starry theme, quiet default `button`, `.btn--primary` for main actions, `.iconbtn`, `.help__term`/`.help__pop`, compact `.friends*`, element colours, bio chart classes, `.trio3` first line side by side at every width, @media print incl. the one-page Soul Affinity print under `.results--love` and `@page` A4)
   assets/autocomplete.js     Progressive enhancement: suggestions + fills hidden lat/lon/tz, one instance per [data-place] container
   assets/memory.js           Browser memory: the visitor's own details incl. the Self name (`localStorage` keys `magic.me.v1`, `magic.loved.v1`, `magic.friends.v1`), saved people, the Friends list (max 60, strict code shape, search/rename/remove/bulk remove, Compare links; icon buttons get `aria-label`/`title` incl. the nickname, the selected count goes into `data-friends-selected` with `textContent`, select-all toggles its label), Self buttons (Save the data, Clear data, Generate hidden data code which dispatches `magic:share-hidden`), unlocking of Soul Affinity/Friends, filling the carried `a_*` inputs, the shared confirm dialog, adding a pending/imported friend once; two non-identifying `sessionStorage` flags; the only file that touches storage; validates on read; no network, no HTML injection
   assets/print.js            Un-hides the Print button and calls window.print()
@@ -27,7 +27,7 @@ public/                      ← web root (the server's "web directory")
   .htaccess                  Apache hardening + CSP (incl. frame-ancestors, form-action, base-uri) + caching
 src/
   autoload.php               PSR-4 style autoloader for namespace Magic\ (no Composer)
-  bootstrap.php              Loads autoloader, defines MAGIC_ROOT and the e() escape helper
+  bootstrap.php              Loads autoloader, defines MAGIC_ROOT, the e() escape helper and asset_version($file) (modification time of a file in public/assets, '0' if missing; used as `?v=` on the stylesheet and the six scripts)
   Chart.php                  ★ Chart::compute (big three + midheaven), Chart::full (+ planets, node, houses), Chart::partial (optional time/place), Chart::longitudes (bodies a person has, for synastry)
   ChartWheel.php             Pure: ChartWheel::layout($chart) → drawing data for the wheel (SIZE, radii, MIN_SEPARATION), spread(), point()
   Consent.php                Consent::COOKIE/VALUE ('5')/LIFETIME, given($cookies), safeQuery($q) — T&Cs cookie name and safe redirect query
@@ -83,9 +83,9 @@ src/
   Content/TarotPast.php      TEXT: 22 cards x up/rev, Past position
   Content/TarotPresent.php   same, Present position
   Content/TarotFuture.php    same, Future position
-templates/home.php           Page shell: hero, chooser (Self Discovery, Soul Affinity, Friends hidden codes; the last two locked by default), form for the mode, Friends panel, confirm dialog, includes the result template; escapes via e()
-templates/self-result.php    Self result: big three and planets with a "History" myth link (no degree/minute), Midheaven, houses, wheel, affinities, biorhythms, born under, Today's sky, print button (no share section)
-templates/love-result.php    Love result: first line (attraction, Harmony, Fights), Past/Present/Future spread, compact synchrony (per cycle, no overall), common values (three cards, no summary), synastry, Today's sky, share section (typed other soul only), print button
+templates/home.php           Page shell: hero, chooser (Self Discovery, Soul Affinity, Friends hidden codes; the last two locked by default), form for the mode, Friends panel, confirm dialog, includes the result template (inside `#results`, class `results--love` on a Soul Affinity result); links the stylesheet and the six scripts with `?v=asset_version(...)`; escapes via e()
+templates/self-result.php    Self result: big three and planets with a "History" myth link (no degree/minute), Midheaven, houses, wheel, affinities, biorhythms, born under, Today's sky, print button (no share section; no print header, the "Today for you" note is `no-print`)
+templates/love-result.php    Love result: first line (attraction, Harmony, Fights), Past/Present/Future spread, compact synchrony (per cycle, no overall), common values (three cards, no summary), synastry, Today's sky, share section (typed other soul only, not printed), print button; no print header, the "Today for you" note is `no-print`; inside `#results.results--love`, which prints on one A4 page
 templates/partials/          head-seo.php (the whole <head> metadata from `$seo`: title, description, keywords, robots, canonical, Open Graph, Twitter card, JSON-LD for WebSite, WebApplication, WebPage and FAQPage), help.php (help_term($key, $label); an unknown key throws under MAGIC_TESTING, else prints the label; bar($value, $text, $label, $min, $max, $class): a `<meter>` with a value bubble on hover/focus, always shown in print), self-actions.php (Self buttons, status, hidden-code panel with the "not a secret" note and the WhatsApp anchor), person-carried.php (hidden `a_*` inputs of Soul Affinity), friends.php (Friends panel: search, bulk bar, row `<template>`, noscript note), confirm.php (the shared `<dialog>`), import.php ("Import from a user": nickname, scan, paste), hidden-person.php ("details loaded and hidden" block), person-fields.php (birth and optional current-city fields per prefix), icons.php (static SVG incl. check-all, trash, compare, x), bio.php (curve chart), terms.php (T&Cs text, used by the popup and the end-of-page section), share.php (Share section, Soul Affinity with a typed other soul only: buttons, QR, collapsed links), qr.php (qr_svg()), wheel.php (wheel_svg()), sky.php (Today's sky), synastry.php (aspect table), memory.php (browser-memory bar and saved-people select)
 docker-compose.yml           Local run: web (PHP + Apache, bind mount, 127.0.0.1:8081) and db (MySQL 8.4, volume dbdata, migrations/ as initdb, not published)
 docker/Dockerfile            php:8.3-apache + pdo_mysql + rewrite/headers/expires; Apache config allowing the root .htaccess
@@ -241,6 +241,8 @@ Autocomplete: `autocomplete.js` → `GET api/cities.php?q=par` → `Geocoder::se
 | Change the distances in the audit | `Earth\Geography`, `Audit\AuditRecord` |
 | Change a sign's myth ("History" popup) | `Content\Myths::TEXT` |
 | Change Attraction, Harmony or Fights | `Love\NameAffinity`, `Love\Harmony`, first line of `templates/love-result.php`, help keys `love.name_affinity`, `love.harmony`, `love.fights`, `tests/cases/love.php` |
+| Change the Soul Affinity print layout | `.results--love` rules in the `@media print` block of `public/assets/styles.css`, class set in `templates/home.php`, `tests/cases/share.php` |
+| Make browsers fetch a changed asset | nothing: `asset_version()` (`src/bootstrap.php`) tags links in `templates/home.php`; a new asset must be linked with it |
 | Change how a percentage bar looks | `bar()` in `templates/partials/help.php`, `.bar` / `.bar__tip` in `public/assets/styles.css` |
 | Change houses / Midheaven | `Astro\Houses`, `Chart::compute`/`full`, `Content\Houses` |
 | Change the wheel drawing | `ChartWheel`, `templates/partials/wheel.php`, wheel classes in `styles.css` |

@@ -63,6 +63,8 @@ You get:
 - What you have in common in Sun, Moon and Ascendant.
 - Synastry: the seven closest links between the two charts, each with a short meaning.
 
+The three values always sit side by side, also on phones. A printed Soul Affinity reading fits on a single page, opening with these three values.
+
 Percentages are drawn as bars; the number shows in a small bubble when you point at a bar or reach it with the keyboard, and it is always printed.
 
 You can also fill the other soul from a friend's hidden code ("Import from a user", by pasting the link or scanning the QR code) and give them a nickname that stays on your device.
