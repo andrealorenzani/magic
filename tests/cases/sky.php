@@ -349,7 +349,10 @@ check('love page: synastry table after "in common", today\'s sky after it, minor
     same($c !== false && $c < $s && $s < $k, true);
     same(str_contains($out, '<caption class="sr-only">'), true);
     same(str_contains($out, '<th scope="col">Aspect</th>'), true);
-    same(substr_count($out, '<th scope="row">'), 7);
+    same(substr_count($out, '<th scope="row">'), 8);
+    same(substr_count($out, 'synastry__row--harmonious'), 5);
+    same(substr_count($out, 'synastry__row--tense'), 3);
+    same(strpos($out, 'Best aspects') < strpos($out, 'Hardest aspects'), true);
     same(str_contains($out, '<th scope="col">Orb</th>') || str_contains($out, 'Orb is how far'), false);
     same(str_contains(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags($out))), "Ann's Mars square Silvia's Saturn"), true);
     same(str_contains($out, 'tarot__art tarot__art--wands'), true);
@@ -367,4 +370,16 @@ check('styles: print rules for the wheel, sky, synastry and tarot suits exist', 
     foreach (['.wheel', '.synastry', '.sky', '.tarot__art--wands', '.table-wrap'] as $needle) {
         same(str_contains($print, $needle), true);
     }
+});
+
+check('synastry: best = the 5 closest harmonious aspects, worst = the 3 closest tense ones, each sorted by orb', function () {
+    $a = Chart::longitudes(1990, 7, 15, 8, 30, 41.9028, 12.4964, 'Europe/Rome');
+    $b = Chart::longitudes(1988, 2, 3, 20, 10, 45.46, 9.19, 'Europe/Rome');
+    $r = Synastry::between($a, $b);
+    $all = Synastry::between($a, $b, 1000)['rows'];
+    $pick = static fn (string $t, int $n): array => array_slice(array_values(array_filter($all, static fn (array $x): bool => $x['tone'] === $t)), 0, $n);
+    same($r['best'], $pick('harmonious', Synastry::BEST));
+    same($r['worst'], $pick('tense', Synastry::WORST));
+    same([Synastry::BEST, Synastry::WORST], [5, 3]);
+    same(count($r['best']) <= 5 && count($r['worst']) <= 3, true);
 });

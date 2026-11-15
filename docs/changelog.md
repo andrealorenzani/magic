@@ -4,6 +4,19 @@ Newest first. Maintained by the `documenter` agent: every user- or developer-vis
 
 ## Unreleased
 
+## v1.2.0 - 2026-11-15 - Cleaner hidden-friend result, Best and Hardest aspects
+
+No ADR (owner request, no new architectural decision). Not a release: no release artifacts.
+
+**Changed**
+- Soul Affinity with a friend's hidden details: once the results are shown, the form box above them (the friend's label or "Your match", "Details shared with you are loaded and hidden", the "Remove them" link and the "Explore our connection" button) is no longer shown; the results still call the friend by their nickname. Before the results, the "loaded and hidden" box is unchanged.
+- Soul Affinity first line: "How much you are attracted" is now called **Attraction**. Attraction, Harmony and Fights have bars of the same length with equal spacing (three equal columns, also in print).
+- Synastry shows two groups instead of one list: **Best aspects** (the five closest harmonious links) and **Hardest aspects** (the three closest tense links). Blending links are not listed but still counted in the summary line. In print the two groups sit side by side, so the Soul Affinity reading still fits one A4 page.
+
+**Changed (developer)**
+- `Love\Synastry::between` also returns `best` and `worst` (constants `BEST = 5`, `WORST = 3`); `rows` (seven closest) is kept for the audit record, whose format is unchanged.
+- Hidden and flow tests updated, new synastry best/worst check in `tests/cases/sky.php`; the suite is 278 tests. SEO check: 0 FAIL, no SEO change.
+
 ## v1.1.0 - 2026-11-15 - Sign myths, Attraction / Harmony / Fights, one-page print
 
 No ADR (owner request, no new architectural decision). A minor release: the `/release` skill covers majors; the artifacts are built the same way into `release/1.1.0/` (zip plus a copy of the changelog, from tracked files only, never deployed).

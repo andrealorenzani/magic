@@ -136,19 +136,18 @@ check('flow: hidden request with a nickname: label is the nickname, nothing of t
     foreach ($flSecrets as $s) {
         same([$s, str_contains($out, $s)], [$s, false]);
     }
-    same(str_contains($out, '<strong>Bea</strong>'), true);
-    same(str_contains($out, '<strong>Your match</strong>'), false);
+    same(str_contains($out, 'id="love-form"'), false);
+    same(str_contains($out, 'Your match'), false);
     same(str_contains(html_entity_decode(strip_tags($out)), 'Ann & Bea'), true);
-    same(str_contains($out, '<input type="hidden" name="nick" value="Bea">'), true);
     same(preg_match('/Share this reading|share-link|\?c=/', $out), 0);
     [$plain] = $sharePage(array_diff_key($get, ['nick' => 1]), $flSrv);
-    same(str_contains($plain, '<strong>Your match</strong>'), true);
+    same(str_contains($plain, 'Your match'), true);
     same(str_contains($plain, 'name="nick" value'), false);
     [$xss] = $sharePage(['nick' => '<script>alert(1)</script>'] + $get, $flSrv);
     same(str_contains($xss, '<script>alert'), false);
     same(str_contains($xss, '&lt;script&gt;alert(1)&lt;/script&gt;'), true);
     [$bad] = $sharePage(['nick' => "x\x07"] + $get, $flSrv);
-    same(str_contains($bad, 'The nickname was not valid, so it was ignored.') && str_contains($bad, '<strong>Your match</strong>'), true);
+    same(str_contains($bad, 'The nickname was not valid, so it was ignored.') && str_contains($bad, 'Your match'), true);
     // A nickname without a hidden person has no effect.
     [$none] = $sharePage($flA + ['mode' => 'love', 'b_name' => 'Silvia', 'nick' => 'Bea', 'on' => '2026-10-09', 'noaudit' => ''], $flSrv);
     same(str_contains($none, 'Ann &amp; Silvia'), true);

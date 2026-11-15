@@ -101,6 +101,8 @@ $faq = ($mode === null && $seo['index']) ? [
           <?php include __DIR__ . '/partials/self-actions.php'; ?>
         </div>
       </form>
+    <?php elseif ($mode === 'love' && $hidden && $view): ?>
+      <?php /* A friend's hidden details are already compared below: no form to show. */ ?>
     <?php elseif ($mode === 'love'): ?>
       <form id="love-form" class="panel no-print" method="get" data-memory="love" action="./#results" autocomplete="off">
         <input type="hidden" name="mode" value="love">

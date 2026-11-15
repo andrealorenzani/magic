@@ -13,11 +13,14 @@ final class Synastry
     /** An aspect is kept when at least one of its two bodies is one of these. */
     public const PERSONAL = ['sun', 'moon', 'venus', 'mars', 'ascendant'];
     public const MAX_ROWS = 7;
+    /** How many of the best (harmonious) and worst (tense) aspects are shown. */
+    public const BEST = 5;
+    public const WORST = 3;
 
     /**
      * @param array<string,float> $lonsA Chart::longitudes() of the first person
      * @param array<string,float> $lonsB Chart::longitudes() of the second person
-     * @return array{rows: list<array<string,mixed>>, total: int, counts: array{harmonious:int, tense:int, neutral:int}, approx: bool, available: bool}
+     * @return array{rows: list<array<string,mixed>>, best: list<array<string,mixed>>, worst: list<array<string,mixed>>, total: int, counts: array{harmonious:int, tense:int, neutral:int}, approx: bool, available: bool}
      */
     public static function between(array $lonsA, array $lonsB, int $limit = self::MAX_ROWS): array
     {
@@ -44,8 +47,11 @@ final class Synastry
         foreach ($all as $row) {
             $counts[$row['tone']]++;
         }
+        $tone = static fn (string $t): array => array_values(array_filter($all, static fn (array $r): bool => $r['tone'] === $t));
         return [
             'rows' => array_slice($all, 0, $limit),
+            'best' => array_slice($tone('harmonious'), 0, self::BEST),
+            'worst' => array_slice($tone('tense'), 0, self::WORST),
             'total' => count($all),
             'counts' => $counts,
             'approx' => !isset($lonsA['ascendant']) || !isset($lonsB['ascendant']),

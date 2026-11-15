@@ -27,12 +27,12 @@ $pos = static fn (array $p): string => $p['symbol'] . ' ' . $p['name'] . ' ' . $
 <section class="block heart-card" aria-labelledby="name-h">
   <h2 id="name-h"><?= icon('heart') ?> <?= e($names['a']) ?> &amp; <?= e($names['b']) ?></h2>
   <div class="trio3">
-    <div class="trio3__item trio3__main">
-      <h3><?php help_term('love.name_affinity', 'How much you are attracted'); ?></h3>
+    <div class="trio3__item">
+      <h3><?php help_term('love.name_affinity', 'Attraction'); ?></h3>
       <?php if ($aff['noLetters']): ?>
         <p class="hint">Nothing to compare in these names.</p>
       <?php else: ?>
-        <?php bar($aff['percent'], $aff['percent'] . '%', 'How much you are attracted', 0, 100, 'bar--wide'); ?>
+        <?php bar($aff['percent'], $aff['percent'] . '%', 'Attraction', 0, 100, 'bar--wide'); ?>
       <?php endif; ?>
     </div>
     <div class="trio3__item">

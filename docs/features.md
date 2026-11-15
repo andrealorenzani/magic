@@ -34,7 +34,7 @@ Self Discovery and Soul Affinity have an optional **Current city** field (see "W
 | Born under (moon phase at your birth) | Self | date, time, city |
 | Biorhythms (physical, emotional, intellectual) | Self | birth date |
 | Today's sky (moon phase, Moon sign, a short reading) | Self, compact in Soul Affinity | nothing more |
-| How much you are attracted, Fights | Soul Affinity | both names |
+| Attraction, Fights | Soul Affinity | both names |
 | Harmony | Soul Affinity | the reading (kept private) |
 | Past / Present / Future tarot spread ("Your connection in three cards", right after the first line) | Soul Affinity | both names |
 | Biorhythm synchrony | Soul Affinity | both birth dates |
@@ -49,10 +49,10 @@ Details worth knowing:
 - **Midheaven, houses and wheel**: the Midheaven is shown with the other signs; each planet card says which of the twelve houses it falls in, with a one-line theme. The wheel is a picture of the same data, with a table beside it. It is smaller and brighter than before and can be collapsed.
 - **Born under**: the Moon phase on your birth day, in plain words.
 - **Today's sky**: the Moon phase and illumination of the reading day, the Moon sign of the day, and a short reading related to your Sun sign (in Love, one sentence per person). The same day always gives the same text.
-- **Attraction, Harmony, Fights**: the first line of a Soul Affinity result. "How much you are attracted" is a playful score from the two names; "Harmony" is a percentage of how peaceful the two of you are likely to be together; "Fights" is a playful score, from the names, of how much you spark arguments. The three values always sit side by side, also on phones.
+- **Attraction, Harmony, Fights**: the first line of a Soul Affinity result. "Attraction" is a playful score from the two names; "Harmony" is a percentage of how peaceful the two of you are likely to be together; "Fights" is a playful score, from the names, of how much you spark arguments. The three values always sit side by side with bars of the same length, also on phones and in print.
 - **Biorhythm synchrony**: one card per cycle with its bar and the next day you are both high or both low. There is no overall score or verdict.
 - **What you have in common**: three cards (Sun, Moon, Ascendant) with their comments, without a summary score.
-- **Synastry**: a table of the seven closest links between the two charts (for example "Venus trine Mars"), each with a meaning sentence and a harmonious / tense / neutral count. If the loved person has only a date, the table is marked approximate; with no date a card invites you to add it.
+- **Synastry**: a harmonious / tense / blending count, then two tables: "Best aspects", the five closest harmonious links between the two charts, and "Hardest aspects", the three closest tense ones (for example "Venus trine Mars"), each with a meaning sentence. Blending links are counted but not listed. In print the two tables sit side by side. If the loved person has only a date, the result is marked approximate; with no date a card invites you to add it.
 - **Tarot**: the full 78-card deck. Each of Past, Present and Future has its own text for the card, upright or reversed. The same people on the same day always draw the same cards.
 
 ## Where you are now (optional)
@@ -83,7 +83,7 @@ You can let another person compare themselves with you without typing your data.
 
 - **Share:** in Self Discovery, **Generate hidden data code**. It uses the details your browser remembers; the button is grey until your data is stored. It needs JavaScript. A panel shows a link and a QR code to copy or scan, and a **Share on WhatsApp** button that opens WhatsApp with the link ready to send (the panel says the link then also passes through WhatsApp). The warning is plain: the link is not a secret and not encrypted, so share it only with someone you trust.
 - **Import:** in Soul Affinity, "Import from a user": paste the link (it works without JavaScript; there is a second submit button in that box) or scan the QR code. Scanning needs a browser that supports it (for example Chrome on Android); pasting works everywhere. Opening such a link directly also lands in Soul Affinity.
-- **What the receiver sees:** the shared person's name, birth date, time and city are not shown; the other soul's fields are replaced by a note "Details shared with you are loaded and hidden" with a "Remove them" link, and the results call them by the nickname you typed, or "Your match". The nickname stays on your device and is never in a code or link. There is no share section, and no note about it, on such a result. If the link is damaged it is ignored with a note.
+- **What the receiver sees:** the shared person's name, birth date, time and city are not shown; before the result, the other soul's fields are replaced by a note "Details shared with you are loaded and hidden" with a "Remove them" link; once the result is shown, that whole box (with the "Explore our connection" button) is gone and the result starts right away, calling them by the nickname you typed, or "Your match". The nickname stays on your device and is never in a code or link. There is no share section, and no note about it, on such a result. If the link is damaged it is ignored with a note.
 - **Honest note:** "hidden" only means not shown on screen. The code is an encoding, not encryption: the link contains the details and anyone who has the link or the QR code can read them, it stays in the receiver's address bar and history, and the match results themselves say something about the person. Opening such a link is recorded like any Soul Affinity result, with both people's details (add `noaudit` to skip it).
 
 ## Friends hidden codes

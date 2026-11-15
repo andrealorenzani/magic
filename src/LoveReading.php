@@ -69,7 +69,7 @@ final class LoveReading
     private static function synastry(array $a, array $b): array
     {
         if ($a['date'] === null || $b['date'] === null) {
-            return ['rows' => [], 'total' => 0, 'counts' => ['harmonious' => 0, 'tense' => 0, 'neutral' => 0], 'approx' => true, 'available' => false];
+            return ['rows' => [], 'best' => [], 'worst' => [], 'total' => 0, 'counts' => ['harmonious' => 0, 'tense' => 0, 'neutral' => 0], 'approx' => true, 'available' => false];
         }
         return Synastry::between(self::longitudes($a), self::longitudes($b));
     }

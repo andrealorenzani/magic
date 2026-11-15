@@ -57,17 +57,17 @@ For the other soul, the name is enough. Date, time and city are optional, and ea
 
 You get:
 
-- A first line with three values: how much you are attracted, Harmony (how peaceful the two of you are likely to be together) and Fights.
+- A first line with three values: Attraction, Harmony (how peaceful the two of you are likely to be together) and Fights.
 - Your connection in three cards: a Past, Present and Future tarot spread from a deck of 78 cards. The same people on the same day draw the same cards.
 - Biorhythm synchrony of the two of you, cycle by cycle, with the next days you are both high or both low (needs both birth dates).
 - What you have in common in Sun, Moon and Ascendant.
-- Synastry: the seven closest links between the two charts, each with a short meaning.
+- Synastry: the best links between the two charts (the five closest harmonious ones) and the hardest (the three closest tense ones), each with a short meaning.
 
-The three values always sit side by side, also on phones. A printed Soul Affinity reading fits on a single page, opening with these three values.
+The three values always sit side by side with bars of the same length, also on phones. A printed Soul Affinity reading fits on a single page, opening with these three values.
 
 Percentages are drawn as bars; the number shows in a small bubble when you point at a bar or reach it with the keyboard, and it is always printed.
 
-You can also fill the other soul from a friend's hidden code ("Import from a user", by pasting the link or scanning the QR code) and give them a nickname that stays on your device.
+You can also fill the other soul from a friend's hidden code ("Import from a user", by pasting the link or scanning the QR code) and give them a nickname that stays on your device. Once the result for such a friend is shown, it starts right away, with no form box above it.
 
 ## Friends hidden codes
 

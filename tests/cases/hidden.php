@@ -133,9 +133,9 @@ check('hidden page: nothing about the shared person is rendered; match results, 
     }
     same(str_contains($out, 'Mallory') || str_contains($out, 'Oslo') || str_contains($out, '2000-01-01'), false);
     same(preg_match('/name="b_/', $out), 0);
-    same(str_contains($out, '<input type="hidden" name="h" value="' . $hiCode . '">'), true);
+    // 1.2.0: with results shown, the hidden-friend box and its form are gone
+    same(str_contains($out, 'id="love-form"') || str_contains($out, 'Remove them') || str_contains($out, 'Explore our connection') || str_contains($out, 'data-hidden-person'), false);
     same(str_contains($out, 'Your match'), true);
-    same(str_contains($out, 'Details shared with you are loaded and hidden. You will only see the match results.'), true);
     same(str_contains($out, 'has no share link') || str_contains($out, '>Sharing<') || str_contains($out, 'id="share-h"'), false);
     same(preg_match('/Share this reading|share-link|data-qr-copy="share|class="qr"|\?c=/', $out), 0);
     same(str_contains($out, 'id="name-h"') && str_contains($out, 'id="common-h"') && str_contains($out, 'class="tarot__card '), true);

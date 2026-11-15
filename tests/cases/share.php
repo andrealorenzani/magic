@@ -508,7 +508,7 @@ check('love page: in common shows chips, pills, meaning sentences and placeholde
     same(substr_count($out, '<p class="chip '), 4);
     same(str_contains($out, 'Compared: Sun, Moon.'), true);
     same(str_contains($out, 'How your two names harmonise.'), false);
-    same(str_contains($out, 'How much you are attracted') && str_contains($out, 'data-help="love.harmony"') && str_contains($out, 'data-help="love.fights"'), true);
+    same(str_contains($out, '>Attraction<') && !str_contains($out, 'How much you are attracted') && str_contains($out, 'data-help="love.harmony"') && str_contains($out, 'data-help="love.fights"'), true);
     same(str_contains($out, 'class="common__summary"'), false);
     [$out] = $sharePage(array_diff_key($loveGet, ['b_date' => 1]));
     same(str_contains($out, "Add Silvia's birth date to see what you share.") || str_contains($out, 'Add Silvia&#039;s birth date to see what you share.'), true);

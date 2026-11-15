@@ -20,6 +20,7 @@ Maintained by the `documenter` agent. Move items to "Done" when shipped (name th
 - SEO: metadata, structured data, sitemap, robots, landing text and FAQ, icon and preview image (home page only is indexable)
 - Self sign myths ("History" popups), Soul Affinity attraction / Harmony / Fights with the tarot right after them, value bubbles on percentage bars, simpler synchrony and "In common", seven synastry aspects, Distance card removed (no ADR, owner request)
 - v1.1.0 — minor release (no ADR, owner request): the items above since 1.0.0, plus the three Soul Affinity values always side by side, a one-page Soul Affinity print without a page header, and version-tagged static assets so changes reach browsers at once
+- v1.2.0 (not a release, no ADR, owner request): no form box above a Soul Affinity result from a friend's hidden details, "Attraction" with three equal bars, synastry in "Best aspects" and "Hardest aspects" groups
 - Docs: `docs/features.md` and `docs/changelog.md`
 
 ## Ideas (unprioritised)
